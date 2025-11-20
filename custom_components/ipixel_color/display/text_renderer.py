@@ -248,8 +248,8 @@ def get_optimal_font(draw: ImageDraw.Draw, lines: list[str],
     Returns:
         Optimal font for the text
     """
-    # Try different font sizes from large to small
-    for size in range(min(max_height, max_width), MIN_FONT_SIZE, -1):
+    # Try different font sizes from large to small (down to 1)
+    for size in range(min(max_height, max_width), 0, -1):
         try:
             # Try to load custom font first, then default
             font = None

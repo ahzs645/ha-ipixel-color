@@ -33,7 +33,7 @@ async def async_setup_entry(
 class iPIXELTextDisplay(TextEntity):
     """Representation of an iPIXEL Color text display."""
 
-    _attr_mode = TextMode.TEXT
+    _attr_mode = TextMode.MULTILINE
     _attr_native_max = 500  # Maximum 500 characters per protocol
 
     def __init__(
