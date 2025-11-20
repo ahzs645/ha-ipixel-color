@@ -8,11 +8,8 @@ from typing import Any, Callable
 from bleak import BleakClient
 from bleak.exc import BleakError
 
-try:
-    from bleak_retry_connector import establish_connection
-    HAS_RETRY_CONNECTOR = True
-except ImportError:
-    HAS_RETRY_CONNECTOR = False
+# Note: bleak-retry-connector requires BLEDevice objects, 
+# but we only have MAC address strings, so we use standard BleakClient
 
 from ..const import WRITE_UUID, NOTIFY_UUID, CONNECTION_TIMEOUT
 from ..exceptions import iPIXELConnectionError, iPIXELTimeoutError
@@ -47,20 +44,13 @@ class BluetoothClient:
         _LOGGER.debug("Connecting to iPIXEL device at %s", self._address)
         
         try:
-            if HAS_RETRY_CONNECTOR:
-                # Use bleak-retry-connector for more reliable connections
-                _LOGGER.debug("Using bleak-retry-connector for reliable connection")
-                self._client = await establish_connection(
-                    BleakClient, self._address, self._address,
-                    disconnected_callback=self._disconnected_callback
-                )
-            else:
-                # Fallback to regular BleakClient
-                _LOGGER.debug("Using standard BleakClient (consider installing bleak-retry-connector)")
-                self._client = BleakClient(self._address)
-                await asyncio.wait_for(
-                    self._client.connect(), timeout=CONNECTION_TIMEOUT
-                )
+            # Always use standard BleakClient for simplicity
+            # bleak-retry-connector requires a BLEDevice object which we don't have
+            _LOGGER.debug("Connecting with BleakClient to %s", self._address)
+            self._client = BleakClient(self._address, disconnected_callback=self._disconnected_callback)
+            await asyncio.wait_for(
+                self._client.connect(), timeout=CONNECTION_TIMEOUT
+            )
             
             self._connected = True
             
