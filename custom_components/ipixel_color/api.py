@@ -77,13 +77,40 @@ class iPIXELAPI:
                 self._connected = False
 
     async def _send_command(self, command: bytes) -> bool:
-        """Send command to the device."""
+        """Send command to the device and log any response."""
         if not self._connected or not self._client:
             raise iPIXELConnectionError("Device not connected")
 
         try:
-            _LOGGER.debug("Sending command: %s", command.hex())
-            await self._client.write_gatt_char(WRITE_UUID, command)
+            # Set up temporary response capture
+            response_data = []
+            response_received = asyncio.Event()
+            
+            def response_handler(sender: Any, data: bytearray) -> None:
+                response_data.append(bytes(data))
+                response_received.set()
+                _LOGGER.info("Device response: %s", data.hex())
+            
+            # Enable notifications to capture response
+            await self._client.start_notify(NOTIFY_UUID, response_handler)
+            
+            try:
+                _LOGGER.debug("Sending command: %s", command.hex())
+                await self._client.write_gatt_char(WRITE_UUID, command)
+                
+                # Wait for response with short timeout
+                try:
+                    await asyncio.wait_for(response_received.wait(), timeout=2.0)
+                    if response_data:
+                        _LOGGER.info("Command response received: %s", response_data[-1].hex())
+                    else:
+                        _LOGGER.debug("No response received within timeout")
+                except asyncio.TimeoutError:
+                    _LOGGER.debug("No response received within 2 seconds")
+                    
+            finally:
+                await self._client.stop_notify(NOTIFY_UUID)
+            
             return True
         except BleakError as err:
             _LOGGER.error("Failed to send command: %s", err)
