@@ -307,7 +307,7 @@ class iPIXELAPI:
             default_mode_command = self._make_command_payload(0x8003, bytes())  # Default mode
             _LOGGER.debug("Setting default mode to exit slideshow")
             await self._send_command(default_mode_command)
-            await asyncio.sleep(0.1)
+            #await asyncio.sleep(0.1)
             
             # 2. Enable DIY mode (mode 1 = enter and clear current, show new)
             diy_command = bytes([5, 0, 4, 1, 1])
@@ -318,7 +318,7 @@ class iPIXELAPI:
                 return False
             
             # Small delay to let DIY mode activate
-            await asyncio.sleep(0.1)
+            #await asyncio.sleep(0.1)
             
             # 2. Build payload exactly like ipixel-ctrl
             payload = bytearray()
