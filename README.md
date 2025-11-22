@@ -1,179 +1,77 @@
 # iPIXEL Color - Home Assistant Integration
 
-A basic Home Assistant custom integration for iPIXEL Color LED matrix displays via Bluetooth.
+A Home Assistant custom integration for iPIXEL Color LED matrix displays via Bluetooth.
 
 ## Features
 
-- **Auto-discovery**: Automatically finds iPIXEL devices via Bluetooth scanning
-- **Power Control**: Turn your iPIXEL display on and off
-- **Manual Configuration**: Add devices manually if auto-discovery fails
-- **Device Registry**: Proper integration with Home Assistant device management
+- **Rich Text Display**: Custom fonts, sizes, multiline text with `\n`
+- **Template Support**: Use Home Assistant variables like `{{ states('sensor.temperature') }}°C`
+- **Font Management**: Load TTF/OTF fonts from `fonts/` folder
+- **Auto/Manual Updates**: Choose automatic updates or manual refresh
+- **State Persistence**: Settings preserved across HA restarts
+- **Auto-discovery**: Finds iPIXEL devices automatically
 
 ## Installation
 
-### Manual Installation
-
-1. Download or clone this repository
-2. Copy the `custom_components/ipixel_color` directory to your Home Assistant `custom_components` directory
+1. Copy `custom_components/ipixel_color` to your HA `custom_components` directory
+2. Create `fonts/` folder for custom fonts (optional)
 3. Restart Home Assistant
-4. Go to Settings → Devices & Services → Add Integration
-5. Search for "iPIXEL Color" and follow the setup wizard
+4. Add integration via Settings → Devices & Services → Add Integration
 
-### Directory Structure After Installation
+## Entities
 
+Once configured, you'll get these entities:
+
+- `text.{device}_display` - Enter text with templates and `\n` for newlines
+- `select.{device}_font` - Choose from available fonts
+- `number.{device}_font_size` - Font size (0=auto, supports decimals like 12.5)
+- `number.{device}_line_spacing` - Spacing between lines (0-20px)
+- `switch.{device}_antialiasing` - Smooth vs sharp text
+- `switch.{device}_auto_update` - Auto-update on changes
+- `button.{device}_update_display` - Manual refresh
+- `switch.{device}_power` - Turn display on/off
+
+## Template Examples
+
+```jinja2
+Time: {{ now().strftime('%H:%M') }}
+Temp: {{ states('sensor.temperature') | round(1) }}°C
+{% if is_state('sun.sun', 'above_horizon') %}Day{% else %}Night{% endif %}
 ```
-config/
-└── custom_components/
-    └── ipixel_color/
-        ├── __init__.py
-        ├── api.py
-        ├── config_flow.py
-        ├── const.py
-        ├── manifest.json
-        ├── strings.json
-        ├── switch.py
-        └── translations/
-            └── en.json
-```
 
-## Setup
+## Quick Start
 
-### Automatic Discovery
+1. Set text: `"Hello\nWorld"`
+2. Choose font and size (or use auto-sizing)
+3. Toggle auto-update ON or use manual update button
+4. Templates update automatically with sensor changes
 
-1. Make sure your iPIXEL device is powered on and in pairing mode
-2. Go to Settings → Devices & Services
-3. Click "Add Integration"
-4. Search for "iPIXEL Color"
-5. Select your device from the discovered list
+## Font Management
 
-### Manual Setup
-
-If automatic discovery fails:
-
-1. Follow steps 1-4 above
-2. Select "Manual entry" from the device list
-3. Enter your device's Bluetooth address (format: AA:BB:CC:DD:EE:FF)
-4. Give your device a friendly name
-
-## Usage
-
-Once configured, your iPIXEL device will appear as:
-
-- **Switch Entity**: `switch.{device_name}_power`
-  - Turn the display on/off
-  - Shows connection status
-
-### Automations
-
-You can use the switch in automations:
-
-```yaml
-# Turn on iPIXEL when someone arrives home
-automation:
-  - alias: "iPIXEL Welcome Home"
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.front_door
-        to: 'on'
-    action:
-      - service: switch.turn_on
-        target:
-          entity_id: switch.ipixel_display_power
-```
+- Place `.ttf`/`.otf` files in `fonts/` folder
+- Restart HA to see new fonts in dropdown
+- Recommended: pixel fonts like 5x5.ttf, 7x7.ttf
 
 ## Troubleshooting
 
-### Device Not Found
+- Enable debug logging: `custom_components.ipixel_color: debug`
+- Check auto-update is ON or use manual update button
+- Verify templates in Developer Tools → Template
+- Ensure device is in Bluetooth range
 
-- Ensure your iPIXEL device is powered on
-- Make sure the device is in pairing/discoverable mode
-- Check that Bluetooth is enabled on your Home Assistant host
-- Verify the device isn't already connected to another device
+## Status
 
-### Connection Issues
+| Feature | Status |
+|---------|--------|
+| ✅ Text Display | Complete |
+| ✅ Custom Fonts | Complete |  
+| ✅ Templates | Complete |
+| ✅ State Persistence | Complete |
+| ❌ Brightness Control | Planned |
+| ❌ Colors/Images | Planned |
 
-- Make sure the device is within Bluetooth range (typically 10-30 feet)
-- Check Home Assistant logs for specific error messages
-- Try removing and re-adding the integration
-- Restart Home Assistant if Bluetooth seems unresponsive
+## Technical
 
-### Logs
-
-Enable debug logging to see detailed information:
-
-```yaml
-# Add to configuration.yaml
-logger:
-  logs:
-    custom_components.ipixel_color: debug
-```
-
-## Current Limitations
-
-This is a basic version with limited functionality:
-
-- ✅ Power on/off control
-- ✅ Connection management
-- ❌ Brightness control (planned for v0.2.0)
-- ❌ Color control (planned for v0.2.0)
-- ❌ Image/GIF upload (planned for v0.3.0)
-- ❌ Display modes (planned for v0.3.0)
-
-## Technical Details
-
-Based on reverse-engineered protocol documentation from:
-- [go-ipxl](https://github.com/yyewolf/go-ipxl) - Go implementation
-- [ipixel-ctrl](https://github.com/sdolphin-JP/ipixel-ctrl) - Python implementation
-
-### Protocol Commands Used
-
-- **Power On**: `[5, 0, 7, 1, 1]`
-- **Power Off**: `[5, 0, 7, 1, 0]`
-- **Bluetooth UUIDs**:
-  - Write: `0000fa02-0000-1000-8000-00805f9b34fb`
-  - Notify: `0000fa03-0000-1000-8000-00805f9b34fb`
-
-## Development
-
-### Requirements
-
-- Home Assistant 2024.1+
-- Python 3.11+
-- `bleak>=0.20.0` for Bluetooth communication
-
-### Testing
-
-To test the integration:
-
-1. Install in development mode
-2. Enable debug logging
-3. Test with a physical iPIXEL device
-4. Check logs for any errors
-
-## Contributing
-
-This is the first version focusing on basic connectivity. Future contributions welcome for:
-
-- Additional display features
-- Better error handling
-- Support for more iPIXEL device types
-- UI improvements
-
-## Version History
-
-### v0.1.0 - Initial Release
-- Basic Bluetooth connectivity
-- Power on/off control
-- Auto-discovery via Bluetooth scanning
-- Manual device configuration
-- Home Assistant device registry integration
-
-## License
-
-This project is provided under the MIT License. See LICENSE file for details.
-
-## Acknowledgments
-
-- Protocol documentation derived from community reverse engineering efforts
-- Built using Home Assistant integration best practices
-- Thanks to the iPIXEL community for protocol analysis
+- Based on [ipixel-ctrl](https://github.com/sdolphin-JP/ipixel-ctrl) protocol
+- Requires: Home Assistant 2024.1+, Python 3.11+, `bleak`, `Pillow`
+- Test script: `python direct_text_test.py MAC_ADDRESS "text"`
