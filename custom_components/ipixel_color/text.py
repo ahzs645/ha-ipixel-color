@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI, iPIXELConnectionError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
@@ -31,7 +32,7 @@ async def async_setup_entry(
     async_add_entities([iPIXELTextDisplay(hass, api, entry, address, name)])
 
 
-class iPIXELTextDisplay(TextEntity):
+class iPIXELTextDisplay(TextEntity, RestoreEntity):
     """Representation of an iPIXEL Color text display."""
 
     _attr_mode = TextMode.TEXT
@@ -70,6 +71,16 @@ class iPIXELTextDisplay(TextEntity):
             model="LED Matrix Display",
             sw_version="1.0",
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        
+        # Restore last state if available
+        last_state = await self.async_get_last_state()
+        if last_state is not None and last_state.state:
+            self._current_text = last_state.state
+            _LOGGER.debug("Restored text state: %s", self._current_text)
 
     @property
     def native_value(self) -> str | None:

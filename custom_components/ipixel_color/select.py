@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
@@ -34,7 +35,7 @@ async def async_setup_entry(
     ])
 
 
-class iPIXELFontSelect(SelectEntity):
+class iPIXELFontSelect(SelectEntity, RestoreEntity):
     """Representation of an iPIXEL Color font selection."""
 
     def __init__(
@@ -67,6 +68,16 @@ class iPIXELFontSelect(SelectEntity):
             model="LED Matrix Display",
             sw_version="1.0",
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        
+        # Restore last state if available
+        last_state = await self.async_get_last_state()
+        if last_state is not None and last_state.state in self._attr_options:
+            self._attr_current_option = last_state.state
+            _LOGGER.debug("Restored font selection: %s", self._attr_current_option)
 
     def _get_available_fonts(self) -> list[str]:
         """Get list of available fonts from fonts/ folder."""

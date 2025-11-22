@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
@@ -33,7 +34,7 @@ async def async_setup_entry(
     ])
 
 
-class iPIXELFontSize(NumberEntity):
+class iPIXELFontSize(NumberEntity, RestoreEntity):
     """Representation of an iPIXEL Color font size setting."""
 
     _attr_mode = NumberMode.BOX
@@ -69,6 +70,19 @@ class iPIXELFontSize(NumberEntity):
             sw_version="1.0",
         )
 
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        
+        # Restore last state if available
+        last_state = await self.async_get_last_state()
+        if last_state is not None and last_state.state not in ("unknown", "unavailable"):
+            try:
+                self._attr_native_value = float(last_state.state)
+                _LOGGER.debug("Restored font size: %.1f", self._attr_native_value)
+            except (ValueError, TypeError):
+                _LOGGER.warning("Could not restore font size from: %s", last_state.state)
+
     @property
     def native_value(self) -> float | None:
         """Return the current font size value."""
@@ -93,7 +107,7 @@ class iPIXELFontSize(NumberEntity):
         return True
 
 
-class iPIXELLineSpacing(NumberEntity):
+class iPIXELLineSpacing(NumberEntity, RestoreEntity):
     """Representation of an iPIXEL Color line spacing setting."""
 
     _attr_mode = NumberMode.BOX
@@ -128,6 +142,19 @@ class iPIXELLineSpacing(NumberEntity):
             model="LED Matrix Display",
             sw_version="1.0",
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        
+        # Restore last state if available
+        last_state = await self.async_get_last_state()
+        if last_state is not None and last_state.state not in ("unknown", "unavailable"):
+            try:
+                self._attr_native_value = int(float(last_state.state))
+                _LOGGER.debug("Restored line spacing: %d", self._attr_native_value)
+            except (ValueError, TypeError):
+                _LOGGER.warning("Could not restore line spacing from: %s", last_state.state)
 
     @property
     def native_value(self) -> float | None:

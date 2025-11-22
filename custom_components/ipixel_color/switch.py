@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI, iPIXELConnectionError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
@@ -132,7 +133,7 @@ class iPIXELSwitch(SwitchEntity):
             self._available = False
 
 
-class iPIXELAntialiasingSwitch(SwitchEntity):
+class iPIXELAntialiasingSwitch(SwitchEntity, RestoreEntity):
     """Representation of an iPIXEL Color antialiasing setting."""
 
     _attr_icon = "mdi:vector-selection"
@@ -163,6 +164,16 @@ class iPIXELAntialiasingSwitch(SwitchEntity):
             sw_version="1.0",
         )
 
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        
+        # Restore last state if available
+        last_state = await self.async_get_last_state()
+        if last_state is not None:
+            self._is_on = last_state.state == "on"
+            _LOGGER.debug("Restored antialiasing state: %s", self._is_on)
+
     @property
     def is_on(self) -> bool:
         """Return True if antialiasing is enabled."""
@@ -184,7 +195,7 @@ class iPIXELAntialiasingSwitch(SwitchEntity):
         _LOGGER.debug("Antialiasing disabled")
 
 
-class iPIXELAutoUpdateSwitch(SwitchEntity):
+class iPIXELAutoUpdateSwitch(SwitchEntity, RestoreEntity):
     """Representation of an iPIXEL Color auto-update setting."""
 
     _attr_icon = "mdi:auto-fix"
@@ -214,6 +225,16 @@ class iPIXELAutoUpdateSwitch(SwitchEntity):
             model="LED Matrix Display",
             sw_version="1.0",
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        
+        # Restore last state if available
+        last_state = await self.async_get_last_state()
+        if last_state is not None:
+            self._is_on = last_state.state == "on"
+            _LOGGER.debug("Restored auto-update state: %s", self._is_on)
 
     @property
     def is_on(self) -> bool:
