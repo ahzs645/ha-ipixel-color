@@ -13,6 +13,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI, iPIXELConnectionError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .common import get_entity_id_by_unique_id
 from .common import resolve_template_variables, update_ipixel_display
 
 _LOGGER = logging.getLogger(__name__)
@@ -134,7 +135,7 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
         """Get the current auto-update setting from the switch entity."""
         try:
             # Get the auto-update switch entity
-            entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
+            entity_id = get_entity_id_by_unique_id(self.hass, self._address, "auto_update", "switch")
             state = self.hass.states.get(entity_id)
             if state:
                 return state.state == "on"

@@ -4,9 +4,36 @@ from __future__ import annotations
 import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.template import Template
-from .const import MODE_TEXT_IMAGE, MODE_TEXT, MODE_CLOCK
+from homeassistant.helpers import entity_registry as er
+from .const import MODE_TEXT_IMAGE, MODE_TEXT, MODE_CLOCK, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def get_entity_id_by_unique_id(hass: HomeAssistant, address: str, entity_suffix: str, platform: str = None) -> str | None:
+    """Get entity_id from unique_id using the entity registry.
+
+    Args:
+        hass: Home Assistant instance
+        address: Device address (e.g., '5c1592bd')
+        entity_suffix: Entity suffix (e.g., 'text_color', 'background_color', 'mode_select')
+        platform: Optional platform filter (e.g., 'light', 'select', 'switch')
+
+    Returns:
+        Entity ID if found, None otherwise
+    """
+    registry = er.async_get(hass)
+    unique_id = f"{address}_{entity_suffix}"
+
+    # Look up entity by unique_id
+    for entity_id, entry in registry.entities.items():
+        if entry.unique_id == unique_id and entry.platform == DOMAIN:
+            # If platform specified, verify it matches
+            if platform and not entity_id.startswith(f"{platform}."):
+                continue
+            return entity_id
+
+    return None
 
 
 async def resolve_template_variables(hass: HomeAssistant, text: str) -> str:
@@ -50,7 +77,7 @@ async def update_ipixel_display(hass: HomeAssistant, device_name: str, api, text
     """
     try:
         # Get current mode
-        mode = await _get_entity_setting(hass, device_name, "select", "mode", str)
+        mode = await _get_entity_setting(hass, device_name, "select", "mode_select", str, api._address)
         if not mode:
             mode = MODE_TEXT_IMAGE  # Default to textimage mode
 
@@ -87,25 +114,25 @@ async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, tex
     try:
         # Get current text if not provided
         if text is None:
-            text_entity_id = f"text.{device_name.lower().replace(' ', '_')}_display"
-            text_state = hass.states.get(text_entity_id)
+            text_entity_id = get_entity_id_by_unique_id(hass, api._address, "text_display", "text")
+            text_state = hass.states.get(text_entity_id) if text_entity_id else None
             if not text_state or text_state.state in ("unknown", "unavailable", ""):
                 _LOGGER.warning("No text to display - skipping update")
                 return False
             text = text_state.state
         
         # Get all current settings
-        font_name = await _get_entity_setting(hass, device_name, "select", "font")
-        font_size = await _get_entity_setting(hass, device_name, "number", "font_size", float)
-        line_spacing = await _get_entity_setting(hass, device_name, "number", "line_spacing", int)
-        antialias = await _get_entity_setting(hass, device_name, "switch", "antialiasing", bool)
+        font_name = await _get_entity_setting(hass, device_name, "select", "font_select", str, api._address)
+        font_size = await _get_entity_setting(hass, device_name, "number", "font_size", float, api._address)
+        line_spacing = await _get_entity_setting(hass, device_name, "number", "line_spacing", int, api._address)
+        antialias = await _get_entity_setting(hass, device_name, "switch", "antialiasing", bool, api._address)
 
         # Get color settings from light entities
         from .color import rgb_to_hex
 
-        # Get text color from light entity
-        text_color_entity_id = f"light.{device_name.lower().replace(' ', '_')}_text_color"
-        text_color_state = hass.states.get(text_color_entity_id)
+        # Get text color from light entity using unique_id lookup
+        text_color_entity_id = get_entity_id_by_unique_id(hass, api._address, "text_color")
+        text_color_state = hass.states.get(text_color_entity_id) if text_color_entity_id else None
         if text_color_state:
             # If light is off, interpret as black
             if text_color_state.state == "off":
@@ -125,9 +152,9 @@ async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, tex
         else:
             text_color = "ffffff"  # Default to white
 
-        # Get background color from light entity
-        bg_color_entity_id = f"light.{device_name.lower().replace(' ', '_')}_background_color"
-        bg_color_state = hass.states.get(bg_color_entity_id)
+        # Get background color from light entity using unique_id lookup
+        bg_color_entity_id = get_entity_id_by_unique_id(hass, api._address, "background_color")
+        bg_color_state = hass.states.get(bg_color_entity_id) if bg_color_entity_id else None
         if bg_color_state:
             # If light is off, interpret as black
             if bg_color_state.state == "off":
@@ -186,15 +213,15 @@ async def _update_clock_mode(hass: HomeAssistant, device_name: str, api) -> bool
     """
     try:
         # Get clock settings from entities
-        clock_style = await _get_entity_setting(hass, device_name, "select", "clock_style", int)
+        clock_style = await _get_entity_setting(hass, device_name, "select", "clock_style_select", int, api._address)
         if clock_style is None:
             clock_style = 1  # Default style
 
-        format_24 = await _get_entity_setting(hass, device_name, "switch", "clock_24h", bool)
+        format_24 = await _get_entity_setting(hass, device_name, "switch", "clock_24h", bool, api._address)
         if format_24 is None:
             format_24 = True  # Default to 24h
 
-        show_date = await _get_entity_setting(hass, device_name, "switch", "clock_show_date", bool)
+        show_date = await _get_entity_setting(hass, device_name, "switch", "clock_show_date", bool, api._address)
         if show_date is None:
             show_date = True  # Default to showing date
 
@@ -239,8 +266,8 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
     try:
         # Get current text if not provided
         if text is None:
-            text_entity_id = f"text.{device_name.lower().replace(' ', '_')}_display"
-            text_state = hass.states.get(text_entity_id)
+            text_entity_id = get_entity_id_by_unique_id(hass, api._address, "text_display", "text")
+            text_state = hass.states.get(text_entity_id) if text_entity_id else None
             if not text_state or text_state.state in ("unknown", "unavailable", ""):
                 _LOGGER.warning("No text to display - skipping update")
                 return False
@@ -249,7 +276,7 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         # Get pypixelcolor text settings (reusing existing entities where possible)
 
         # Reuse existing font selector - convert TTF filename to full path
-        font_name = await _get_entity_setting(hass, device_name, "select", "font")
+        font_name = await _get_entity_setting(hass, device_name, "select", "font_select", str, api._address)
         if font_name and font_name.endswith(('.ttf', '.otf')):
             # Custom TTF/OTF font from fonts/ folder
             from pathlib import Path
@@ -259,11 +286,11 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
             # Use pypixelcolor's built-in fonts or default
             font = "CUSONG"
 
-        # Get text color from light entity
+        # Get text color from light entity using unique_id lookup
         from .color import rgb_to_hex
 
-        text_color_entity_id = f"light.{device_name.lower().replace(' ', '_')}_text_color"
-        text_color_state = hass.states.get(text_color_entity_id)
+        text_color_entity_id = get_entity_id_by_unique_id(hass, api._address, "text_color")
+        text_color_state = hass.states.get(text_color_entity_id) if text_color_entity_id else None
         if text_color_state:
             _LOGGER.debug("Text color light state: %s, attributes: %s",
                          text_color_state.state, text_color_state.attributes)
@@ -290,17 +317,17 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
             _LOGGER.warning("Text color light entity %s not found, using default white", text_color_entity_id)
 
         # Animation - need new number entity
-        animation = await _get_entity_setting(hass, device_name, "number", "text_animation", int)
+        animation = await _get_entity_setting(hass, device_name, "number", "text_animation", int, api._address)
         if animation is None:
             animation = 0  # Default to no animation
 
         # Speed - need new number entity
-        speed = await _get_entity_setting(hass, device_name, "number", "text_speed", int)
+        speed = await _get_entity_setting(hass, device_name, "number", "text_speed", int, api._address)
         if speed is None:
             speed = 80  # Default speed
 
         # Rainbow mode - need new number entity
-        rainbow_mode = await _get_entity_setting(hass, device_name, "number", "text_rainbow", int)
+        rainbow_mode = await _get_entity_setting(hass, device_name, "number", "text_rainbow", int, api._address)
         if rainbow_mode is None:
             rainbow_mode = 0  # Default to no rainbow
 
@@ -336,21 +363,30 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         return False
 
 
-async def _get_entity_setting(hass: HomeAssistant, device_name: str, platform: str, setting: str, value_type=str):
+async def _get_entity_setting(hass: HomeAssistant, device_name: str, platform: str, setting: str, value_type=str, address: str = None):
     """Get setting from Home Assistant entity.
-    
+
     Args:
         hass: Home Assistant instance
-        device_name: Device name for entity ID
+        device_name: Device name for entity ID (fallback if address not provided)
         platform: Platform type (select, number, switch)
         setting: Setting name (font, font_size, etc.)
         value_type: Type to convert value to
-        
+        address: Device address for entity registry lookup (preferred)
+
     Returns:
         Entity value or appropriate default
     """
     try:
-        entity_id = f"{platform}.{device_name.lower().replace(' ', '_')}_{setting}"
+        # Try entity registry lookup first if address provided
+        entity_id = None
+        if address:
+            entity_id = get_entity_id_by_unique_id(hass, address, setting, platform)
+
+        # Fallback to manual construction if not found
+        if not entity_id:
+            entity_id = f"{platform}.{device_name.lower().replace(' ', '_')}_{setting}"
+
         state = hass.states.get(entity_id)
         
         if not state or state.state in ("unknown", "unavailable", ""):

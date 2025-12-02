@@ -13,6 +13,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .common import get_entity_id_by_unique_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -328,11 +329,11 @@ class iPIXELTextAnimation(NumberEntity, RestoreEntity):
             from .common import update_ipixel_display
 
             mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
-            mode_state = self.hass.states.get(mode_entity_id)
+            mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
 
             if mode_state and mode_state.state == "text":
                 auto_update_entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
-                auto_update_state = self.hass.states.get(auto_update_entity_id)
+                auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
                     await update_ipixel_display(self.hass, self._name, self._api)
@@ -409,11 +410,11 @@ class iPIXELTextSpeed(NumberEntity, RestoreEntity):
             from .common import update_ipixel_display
 
             mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
-            mode_state = self.hass.states.get(mode_entity_id)
+            mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
 
             if mode_state and mode_state.state == "text":
                 auto_update_entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
-                auto_update_state = self.hass.states.get(auto_update_entity_id)
+                auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
                     await update_ipixel_display(self.hass, self._name, self._api)
@@ -490,11 +491,11 @@ class iPIXELTextRainbow(NumberEntity, RestoreEntity):
             from .common import update_ipixel_display
 
             mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
-            mode_state = self.hass.states.get(mode_entity_id)
+            mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
 
             if mode_state and mode_state.state == "text":
                 auto_update_entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
-                auto_update_state = self.hass.states.get(auto_update_entity_id)
+                auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
                     await update_ipixel_display(self.hass, self._name, self._api)

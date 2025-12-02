@@ -19,6 +19,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from .api import iPIXELAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .color import rgb_to_hex
+from .common import get_entity_id_by_unique_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,13 +167,13 @@ class iPIXELColorLight(LightEntity, RestoreEntity):
             from .common import update_ipixel_display
 
             # Check if we're in one of the trigger modes
-            mode_entity_id = f"select.{self._device_name.lower().replace(' ', '_')}_mode"
-            mode_state = self.hass.states.get(mode_entity_id)
+            mode_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "mode_select", "select")
+            mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
 
             if mode_state and mode_state.state in self._trigger_modes:
                 # Check auto-update setting
-                auto_update_entity_id = f"switch.{self._device_name.lower().replace(' ', '_')}_auto_update"
-                auto_update_state = self.hass.states.get(auto_update_entity_id)
+                auto_update_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "auto_update", "switch")
+                auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
                     await update_ipixel_display(self.hass, self._device_name, self._api)

@@ -15,6 +15,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, AVAILABLE_MODES, DEFAULT_MODE
+from .common import get_entity_id_by_unique_id
 from .common import update_ipixel_display
 
 _LOGGER = logging.getLogger(__name__)
@@ -117,8 +118,8 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
         """Trigger display update if auto-update is enabled."""
         try:
             # Check auto-update setting
-            auto_update_entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
-            auto_update_state = self.hass.states.get(auto_update_entity_id)
+            auto_update_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "auto_update", "switch")
+            auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
             
             if auto_update_state and auto_update_state.state == "on":
                 # Use common update function directly
@@ -197,8 +198,8 @@ class iPIXELModeSelect(SelectEntity, RestoreEntity):
         """Trigger display update if auto-update is enabled."""
         try:
             # Check auto-update setting
-            auto_update_entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
-            auto_update_state = self.hass.states.get(auto_update_entity_id)
+            auto_update_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "auto_update", "switch")
+            auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
             if auto_update_state and auto_update_state.state == "on":
                 # Use common update function directly
@@ -277,13 +278,13 @@ class iPIXELClockStyleSelect(SelectEntity, RestoreEntity):
         """Trigger display update if auto-update is enabled and in clock mode."""
         try:
             # Check if we're in clock mode
-            mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
-            mode_state = self.hass.states.get(mode_entity_id)
+            mode_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "mode_select", "select")
+            mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
 
             if mode_state and mode_state.state == "clock":
                 # Check auto-update setting
-                auto_update_entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
-                auto_update_state = self.hass.states.get(auto_update_entity_id)
+                auto_update_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "auto_update", "switch")
+                auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
                     # Use common update function directly
