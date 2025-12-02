@@ -265,6 +265,8 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         text_color_entity_id = f"light.{device_name.lower().replace(' ', '_')}_text_color"
         text_color_state = hass.states.get(text_color_entity_id)
         if text_color_state:
+            _LOGGER.debug("Text color light state: %s, attributes: %s",
+                         text_color_state.state, text_color_state.attributes)
             # If light is off, interpret as black
             if text_color_state.state == "off":
                 color = "000000"
@@ -278,10 +280,14 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
                 g = int(g * brightness_factor)
                 b = int(b * brightness_factor)
                 color = rgb_to_hex(r, g, b)
+                _LOGGER.debug("Computed text color: #%s (RGB=%d,%d,%d, brightness=%d)",
+                             color, r, g, b, brightness)
             else:
                 color = "ffffff"  # Default to white
+                _LOGGER.warning("No rgb_color attribute in light entity, using default white")
         else:
             color = "ffffff"  # Default to white
+            _LOGGER.warning("Text color light entity %s not found, using default white", text_color_entity_id)
 
         # Animation - need new number entity
         animation = await _get_entity_setting(hass, device_name, "number", "text_animation", int)
