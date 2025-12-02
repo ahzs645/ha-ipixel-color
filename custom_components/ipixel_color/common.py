@@ -100,13 +100,25 @@ async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, tex
         line_spacing = await _get_entity_setting(hass, device_name, "number", "line_spacing", int)
         antialias = await _get_entity_setting(hass, device_name, "switch", "antialiasing", bool)
 
-        # Get color settings
-        text_color = await _get_entity_setting(hass, device_name, "text", "text_color")
-        if not text_color:
+        # Get color settings from light entities
+        from .color import rgb_to_hex
+
+        # Get text color from light entity
+        text_color_entity_id = f"light.{device_name.lower().replace(' ', '_')}_text_color"
+        text_color_state = hass.states.get(text_color_entity_id)
+        if text_color_state and text_color_state.attributes.get("rgb_color"):
+            r, g, b = text_color_state.attributes["rgb_color"]
+            text_color = rgb_to_hex(int(r), int(g), int(b))
+        else:
             text_color = "ffffff"  # Default to white
 
-        bg_color = await _get_entity_setting(hass, device_name, "text", "background_color")
-        if not bg_color:
+        # Get background color from light entity
+        bg_color_entity_id = f"light.{device_name.lower().replace(' ', '_')}_background_color"
+        bg_color_state = hass.states.get(bg_color_entity_id)
+        if bg_color_state and bg_color_state.attributes.get("rgb_color"):
+            r, g, b = bg_color_state.attributes["rgb_color"]
+            bg_color = rgb_to_hex(int(r), int(g), int(b))
+        else:
             bg_color = "000000"  # Default to black
 
         # Connect if needed

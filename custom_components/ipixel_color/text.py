@@ -14,7 +14,6 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from .api import iPIXELAPI, iPIXELConnectionError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .common import resolve_template_variables, update_ipixel_display
-from .color import iPIXELColorBase
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,8 +31,6 @@ async def async_setup_entry(
     
     async_add_entities([
         iPIXELTextDisplay(hass, api, entry, address, name),
-        iPIXELTextColor(hass, api, entry, address, name),
-        iPIXELBackgroundColor(hass, api, entry, address, name),
     ])
 
 
@@ -160,19 +157,3 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             self._available = False
 
 
-class iPIXELTextColor(iPIXELColorBase):
-    """Representation of an iPIXEL Color text/foreground color setting."""
-
-    _color_name = "Text Color"
-    _entity_suffix = "text_color"
-    _default_color = "ffffff"  # White
-    _trigger_modes = ["text", "textimage"]  # Trigger update in both text and textimage modes
-
-
-class iPIXELBackgroundColor(iPIXELColorBase):
-    """Representation of an iPIXEL Color background color setting."""
-
-    _color_name = "Background Color"
-    _entity_suffix = "background_color"
-    _default_color = "000000"  # Black
-    _trigger_modes = ["textimage"]  # Trigger update only in textimage mode
