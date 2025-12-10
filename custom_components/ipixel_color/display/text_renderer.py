@@ -44,10 +44,15 @@ def render_text_to_png(text: str, width: int, height: int, antialias: bool = Tru
     """
     # Create image with device dimensions
     # Use 'L' mode (grayscale) for non-antialiased to get sharper pixels
+    image_mode = "RGB" if antialias else "1"
+    gray_mode = "L" if antialias else "1"
+    init_zero = (0,0,0) if antialias else 0
+    gray_zero = 0
+
     if not antialias:
-        img = Image.new('1', (width, height), 0)  # 1-bit pixels, black background
+        img = Image.new(image_mode, (width, height), init_zero)  # 1-bit pixels, black background
     else:
-        img = Image.new('RGB', (width, height), (0, 0, 0))
+        img = Image.new(image_mode, (width, height), init_zero)
     draw = ImageDraw.Draw(img)
     
     # Process multiline text
@@ -60,7 +65,7 @@ def render_text_to_png(text: str, width: int, height: int, antialias: bool = Tru
         font_obj = get_optimal_font(draw, lines, width, height, font, line_spacing)
     
     # Create temporary image to measure actual content bounds
-    temp_img = Image.new('L', (width, height), 0)  # Grayscale for easier analysis
+    temp_img = Image.new(gray_mode, (width*2, height*2), gray_zero)  # Grayscale for easier analysis
     temp_draw = ImageDraw.Draw(temp_img)
     
     # Draw all text to measure actual content area and calculate per-line bounds
@@ -73,65 +78,33 @@ def render_text_to_png(text: str, width: int, height: int, antialias: bool = Tru
         
         # Draw line on temporary image
         temp_draw.text((0, temp_y), line, font=font_obj, fill=255)
-        
-        # Calculate this specific line's content bounds
-        line_temp_img = Image.new('L', (width, line_height * 2), 0)
-        line_temp_draw = ImageDraw.Draw(line_temp_img)
-        line_temp_draw.text((0, 0), line, font=font_obj, fill=255)
-        line_bounds = _calculate_content_bounds(line_temp_img)
-        
-        if line_bounds:
-            l_left, l_top, l_right, l_bottom = line_bounds
-        else:
-            l_left, l_top, l_right, l_bottom = 0, 0, line_width, line_height
-            
+
+        l_left, l_top, l_right, l_bottom = (bbox[0], bbox[1], bbox[2], bbox[3])
         line_data.append({
             'text': line,
-            'width': line_width, 
-            'height': line_height,
             'y_pos': temp_y,
             'content_left': l_left,
             'content_top': l_top,
             'content_right': l_right,
             'content_bottom': l_bottom,
-            'content_width': l_right - l_left,
-            'content_height': l_bottom - l_top
+            'content_width': line_width,
+            'content_height': line_height
         })
         temp_y += line_height + line_spacing  # Add line spacing between lines
-    
-    # Calculate actual content bounds for the entire block
-    content_bounds = _calculate_content_bounds(temp_img)
-    if content_bounds:
-        content_left, content_top, content_right, content_bottom = content_bounds
-        content_width = content_right - content_left
-        content_height = content_bottom - content_top
-        
-        # Center the entire block vertically
-        y_offset = (height - content_height) // 2 - content_top
-    else:
-        # Fallback to traditional centering if no content found
-        total_height = sum(data['height'] for data in line_data)
-        if len(lines) > 1:
-            total_height += line_spacing * (len(lines) - 1)
-        y_offset = (height - total_height) // 2
-    
+
+    total_height = sum(data['content_height'] for data in line_data)
+    if len(lines) > 1:
+        total_height += line_spacing * (len(lines) - 1)
+    y_offset = (height - total_height) // 2
+
+    print(line_data)
     # Draw each line with corrected positioning
     current_y = y_offset
     for i, (line, data) in enumerate(zip(lines, line_data)):
         # Calculate horizontal position for this specific line using pre-calculated bounds
-        if 'content_left' in data:
-            # Center based on actual content width, accounting for left margin
-            x = (width - data['content_width']) // 2 - data['content_left']
-        else:
-            # Fallback if no bounds data
-            x = (width - data['width']) // 2
-        
-        # For the first line, adjust y position to account for top margin
-        if i == 0 and 'content_top' in data:
-            # Adjust for the first line's top margin
-            adjusted_y = current_y
-        else:
-            adjusted_y = current_y
+        x = (width - data['content_width']) // 2 - data['content_left']
+        adjusted_y = current_y - data["content_top"]
+
         
         # Draw the line with appropriate fill color
         if not antialias:
@@ -140,7 +113,7 @@ def render_text_to_png(text: str, width: int, height: int, antialias: bool = Tru
             draw.text((x, adjusted_y), line, font=font_obj, fill=(255, 255, 255))
         
         # Move to next line position
-        current_y += data['height'] + line_spacing  # Add line spacing between lines
+        current_y += data['content_height'] + line_spacing  # Add line spacing between lines
     
     # Parse hex colors to RGB tuples using utility function
     try:
