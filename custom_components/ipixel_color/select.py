@@ -17,6 +17,7 @@ from .api import iPIXELAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, AVAILABLE_MODES, DEFAULT_MODE
 from .common import get_entity_id_by_unique_id
 from .common import update_ipixel_display
+from .fonts import get_available_fonts
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,10 +59,10 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
         self._name = name
         self._attr_name = "Font"
         self._attr_unique_id = f"{address}_font_select"
-        self._attr_entity_description = "Select font for text display (loads from fonts/ folder)"
-        
-        # Get available fonts from fonts/ folder
-        self._attr_options = self._get_available_fonts()
+        self._attr_entity_description = "Select font for text display"
+
+        # Get available fonts from all locations
+        self._attr_options = get_available_fonts()
         self._attr_current_option = "OpenSans-Light.ttf" if "OpenSans-Light.ttf" in self._attr_options else self._attr_options[0]
         
         # Device info for grouping in device registry
@@ -82,21 +83,6 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
         if last_state is not None and last_state.state in self._attr_options:
             self._attr_current_option = last_state.state
             _LOGGER.debug("Restored font selection: %s", self._attr_current_option)
-
-    def _get_available_fonts(self) -> list[str]:
-        """Get list of available fonts from fonts/ folder."""
-        fonts = ["OpenSans-Light.ttf"]  # Use OpenSans-Light as default
-        
-        # Look for fonts in the fonts/ directory
-        fonts_dir = Path(__file__).parent / "fonts"
-        if fonts_dir.exists():
-            for font_file in fonts_dir.glob("*.ttf"):
-                if font_file.name not in fonts:  # Avoid duplicates
-                    fonts.append(font_file.name)
-            for font_file in fonts_dir.glob("*.otf"):
-                fonts.append(font_file.name)
-        
-        return sorted(fonts)
 
     @property
     def current_option(self) -> str | None:
