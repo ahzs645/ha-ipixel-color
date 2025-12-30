@@ -3,7 +3,7 @@
  * A Lovelace card for controlling iPIXEL Color LED displays
  */
 
-const CARD_VERSION = '1.0.0';
+const CARD_VERSION = '1.1.0';
 
 class iPIXELDisplayCard extends HTMLElement {
   constructor() {
@@ -32,7 +32,7 @@ class iPIXELDisplayCard extends HTMLElement {
       show_controls: true,
       show_quick_actions: true,
       show_playlist: true,
-      resolution: '64x16',
+      resolution: 'auto',
       matrix_padding: 1,
       border_radius: 8,
       border_width: 2,
@@ -41,6 +41,40 @@ class iPIXELDisplayCard extends HTMLElement {
     };
 
     this.render();
+  }
+
+  getResolution() {
+    // If explicitly set (not 'auto'), use that
+    if (this._config.resolution && this._config.resolution !== 'auto') {
+      return this._config.resolution.split('x').map(Number);
+    }
+
+    // Try to auto-detect from device sensors
+    if (this._hass && this._config.entity) {
+      const baseName = this._config.entity.replace('text.', '');
+
+      const patterns = [
+        [`sensor.${baseName}_width`, `sensor.${baseName}_height`],
+        [`sensor.${baseName}_display_width`, `sensor.${baseName}_display_height`],
+        [`sensor.display_width`, `sensor.display_height`],
+      ];
+
+      for (const [widthEntity, heightEntity] of patterns) {
+        const widthState = this._hass.states[widthEntity];
+        const heightState = this._hass.states[heightEntity];
+
+        if (widthState && heightState) {
+          const width = parseInt(widthState.state);
+          const height = parseInt(heightState.state);
+          if (!isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
+            return [width, height];
+          }
+        }
+      }
+    }
+
+    // Default fallback
+    return [64, 16];
   }
 
   set hass(hass) {
@@ -225,25 +259,47 @@ class iPIXELDisplayCard extends HTMLElement {
         .slider {
           flex: 1;
           -webkit-appearance: none;
-          height: 6px;
-          border-radius: 3px;
-          background: rgba(255,255,255,0.1);
+          appearance: none;
+          height: 8px;
+          border-radius: 4px;
+          background: linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) var(--value, 50%), rgba(255,255,255,0.3) var(--value, 50%), rgba(255,255,255,0.3) 100%);
           outline: none;
+          cursor: pointer;
         }
 
         .slider::-webkit-slider-thumb {
           -webkit-appearance: none;
-          width: 18px;
-          height: 18px;
+          appearance: none;
+          width: 20px;
+          height: 20px;
           border-radius: 50%;
-          background: var(--primary-color);
+          background: #fff;
+          border: 3px solid var(--primary-color);
           cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .slider::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #fff;
+          border: 3px solid var(--primary-color);
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .slider::-moz-range-track {
+          height: 8px;
+          border-radius: 4px;
+          background: rgba(255,255,255,0.3);
         }
 
         .slider-value {
-          min-width: 40px;
+          min-width: 45px;
           text-align: right;
-          font-size: 0.85em;
+          font-size: 0.9em;
+          font-weight: 500;
         }
 
         /* Dropdown */
@@ -492,7 +548,7 @@ class iPIXELDisplayCard extends HTMLElement {
     const isOn = switchEntity?.state === 'on';
     const isAvailable = entity?.state !== 'unavailable';
 
-    const [width, height] = (this._config.resolution || '64x16').split('x').map(Number);
+    const [width, height] = this.getResolution();
 
     this.shadowRoot.innerHTML = `
       ${this.getStyles()}
@@ -853,8 +909,11 @@ class iPIXELDisplayCard extends HTMLElement {
     // Brightness slider
     const brightnessSlider = this.shadowRoot.getElementById('brightness');
     if (brightnessSlider) {
+      // Set initial fill
+      brightnessSlider.style.setProperty('--value', `${brightnessSlider.value}%`);
       brightnessSlider.addEventListener('input', (e) => {
         const value = e.target.value;
+        e.target.style.setProperty('--value', `${value}%`);
         this.shadowRoot.getElementById('brightness-value').textContent = `${value}%`;
       });
       brightnessSlider.addEventListener('change', (e) => {
@@ -865,8 +924,12 @@ class iPIXELDisplayCard extends HTMLElement {
     // Speed slider
     const speedSlider = this.shadowRoot.getElementById('text-speed');
     if (speedSlider) {
+      // Set initial fill
+      speedSlider.style.setProperty('--value', `${speedSlider.value}%`);
       speedSlider.addEventListener('input', (e) => {
-        this.shadowRoot.getElementById('speed-value').textContent = e.target.value;
+        const value = e.target.value;
+        e.target.style.setProperty('--value', `${value}%`);
+        this.shadowRoot.getElementById('speed-value').textContent = value;
       });
     }
 
@@ -1072,9 +1135,11 @@ class iPIXELDisplayCardEditor extends HTMLElement {
       <div class="form-row">
         <label>Resolution</label>
         <select id="resolution">
+          <option value="auto" ${!this._config?.resolution || this._config?.resolution === 'auto' ? 'selected' : ''}>Auto-detect</option>
           <option value="32x8" ${this._config?.resolution === '32x8' ? 'selected' : ''}>32x8</option>
           <option value="64x16" ${this._config?.resolution === '64x16' ? 'selected' : ''}>64x16</option>
           <option value="64x32" ${this._config?.resolution === '64x32' ? 'selected' : ''}>64x32</option>
+          <option value="96x16" ${this._config?.resolution === '96x16' ? 'selected' : ''}>96x16</option>
           <option value="128x32" ${this._config?.resolution === '128x32' ? 'selected' : ''}>128x32</option>
         </select>
       </div>
@@ -1106,10 +1171,22 @@ class iPIXELDisplayCardEditor extends HTMLElement {
   }
 
   updateConfig() {
+    const entityId = this.shadowRoot.getElementById('entity').value;
+
+    // Try to auto-detect resolution from device sensors
+    let resolution = this.shadowRoot.getElementById('resolution').value;
+    if (entityId && this._hass) {
+      const detectedRes = this.detectResolution(entityId);
+      if (detectedRes) {
+        resolution = detectedRes;
+      }
+    }
+
     const config = {
-      entity: this.shadowRoot.getElementById('entity').value,
+      type: 'custom:ipixel-display-card',
+      entity: entityId,
       name: this.shadowRoot.getElementById('name').value || undefined,
-      resolution: this.shadowRoot.getElementById('resolution').value,
+      resolution: resolution,
       show_header: this.shadowRoot.getElementById('show_header').checked,
       show_display: this.shadowRoot.getElementById('show_display').checked,
       show_controls: this.shadowRoot.getElementById('show_controls').checked,
@@ -1122,6 +1199,37 @@ class iPIXELDisplayCardEditor extends HTMLElement {
       composed: true,
     });
     this.dispatchEvent(event);
+  }
+
+  detectResolution(entityId) {
+    // Try to find width/height sensors for this device
+    // Entity patterns: text.display -> sensor.display_width, sensor.display_height
+    // Or: text.led_ble_xxx -> sensor.led_ble_xxx_display_width
+    if (!this._hass) return null;
+
+    const baseName = entityId.replace('text.', '');
+
+    // Try different sensor naming patterns
+    const patterns = [
+      [`sensor.${baseName}_width`, `sensor.${baseName}_height`],
+      [`sensor.${baseName}_display_width`, `sensor.${baseName}_display_height`],
+      [`sensor.display_width`, `sensor.display_height`],
+    ];
+
+    for (const [widthEntity, heightEntity] of patterns) {
+      const widthState = this._hass.states[widthEntity];
+      const heightState = this._hass.states[heightEntity];
+
+      if (widthState && heightState) {
+        const width = parseInt(widthState.state);
+        const height = parseInt(heightState.state);
+        if (!isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
+          return `${width}x${height}`;
+        }
+      }
+    }
+
+    return null;
   }
 }
 
@@ -1136,7 +1244,7 @@ window.customCards.push({
   name: 'iPIXEL Display Card',
   description: 'Control your iPIXEL Color LED display with this feature-rich card',
   preview: true,
-  documentationURL: 'https://github.com/yourusername/lovelace-ipixel-display-card',
+  documentationURL: 'https://github.com/cagcoach/ha-ipixel-color',
 });
 
 console.info(
