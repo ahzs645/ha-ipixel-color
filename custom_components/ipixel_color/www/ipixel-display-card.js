@@ -12,12 +12,12 @@
  * Source files in /cards folder for development reference.
  * This bundled file is used by Home Assistant.
  *
- * @version 2.0.0
+ * @version 2.0.1
  * @author iPIXEL Color Team
  * @license MIT
  */
 
-const CARD_VERSION = '2.0.0';
+const CARD_VERSION = '2.0.1';
 
 // =============================================================================
 // SHARED STYLES
@@ -262,13 +262,13 @@ class iPIXELCardBase extends HTMLElement {
     return this._hass.states[entityId];
   }
 
-  callService(domain, service, data = {}) {
+  async callService(domain, service, data = {}) {
     if (!this._hass) return;
-    const switchEntity = this.getRelatedEntity('switch');
-    this._hass.callService(domain, service, {
-      entity_id: switchEntity?.entity_id || this._config.entity.replace('text.', 'switch.'),
-      ...data,
-    });
+    try {
+      await this._hass.callService(domain, service, data);
+    } catch (err) {
+      console.error(`iPIXEL service call failed: ${domain}.${service}`, err);
+    }
   }
 
   getResolution() {

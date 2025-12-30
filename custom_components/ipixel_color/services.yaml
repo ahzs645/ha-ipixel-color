@@ -1,10 +1,6 @@
 display_text:
   name: Display Text
   description: Display text on the iPIXEL device with custom effects and colors
-  target:
-    entity:
-      integration: ipixel_color
-      domain: text
   fields:
     text:
       name: Text
