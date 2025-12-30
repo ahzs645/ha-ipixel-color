@@ -34,6 +34,7 @@ PLATFORMS: list[Platform] = [
 ]
 
 # Service names
+SERVICE_DISPLAY_TEXT = "display_text"
 SERVICE_UPLOAD_GIF = "upload_gif"
 SERVICE_ADD_SCHEDULE = "add_schedule"
 SERVICE_REMOVE_SCHEDULE = "remove_schedule"
@@ -160,6 +161,58 @@ async def _async_register_services(
     schedule_manager: iPIXELScheduleManager
 ) -> None:
     """Register iPIXEL services."""
+
+    # Effect name to animation number mapping
+    EFFECT_MAP = {
+        "fixed": 0,
+        "scroll_ltr": 1,
+        "scroll_rtl": 2,
+        "blink": 3,
+        "breeze": 4,
+        "snow": 5,
+        "laser": 6,
+    }
+
+    def rgb_to_hex(rgb) -> str:
+        """Convert RGB array [r, g, b] to hex string 'rrggbb'."""
+        if isinstance(rgb, (list, tuple)) and len(rgb) >= 3:
+            return f"{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+        return "ffffff"  # Default white
+
+    async def handle_display_text(call: ServiceCall) -> None:
+        """Handle display_text service call."""
+        text = call.data.get("text", "")
+        effect = call.data.get("effect", "scroll_ltr")
+        speed = call.data.get("speed", 50)
+        color_fg = call.data.get("color_fg", [255, 255, 255])
+        color_bg = call.data.get("color_bg", [0, 0, 0])
+
+        if not text:
+            _LOGGER.warning("No text provided for display_text service")
+            return
+
+        try:
+            # Convert effect name to animation number
+            animation = EFFECT_MAP.get(effect, 0)
+
+            # Convert RGB arrays to hex strings
+            fg_hex = rgb_to_hex(color_fg)
+            bg_hex = rgb_to_hex(color_bg)
+
+            success = await api.display_text_pypixelcolor(
+                text=text,
+                color=fg_hex,
+                bg_color=bg_hex,
+                animation=animation,
+                speed=speed
+            )
+
+            if success:
+                _LOGGER.info("Text displayed: '%s' (effect=%s, speed=%d)", text, effect, speed)
+            else:
+                _LOGGER.error("Failed to display text: '%s'", text)
+        except Exception as err:
+            _LOGGER.error("Error displaying text: %s", err)
 
     async def handle_upload_gif(call: ServiceCall) -> None:
         """Handle upload_gif service call."""
@@ -423,6 +476,8 @@ async def _async_register_services(
             _LOGGER.error("Error adding time slot: %s", err)
 
     # Register all services if not already registered
+    if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_TEXT):
+        hass.services.async_register(DOMAIN, SERVICE_DISPLAY_TEXT, handle_display_text)
     if not hass.services.has_service(DOMAIN, SERVICE_UPLOAD_GIF):
         hass.services.async_register(DOMAIN, SERVICE_UPLOAD_GIF, handle_upload_gif)
     if not hass.services.has_service(DOMAIN, SERVICE_ADD_SCHEDULE):
