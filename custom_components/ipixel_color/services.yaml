@@ -238,3 +238,140 @@ clear_pixels:
     entity:
       integration: ipixel_color
       domain: switch
+
+show_slot:
+  name: Show Slot
+  description: Display content from a stored slot on the device
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    slot:
+      name: Slot Number
+      description: Slot number to display (0-255)
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+
+delete_slot:
+  name: Delete Slot
+  description: Delete stored content from a specific slot
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    slot:
+      name: Slot Number
+      description: Slot index to delete (0-255)
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+
+set_brightness:
+  name: Set Brightness
+  description: Set display brightness level directly via service
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    level:
+      name: Brightness Level
+      description: Brightness percentage (1-100)
+      required: true
+      example: 50
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: slider
+          unit_of_measurement: "%"
+
+set_clock_mode:
+  name: Set Clock Mode
+  description: Configure and activate clock display mode
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    style:
+      name: Clock Style
+      description: Clock style (0-8)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 8
+          mode: box
+    show_date:
+      name: Show Date
+      description: Display date alongside time
+      required: false
+      default: true
+      selector:
+        boolean:
+    format_24:
+      name: 24-Hour Format
+      description: Use 24-hour time format
+      required: false
+      default: true
+      selector:
+        boolean:
+    date:
+      name: Date
+      description: Date in DD/MM/YYYY format (defaults to today)
+      required: false
+      example: "25/12/2024"
+      selector:
+        text:
+
+set_time:
+  name: Set Time
+  description: Set specific time on device (does not sync with HA time)
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    hour:
+      name: Hour
+      description: Hour (0-23)
+      required: true
+      example: 12
+      selector:
+        number:
+          min: 0
+          max: 23
+          mode: box
+    minute:
+      name: Minute
+      description: Minute (0-59)
+      required: true
+      example: 30
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+    second:
+      name: Second
+      description: Second (0-59)
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box

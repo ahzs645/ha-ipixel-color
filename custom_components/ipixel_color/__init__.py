@@ -39,6 +39,11 @@ SERVICE_SYNC_TIME = "sync_time"
 SERVICE_SET_PIXEL = "set_pixel"
 SERVICE_SET_PIXELS = "set_pixels"
 SERVICE_CLEAR_PIXELS = "clear_pixels"
+SERVICE_SHOW_SLOT = "show_slot"
+SERVICE_DELETE_SLOT = "delete_slot"
+SERVICE_SET_BRIGHTNESS = "set_brightness"
+SERVICE_SET_CLOCK_MODE = "set_clock_mode"
+SERVICE_SET_TIME = "set_time"
 
 # Type alias for iPIXEL config entries
 
@@ -236,6 +241,76 @@ async def _async_register_services(
         except Exception as err:
             _LOGGER.error("Error clearing display: %s", err)
 
+    async def handle_show_slot(call: ServiceCall) -> None:
+        """Handle show_slot service call."""
+        slot = call.data.get("slot", 0)
+
+        try:
+            success = await api.show_slot(slot)
+            if success:
+                _LOGGER.info("Showing slot %d", slot)
+            else:
+                _LOGGER.error("Failed to show slot %d", slot)
+        except Exception as err:
+            _LOGGER.error("Error showing slot: %s", err)
+
+    async def handle_delete_slot(call: ServiceCall) -> None:
+        """Handle delete_slot service call."""
+        slot = call.data.get("slot", 0)
+
+        try:
+            success = await api.delete_slot(slot)
+            if success:
+                _LOGGER.info("Deleted slot %d", slot)
+            else:
+                _LOGGER.error("Failed to delete slot %d", slot)
+        except Exception as err:
+            _LOGGER.error("Error deleting slot: %s", err)
+
+    async def handle_set_brightness(call: ServiceCall) -> None:
+        """Handle set_brightness service call."""
+        level = call.data.get("level", 50)
+
+        try:
+            success = await api.set_brightness(level)
+            if success:
+                _LOGGER.info("Brightness set to %d%%", level)
+            else:
+                _LOGGER.error("Failed to set brightness to %d%%", level)
+        except Exception as err:
+            _LOGGER.error("Error setting brightness: %s", err)
+
+    async def handle_set_clock_mode(call: ServiceCall) -> None:
+        """Handle set_clock_mode service call."""
+        style = call.data.get("style", 1)
+        show_date = call.data.get("show_date", True)
+        format_24 = call.data.get("format_24", True)
+        date = call.data.get("date", "")
+
+        try:
+            success = await api.set_clock_mode(style, date, show_date, format_24)
+            if success:
+                _LOGGER.info("Clock mode set: style=%d, show_date=%s, 24h=%s", style, show_date, format_24)
+            else:
+                _LOGGER.error("Failed to set clock mode")
+        except Exception as err:
+            _LOGGER.error("Error setting clock mode: %s", err)
+
+    async def handle_set_time(call: ServiceCall) -> None:
+        """Handle set_time service call."""
+        hour = call.data.get("hour", 0)
+        minute = call.data.get("minute", 0)
+        second = call.data.get("second", 0)
+
+        try:
+            success = await api.set_time(hour, minute, second)
+            if success:
+                _LOGGER.info("Time set to %02d:%02d:%02d", hour, minute, second)
+            else:
+                _LOGGER.error("Failed to set time")
+        except Exception as err:
+            _LOGGER.error("Error setting time: %s", err)
+
     # Register all services if not already registered
     if not hass.services.has_service(DOMAIN, SERVICE_UPLOAD_GIF):
         hass.services.async_register(DOMAIN, SERVICE_UPLOAD_GIF, handle_upload_gif)
@@ -255,6 +330,16 @@ async def _async_register_services(
         hass.services.async_register(DOMAIN, SERVICE_SET_PIXELS, handle_set_pixels)
     if not hass.services.has_service(DOMAIN, SERVICE_CLEAR_PIXELS):
         hass.services.async_register(DOMAIN, SERVICE_CLEAR_PIXELS, handle_clear_pixels)
+    if not hass.services.has_service(DOMAIN, SERVICE_SHOW_SLOT):
+        hass.services.async_register(DOMAIN, SERVICE_SHOW_SLOT, handle_show_slot)
+    if not hass.services.has_service(DOMAIN, SERVICE_DELETE_SLOT):
+        hass.services.async_register(DOMAIN, SERVICE_DELETE_SLOT, handle_delete_slot)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_BRIGHTNESS):
+        hass.services.async_register(DOMAIN, SERVICE_SET_BRIGHTNESS, handle_set_brightness)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_CLOCK_MODE):
+        hass.services.async_register(DOMAIN, SERVICE_SET_CLOCK_MODE, handle_set_clock_mode)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_TIME):
+        hass.services.async_register(DOMAIN, SERVICE_SET_TIME, handle_set_time)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

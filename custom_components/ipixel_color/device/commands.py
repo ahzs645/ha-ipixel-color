@@ -137,3 +137,63 @@ def make_clear_command() -> bytes:
         Command bytes for clearing display
     """
     return bytes([4, 0, 3, 0x80])
+
+
+def make_show_slot_command(slot: int) -> bytes:
+    """Build show slot command to display content from a stored slot.
+
+    Command format from pypixelcolor:
+    [7, 0, 8, 0x80, 1, 0, slot]
+
+    Args:
+        slot: Slot number to display (0-255)
+
+    Returns:
+        Command bytes for showing slot
+    """
+    if slot < 0 or slot > 255:
+        raise ValueError("Slot must be 0-255")
+
+    return bytes([7, 0, 8, 0x80, 1, 0, slot])
+
+
+def make_delete_slot_command(slot: int) -> bytes:
+    """Build delete slot command to remove content from a stored slot.
+
+    Command format from pypixelcolor:
+    [7, 0, 2, 1, 1, 0, slot]
+
+    Args:
+        slot: Slot index to delete (0-255)
+
+    Returns:
+        Command bytes for deleting slot
+    """
+    if slot < 0 or slot > 255:
+        raise ValueError("Slot must be 0-255")
+
+    return bytes([7, 0, 2, 1, 1, 0, slot])
+
+
+def make_set_time_command(hour: int, minute: int, second: int) -> bytes:
+    """Build set time command to set specific time on device.
+
+    Command format from pypixelcolor:
+    [8, 0, 1, 0x80, hour, minute, second, 0]
+
+    Args:
+        hour: Hour (0-23)
+        minute: Minute (0-59)
+        second: Second (0-59)
+
+    Returns:
+        Command bytes for setting time
+    """
+    if hour < 0 or hour > 23:
+        raise ValueError("Hour must be 0-23")
+    if minute < 0 or minute > 59:
+        raise ValueError("Minute must be 0-59")
+    if second < 0 or second > 59:
+        raise ValueError("Second must be 0-59")
+
+    return bytes([8, 0, 1, 0x80, hour, minute, second, 0])

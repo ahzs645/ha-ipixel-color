@@ -17,6 +17,9 @@ from .device.commands import (
     make_fun_mode_command,
     make_pixel_command,
     make_clear_command,
+    make_show_slot_command,
+    make_delete_slot_command,
+    make_set_time_command,
 )
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_command
@@ -270,6 +273,86 @@ class iPIXELAPI:
 
         except Exception as err:
             _LOGGER.error("Error clearing display: %s", err)
+            return False
+
+    async def show_slot(self, slot: int) -> bool:
+        """Display content from a stored slot.
+
+        Args:
+            slot: Slot number to display (0-255)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            command = make_show_slot_command(slot)
+            success = await self._bluetooth.send_command(command)
+
+            if success:
+                _LOGGER.info("Showing slot %d", slot)
+            else:
+                _LOGGER.error("Failed to show slot %d", slot)
+            return success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid slot number: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error showing slot: %s", err)
+            return False
+
+    async def delete_slot(self, slot: int) -> bool:
+        """Delete content from a stored slot.
+
+        Args:
+            slot: Slot index to delete (0-255)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            command = make_delete_slot_command(slot)
+            success = await self._bluetooth.send_command(command)
+
+            if success:
+                _LOGGER.info("Deleted slot %d", slot)
+            else:
+                _LOGGER.error("Failed to delete slot %d", slot)
+            return success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid slot number: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error deleting slot: %s", err)
+            return False
+
+    async def set_time(self, hour: int, minute: int, second: int) -> bool:
+        """Set specific time on device.
+
+        Args:
+            hour: Hour (0-23)
+            minute: Minute (0-59)
+            second: Second (0-59)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            command = make_set_time_command(hour, minute, second)
+            success = await self._bluetooth.send_command(command)
+
+            if success:
+                _LOGGER.info("Time set to %02d:%02d:%02d", hour, minute, second)
+            else:
+                _LOGGER.error("Failed to set time")
+            return success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid time value: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting time: %s", err)
             return False
 
     async def set_clock_mode(
