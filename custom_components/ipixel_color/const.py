@@ -27,11 +27,51 @@ RECONNECT_DELAY = 1  # seconds between retry attempts
 MODE_TEXT_IMAGE = "textimage"
 MODE_TEXT = "text"
 MODE_CLOCK = "clock"
+MODE_GIF = "gif"
 
 AVAILABLE_MODES = [
     MODE_TEXT_IMAGE,
     MODE_TEXT,
     MODE_CLOCK,
+    MODE_GIF,
 ]
 
 DEFAULT_MODE = MODE_TEXT_IMAGE
+
+# Visual effects
+AVAILABLE_EFFECTS = [
+    "none",
+    "blur",
+    "sharpen",
+    "contour",
+    "edge_enhance",
+    "emboss",
+    "smooth",
+    "detail",
+    "invert",
+    "grayscale",
+    "mirror",
+    "flip",
+    "posterize",
+    "solarize",
+    "high_contrast",
+    "brighten",
+    "darken",
+]
+
+DEFAULT_EFFECT = "none"
+
+# Schedule settings
+DEFAULT_SCHEDULE_INTERVAL_MS = 5000
+MIN_SCHEDULE_INTERVAL_MS = 1000
+MAX_SCHEDULE_INTERVAL_MS = 3600000  # 1 hour
+
+# GIF settings
+GIF_WINDOW_SIZE = 12 * 1024  # 12KB windows
+GIF_CHUNK_SIZE = 244  # BLE chunk size
+GIF_ACK_TIMEOUT = 8.0  # seconds
+
+# Media player states
+MEDIA_PLAYER_IDLE = "idle"
+MEDIA_PLAYER_PLAYING = "playing"
+MEDIA_PLAYER_PAUSED = "paused"

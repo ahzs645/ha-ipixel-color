@@ -14,7 +14,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI
-from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, AVAILABLE_MODES, DEFAULT_MODE
+from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, AVAILABLE_MODES, DEFAULT_MODE, AVAILABLE_EFFECTS, DEFAULT_EFFECT
 from .common import get_entity_id_by_unique_id
 from .common import update_ipixel_display
 from .fonts import get_available_fonts
@@ -37,6 +37,7 @@ async def async_setup_entry(
         iPIXELFontSelect(hass, api, entry, address, name),
         iPIXELModeSelect(hass, api, entry, address, name),
         iPIXELClockStyleSelect(hass, api, entry, address, name),
+        iPIXELEffectSelect(hass, api, entry, address, name),
     ])
 
 
@@ -276,6 +277,86 @@ class iPIXELClockStyleSelect(SelectEntity, RestoreEntity):
                     # Use common update function directly
                     await update_ipixel_display(self.hass, self._name, self._api)
                     _LOGGER.debug("Auto-update triggered display refresh due to clock style change")
+        except Exception as err:
+            _LOGGER.debug("Could not trigger auto-update: %s", err)
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return True
+
+
+class iPIXELEffectSelect(SelectEntity, RestoreEntity):
+    """Representation of an iPIXEL Color visual effect selection."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: iPIXELAPI,
+        entry: ConfigEntry,
+        address: str,
+        name: str
+    ) -> None:
+        """Initialize the effect select."""
+        self.hass = hass
+        self._api = api
+        self._entry = entry
+        self._address = address
+        self._name = name
+        self._attr_name = "Effect"
+        self._attr_unique_id = f"{address}_effect_select"
+        self._attr_entity_description = "Select visual effect for display"
+
+        # Set available effect options
+        self._attr_options = AVAILABLE_EFFECTS
+        self._attr_current_option = DEFAULT_EFFECT
+
+        # Device info for grouping in device registry
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, address)},
+            name=name,
+            manufacturer="iPIXEL",
+            model="LED Matrix Display",
+            sw_version="1.0",
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+
+        # Restore last state if available
+        last_state = await self.async_get_last_state()
+        if last_state is not None and last_state.state in self._attr_options:
+            self._attr_current_option = last_state.state
+            _LOGGER.debug("Restored effect selection: %s", self._attr_current_option)
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected effect."""
+        return self._attr_current_option
+
+    async def async_select_option(self, option: str) -> None:
+        """Select an effect option."""
+        if option in self._attr_options:
+            self._attr_current_option = option
+            _LOGGER.info("Effect changed to: %s", option)
+
+            # Trigger display update if auto-update is enabled
+            await self._trigger_auto_update()
+        else:
+            _LOGGER.error("Invalid effect option: %s", option)
+
+    async def _trigger_auto_update(self) -> None:
+        """Trigger display update if auto-update is enabled."""
+        try:
+            # Check auto-update setting
+            auto_update_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "auto_update", "switch")
+            auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
+
+            if auto_update_state and auto_update_state.state == "on":
+                # Use common update function directly
+                await update_ipixel_display(self.hass, self._name, self._api)
+                _LOGGER.debug("Auto-update triggered display refresh due to effect change")
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 

@@ -32,6 +32,7 @@ async def async_setup_entry(
     
     async_add_entities([
         iPIXELTextDisplay(hass, api, entry, address, name),
+        iPIXELGIFURLEntity(hass, api, entry, address, name),
     ])
 
 
@@ -157,4 +158,86 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             _LOGGER.error("Error updating entity state: %s", err)
             self._available = False
 
+
+class iPIXELGIFURLEntity(TextEntity, RestoreEntity):
+    """Text entity for GIF URL input."""
+
+    _attr_mode = TextMode.TEXT
+    _attr_native_max = 500  # URL length limit
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: iPIXELAPI,
+        entry: ConfigEntry,
+        address: str,
+        name: str
+    ) -> None:
+        """Initialize the GIF URL entity."""
+        self.hass = hass
+        self._api = api
+        self._entry = entry
+        self._address = address
+        self._name = name
+        self._attr_name = "GIF URL"
+        self._attr_unique_id = f"{address}_gif_url"
+        self._current_url = ""
+
+        # Device info for grouping
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, address)},
+            name=name,
+            manufacturer="iPIXEL",
+            model="LED Matrix Display",
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Restore state when added."""
+        await super().async_added_to_hass()
+
+        last_state = await self.async_get_last_state()
+        if last_state is not None and last_state.state:
+            self._current_url = last_state.state
+            _LOGGER.debug("Restored GIF URL: %s", self._current_url)
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the current GIF URL."""
+        return self._current_url
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return True
+
+    async def async_set_value(self, value: str) -> None:
+        """Set the GIF URL.
+
+        When in GIF mode with auto-update enabled, this will
+        trigger a display update with the new GIF.
+        """
+        self._current_url = value
+        _LOGGER.debug("GIF URL set to: %s", value)
+
+        # Check if we should auto-update
+        try:
+            # Check if in GIF mode
+            mode_entity_id = get_entity_id_by_unique_id(
+                self.hass, self._address, "mode_select", "select"
+            )
+            mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
+
+            if mode_state and mode_state.state == "gif":
+                # Check auto-update setting
+                auto_update_entity_id = get_entity_id_by_unique_id(
+                    self.hass, self._address, "auto_update", "switch"
+                )
+                auto_update_state = self.hass.states.get(auto_update_entity_id)
+
+                if auto_update_state and auto_update_state.state == "on":
+                    await update_ipixel_display(self.hass, self._name, self._api)
+                    _LOGGER.debug("Auto-update triggered GIF display")
+
+        except Exception as err:
+            _LOGGER.debug("Could not trigger GIF auto-update: %s", err)
 

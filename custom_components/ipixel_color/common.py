@@ -5,7 +5,7 @@ import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.template import Template
 from homeassistant.helpers import entity_registry as er
-from .const import MODE_TEXT_IMAGE, MODE_TEXT, MODE_CLOCK, DOMAIN
+from .const import MODE_TEXT_IMAGE, MODE_TEXT, MODE_CLOCK, MODE_GIF, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,6 +127,8 @@ async def update_ipixel_display(hass: HomeAssistant, device_name: str, api, text
             return await _update_text_mode(hass, device_name, api, text)
         elif mode == MODE_CLOCK:
             return await _update_clock_mode(hass, device_name, api)
+        elif mode == MODE_GIF:
+            return await _update_gif_mode(hass, device_name, api)
         else:
             _LOGGER.warning("Unknown mode: %s, falling back to textimage", mode)
             return await _update_textimage_mode(hass, device_name, api, text)
@@ -348,6 +350,51 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
 
     except Exception as err:
         _LOGGER.error("Error in text mode update: %s", err)
+        return False
+
+
+async def _update_gif_mode(hass: HomeAssistant, device_name: str, api) -> bool:
+    """Update display in GIF mode.
+
+    Args:
+        hass: Home Assistant instance
+        device_name: Device name for entity ID lookups
+        api: iPIXEL API instance
+
+    Returns:
+        True if update was successful
+    """
+    try:
+        # Get GIF URL from entity
+        gif_url_entity_id = get_entity_id_by_unique_id(hass, api._address, "gif_url", "text")
+        gif_url_state = hass.states.get(gif_url_entity_id) if gif_url_entity_id else None
+
+        if not gif_url_state or gif_url_state.state in ("unknown", "unavailable", ""):
+            _LOGGER.warning("No GIF URL configured - skipping update")
+            return False
+
+        gif_url = gif_url_state.state
+
+        # Resolve templates in URL (in case it's dynamic)
+        gif_url = await resolve_template_variables(hass, gif_url)
+
+        # Connect if needed
+        if not api.is_connected:
+            _LOGGER.debug("Reconnecting to device for GIF mode update")
+            await api.connect()
+
+        # Send GIF to display
+        success = await api.display_gif_url(gif_url)
+
+        if success:
+            _LOGGER.info("GIF mode update successful: %s", gif_url)
+        else:
+            _LOGGER.error("GIF mode update failed")
+
+        return success
+
+    except Exception as err:
+        _LOGGER.error("Error in GIF mode update: %s", err)
         return False
 
 

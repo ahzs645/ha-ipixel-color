@@ -16,8 +16,10 @@ from .device.commands import (
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_command
 from .device.image import make_image_command
+from .device.gif import make_gif_windows, extract_and_process_gif, get_gif_frame_count
 from .device.info import build_device_info_command, parse_device_response
 from .display.text_renderer import render_text_to_png
+from .display.effects import apply_effect
 from .exceptions import iPIXELConnectionError
 
 _LOGGER = logging.getLogger(__name__)
@@ -334,6 +336,143 @@ class iPIXELAPI:
 
         except Exception as err:
             _LOGGER.error("Error displaying pypixelcolor text: %s", err)
+            return False
+
+    async def display_gif(
+        self,
+        gif_bytes: bytes,
+        buffer_slot: int = 1
+    ) -> bool:
+        """Display GIF animation on the device.
+
+        Uses windowed protocol for reliable transfer of large GIFs.
+
+        Args:
+            gif_bytes: Raw GIF file bytes
+            buffer_slot: Storage slot on device (1-255)
+
+        Returns:
+            True if GIF was sent successfully
+        """
+        try:
+            # Get device info for dimensions
+            device_info = await self.get_device_info()
+
+            # Process GIF for device dimensions
+            processed_gif = extract_and_process_gif(
+                gif_bytes,
+                device_info["width"],
+                device_info["height"]
+            )
+
+            # Build windowed command
+            windows = make_gif_windows(
+                processed_gif,
+                buffer_slot=buffer_slot
+            )
+
+            # Send using windowed protocol
+            success = await self._bluetooth.send_windowed_command(windows)
+
+            if success:
+                frame_count = get_gif_frame_count(gif_bytes)
+                _LOGGER.info(
+                    "GIF sent: %d frames, %d bytes, %d windows",
+                    frame_count, len(processed_gif), len(windows)
+                )
+
+            return success
+
+        except Exception as err:
+            _LOGGER.error("Error displaying GIF: %s", err)
+            return False
+
+    async def display_gif_url(
+        self,
+        url: str,
+        buffer_slot: int = 1
+    ) -> bool:
+        """Download and display GIF from URL.
+
+        Args:
+            url: URL to GIF file
+            buffer_slot: Storage slot on device (1-255)
+
+        Returns:
+            True if GIF was sent successfully
+        """
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status != 200:
+                        _LOGGER.error("Failed to download GIF: HTTP %d", response.status)
+                        return False
+
+                    gif_bytes = await response.read()
+
+            _LOGGER.debug("Downloaded GIF from %s (%d bytes)", url, len(gif_bytes))
+            return await self.display_gif(gif_bytes, buffer_slot)
+
+        except Exception as err:
+            _LOGGER.error("Error downloading GIF from %s: %s", url, err)
+            return False
+
+    async def display_image_with_effect(
+        self,
+        image_bytes: bytes,
+        effect: str = "none",
+        file_extension: str = ".png"
+    ) -> bool:
+        """Display image with optional visual effect.
+
+        Args:
+            image_bytes: Raw image data bytes
+            effect: Effect name to apply (e.g., 'blur', 'sharpen')
+            file_extension: File extension for image type
+
+        Returns:
+            True if image was sent successfully
+        """
+        try:
+            from PIL import Image
+            import io
+
+            # Get device dimensions
+            device_info = await self.get_device_info()
+
+            # Load and apply effect
+            img = Image.open(io.BytesIO(image_bytes))
+
+            if effect and effect != "none":
+                img = apply_effect(img, effect)
+                _LOGGER.debug("Applied effect: %s", effect)
+
+            # Convert back to bytes
+            output = io.BytesIO()
+            img.save(output, format=file_extension.lstrip('.').upper())
+            processed_bytes = output.getvalue()
+
+            # Generate image commands
+            commands = make_image_command(
+                image_bytes=processed_bytes,
+                file_extension=file_extension,
+                resize_method="crop",
+                device_info_dict=device_info
+            )
+
+            # Send all command frames
+            for i, command in enumerate(commands):
+                success = await self._bluetooth.send_command(command)
+                if not success:
+                    _LOGGER.error("Failed to send image frame %d/%d", i + 1, len(commands))
+                    return False
+
+            return True
+
+        except Exception as err:
+            _LOGGER.error("Error displaying image with effect: %s", err)
             return False
 
     def _notification_handler(self, sender: Any, data: bytearray) -> None:

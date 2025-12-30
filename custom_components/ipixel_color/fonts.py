@@ -1,10 +1,107 @@
 """Font location utilities for iPIXEL Color integration."""
 from __future__ import annotations
 
+import json
 import logging
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass
+class FontMetrics:
+    """Font rendering metrics for a specific height."""
+
+    font_size: int
+    offset: tuple[int, int]
+    pixel_threshold: int
+    var_width: bool
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "FontMetrics":
+        """Create FontMetrics from dictionary."""
+        return cls(
+            font_size=data.get("font_size", 16),
+            offset=tuple(data.get("offset", [0, 0])),
+            pixel_threshold=data.get("pixel_threshold", 128),
+            var_width=data.get("var_width", True)
+        )
+
+
+def load_font_metrics(font_path: Path) -> dict[int, FontMetrics]:
+    """Load JSON metrics file alongside TTF font.
+
+    Looks for a .json file with the same name as the font file,
+    containing height-specific rendering metrics.
+
+    Example metrics.json:
+    {
+        "16": {"font_size": 16, "offset": [0, -2], "pixel_threshold": 128, "var_width": true},
+        "32": {"font_size": 32, "offset": [0, -3], "pixel_threshold": 100, "var_width": true}
+    }
+
+    Args:
+        font_path: Path to the TTF/OTF font file
+
+    Returns:
+        Dictionary mapping display heights to FontMetrics
+    """
+    metrics_path = font_path.with_suffix(".json")
+    result: dict[int, FontMetrics] = {}
+
+    if not metrics_path.exists():
+        _LOGGER.debug("No metrics file found for font: %s", font_path.name)
+        return result
+
+    try:
+        with open(metrics_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        for height_str, metrics_data in data.items():
+            try:
+                height = int(height_str)
+                result[height] = FontMetrics.from_dict(metrics_data)
+                _LOGGER.debug("Loaded metrics for height %d: %s", height, result[height])
+            except (ValueError, KeyError) as e:
+                _LOGGER.warning("Invalid metrics entry for height %s: %s", height_str, e)
+
+    except (json.JSONDecodeError, OSError) as e:
+        _LOGGER.warning("Could not load font metrics from %s: %s", metrics_path, e)
+
+    return result
+
+
+def get_font_metrics(font_name: str, height: int) -> Optional[FontMetrics]:
+    """Get font metrics for a specific display height.
+
+    Args:
+        font_name: Font filename
+        height: Display height in pixels
+
+    Returns:
+        FontMetrics if found for exact or nearest height, None otherwise
+    """
+    font_path = get_font_path(font_name)
+    if not font_path:
+        return None
+
+    metrics = load_font_metrics(font_path)
+    if not metrics:
+        return None
+
+    # Exact match
+    if height in metrics:
+        return metrics[height]
+
+    # Find nearest height
+    if metrics:
+        nearest = min(metrics.keys(), key=lambda h: abs(h - height))
+        _LOGGER.debug("Using metrics for height %d (requested: %d)", nearest, height)
+        return metrics[nearest]
+
+    return None
 
 
 def get_font_locations() -> list[Path]:

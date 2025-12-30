@@ -21,6 +21,52 @@ from ..exceptions import iPIXELConnectionError
 
 _LOGGER = logging.getLogger(__name__)
 
+# Windowed protocol constants
+DEFAULT_CHUNK_SIZE = 244
+DEFAULT_WINDOW_SIZE = 12 * 1024  # 12KB
+DEFAULT_ACK_TIMEOUT = 8.0
+
+
+class BleAckManager:
+    """Manages ACK events for windowed BLE protocol.
+
+    The iPIXEL device sends ACK notifications:
+    - 5-byte frame with data[0]=0x05
+    - data[4] in (0, 1): Window ACK (current window received)
+    - data[4] == 3: Final ACK (all data received)
+    """
+
+    def __init__(self) -> None:
+        """Initialize ACK manager."""
+        self.window_event = asyncio.Event()
+        self.all_event = asyncio.Event()
+
+    def reset(self) -> None:
+        """Reset all events for new transfer."""
+        self.window_event.clear()
+        self.all_event.clear()
+
+    def handle_notification(self, data: bytes) -> None:
+        """Process notification data for ACK signals.
+
+        Args:
+            data: Notification data bytes
+        """
+        if not data or len(data) < 5:
+            return
+
+        if data[0] == 0x05:
+            ack_code = data[4]
+            if ack_code in (0, 1):
+                # Window ACK
+                self.window_event.set()
+                _LOGGER.debug("Window ACK received (code=%d)", ack_code)
+            elif ack_code == 3:
+                # Final ACK
+                self.window_event.set()
+                self.all_event.set()
+                _LOGGER.debug("Final ACK received")
+
 
 class BluetoothClient:
     """Manages Bluetooth connection and communication."""
@@ -174,6 +220,211 @@ class BluetoothClient:
         except BleakError as err:
             _LOGGER.error("Failed to send command: %s", err)
             return False
+
+    async def send_windowed_command(
+        self,
+        windows: list[dict],
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        ack_timeout: float = DEFAULT_ACK_TIMEOUT
+    ) -> bool:
+        """Send large data using windowed ACK protocol.
+
+        This is used for GIF and large image transfers where the device
+        expects 12KB windows with ACK after each window.
+
+        Args:
+            windows: List of window dicts with 'data' key containing bytes
+            chunk_size: Size of BLE chunks within each window (default 244)
+            ack_timeout: Timeout waiting for ACK (default 8 seconds)
+
+        Returns:
+            True if all windows sent successfully
+
+        Raises:
+            iPIXELConnectionError: If not connected or transfer fails
+        """
+        if not self._connected or not self._client:
+            raise iPIXELConnectionError("Device not connected")
+
+        ack_mgr = BleAckManager()
+
+        # Set up ACK notification handler
+        def ack_handler(sender: Any, data: bytearray) -> None:
+            ack_mgr.handle_notification(bytes(data))
+
+        try:
+            # Stop existing notifications and start ACK handler
+            try:
+                await self._client.stop_notify(NOTIFY_UUID)
+            except (KeyError, BleakError):
+                pass
+
+            await self._client.start_notify(NOTIFY_UUID, ack_handler)
+
+            # Send each window
+            for i, window in enumerate(windows):
+                window_data = window['data']
+                is_last = window.get('is_last', i == len(windows) - 1)
+
+                ack_mgr.window_event.clear()
+
+                _LOGGER.debug(
+                    "Sending window %d/%d (%d bytes)",
+                    i + 1, len(windows), len(window_data)
+                )
+
+                # Send window in chunks
+                pos = 0
+                while pos < len(window_data):
+                    end = min(pos + chunk_size, len(window_data))
+                    chunk = window_data[pos:end]
+                    await self._client.write_gatt_char(WRITE_UUID, chunk, response=True)
+                    pos = end
+
+                # Wait for window ACK
+                try:
+                    await asyncio.wait_for(
+                        ack_mgr.window_event.wait(),
+                        timeout=ack_timeout
+                    )
+                except asyncio.TimeoutError:
+                    _LOGGER.error(
+                        "Timeout waiting for window %d ACK",
+                        i + 1
+                    )
+                    raise iPIXELConnectionError(
+                        f"No ACK received for window {i + 1}"
+                    )
+
+            # Wait for final ACK
+            try:
+                await asyncio.wait_for(
+                    ack_mgr.all_event.wait(),
+                    timeout=ack_timeout
+                )
+                _LOGGER.debug("All windows sent and acknowledged")
+            except asyncio.TimeoutError:
+                # Final ACK timeout is not always fatal
+                _LOGGER.debug("Final ACK timeout (may be normal)")
+
+            return True
+
+        except BleakError as err:
+            _LOGGER.error("BLE error during windowed send: %s", err)
+            raise iPIXELConnectionError(f"Windowed send failed: {err}") from err
+
+        finally:
+            # Restore original notification handler
+            try:
+                await self._client.stop_notify(NOTIFY_UUID)
+            except (KeyError, BleakError):
+                pass
+
+            if self._notification_handler:
+                try:
+                    await self._client.start_notify(
+                        NOTIFY_UUID,
+                        self._notification_handler
+                    )
+                except BleakError as e:
+                    _LOGGER.warning(
+                        "Could not restore notification handler: %s", e
+                    )
+
+    async def send_chunked_command(
+        self,
+        data: bytes,
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        window_size: int = DEFAULT_WINDOW_SIZE,
+        ack_timeout: float = DEFAULT_ACK_TIMEOUT
+    ) -> bool:
+        """Send data using chunked protocol with window ACKs.
+
+        Similar to windowed protocol but works with raw bytes,
+        automatically splitting into windows.
+
+        Args:
+            data: Raw bytes to send
+            chunk_size: Size of BLE chunks (default 244)
+            window_size: Size of each window (default 12KB)
+            ack_timeout: Timeout waiting for ACK (default 8 seconds)
+
+        Returns:
+            True if data sent successfully
+        """
+        if not self._connected or not self._client:
+            raise iPIXELConnectionError("Device not connected")
+
+        ack_mgr = BleAckManager()
+
+        def ack_handler(sender: Any, data: bytearray) -> None:
+            ack_mgr.handle_notification(bytes(data))
+
+        try:
+            try:
+                await self._client.stop_notify(NOTIFY_UUID)
+            except (KeyError, BleakError):
+                pass
+
+            await self._client.start_notify(NOTIFY_UUID, ack_handler)
+
+            total = len(data)
+            pos = 0
+            window_index = 0
+
+            while pos < total:
+                window_end = min(pos + window_size, total)
+                ack_mgr.window_event.clear()
+
+                _LOGGER.debug(
+                    "Sending window %d (bytes %d-%d of %d)",
+                    window_index + 1, pos, window_end, total
+                )
+
+                # Send window in chunks
+                chunk_pos = pos
+                while chunk_pos < window_end:
+                    end = min(chunk_pos + chunk_size, window_end)
+                    chunk = data[chunk_pos:end]
+                    await self._client.write_gatt_char(WRITE_UUID, chunk, response=True)
+                    chunk_pos = end
+
+                # Wait for window ACK
+                try:
+                    await asyncio.wait_for(
+                        ack_mgr.window_event.wait(),
+                        timeout=ack_timeout
+                    )
+                except asyncio.TimeoutError:
+                    _LOGGER.error("Timeout waiting for window %d ACK", window_index + 1)
+                    raise iPIXELConnectionError(f"No ACK for window {window_index + 1}")
+
+                window_index += 1
+                pos = window_end
+
+            # Wait for final ACK
+            try:
+                await asyncio.wait_for(ack_mgr.all_event.wait(), timeout=ack_timeout)
+            except asyncio.TimeoutError:
+                _LOGGER.debug("Final ACK timeout (may be normal)")
+
+            return True
+
+        except BleakError as err:
+            _LOGGER.error("BLE error during chunked send: %s", err)
+            raise iPIXELConnectionError(f"Chunked send failed: {err}") from err
+
+        finally:
+            try:
+                await self._client.stop_notify(NOTIFY_UUID)
+            except (KeyError, BleakError):
+                pass
+
+            if self._notification_handler:
+                try:
+                    await self._client.start_notify(NOTIFY_UUID, self._notification_handler)
+                except BleakError as e:
+                    _LOGGER.warning("Could not restore notification handler: %s", e)
 
     @property
     def is_connected(self) -> bool:

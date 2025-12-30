@@ -10,9 +10,22 @@ from typing import Any, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from ..color import hex_to_rgb
-from ..fonts import get_font_path
+from ..fonts import get_font_path, get_font_metrics
+from .font_cache import FontCache
 
 _LOGGER = logging.getLogger(__name__)
+
+# Global font cache instance
+_font_cache: FontCache | None = None
+
+
+def get_font_cache() -> FontCache:
+    """Get or create the global font cache instance."""
+    global _font_cache
+    if _font_cache is None:
+        cache_dir = Path(__file__).parent.parent / "cache" / "fonts"
+        _font_cache = FontCache(cache_dir)
+    return _font_cache
 
 # Minimum font size to try
 MIN_FONT_SIZE = 4
@@ -375,3 +388,161 @@ def get_optimal_font(draw: ImageDraw.Draw, lines: list[str],
     # Fallback to minimum font size
     _LOGGER.warning("Using fallback font - text may not fit optimally")
     return get_fixed_font(1.0, font_name)
+
+
+def render_text_variable_width(
+    text: str,
+    width: int,
+    height: int,
+    font_name: str | None = None,
+    text_color: str = "ffffff",
+    bg_color: str = "000000",
+    use_cache: bool = True
+) -> bytes:
+    """Render text with variable character widths using font cache.
+
+    This function renders each character individually with its natural width,
+    providing better visual appearance for proportional fonts.
+
+    Args:
+        text: Text to render (single line recommended)
+        width: Display width in pixels
+        height: Display height in pixels
+        font_name: Font name from fonts/ folder, or None for default
+        text_color: Foreground/text color in hex format (e.g., 'ffffff')
+        bg_color: Background color in hex format (e.g., '000000')
+        use_cache: Whether to use the font cache for character images
+
+    Returns:
+        PNG image data as bytes
+    """
+    # Get font metrics if available
+    metrics = get_font_metrics(font_name, height) if font_name else None
+
+    # Determine font path
+    font_path = get_font_path(font_name) if font_name else None
+    font_path_str = str(font_path) if font_path else None
+
+    # Parse colors
+    try:
+        bg_r, bg_g, bg_b = hex_to_rgb(bg_color)
+        text_r, text_g, text_b = hex_to_rgb(text_color)
+    except (ValueError, IndexError):
+        _LOGGER.error("Invalid color format. Using defaults")
+        bg_r, bg_g, bg_b = 0, 0, 0
+        text_r, text_g, text_b = 255, 255, 255
+
+    # Create output image
+    output_img = Image.new('RGB', (width, height), (bg_r, bg_g, bg_b))
+
+    if not text:
+        # Return empty image
+        png_buffer = io.BytesIO()
+        output_img.save(png_buffer, format='PNG')
+        return png_buffer.getvalue()
+
+    # Get font cache
+    cache = get_font_cache() if use_cache else None
+
+    # Collect character images and widths
+    char_images: list[tuple[Image.Image, int]] = []
+    total_width = 0
+
+    for char in text:
+        if cache and font_path_str:
+            # Use cache for character rendering
+            char_img, char_width = cache.get_char_image(
+                char=char,
+                font_path=font_path_str,
+                height=height,
+                text_color=text_color,
+                bg_color=bg_color,
+                antialias=True
+            )
+        else:
+            # Render character directly
+            char_img, char_width = _render_single_char(
+                char=char,
+                font_path=font_path_str,
+                height=height,
+                text_color=(text_r, text_g, text_b),
+                bg_color=(bg_r, bg_g, bg_b)
+            )
+
+        char_images.append((char_img, char_width))
+        total_width += char_width
+
+    # Calculate starting position for centered text
+    x_offset = max(0, (width - total_width) // 2)
+
+    # Composite characters onto output image
+    for char_img, char_width in char_images:
+        if x_offset + char_width > width:
+            # Text would overflow, stop here
+            break
+
+        # Paste character image
+        output_img.paste(char_img, (x_offset, 0))
+        x_offset += char_width
+
+    # Convert to PNG bytes
+    png_buffer = io.BytesIO()
+    output_img.save(png_buffer, format='PNG')
+    return png_buffer.getvalue()
+
+
+def _render_single_char(
+    char: str,
+    font_path: str | None,
+    height: int,
+    text_color: tuple[int, int, int],
+    bg_color: tuple[int, int, int]
+) -> tuple[Image.Image, int]:
+    """Render a single character and return image with actual width.
+
+    Args:
+        char: Single character to render
+        font_path: Path to font file or None for default
+        height: Character height in pixels
+        text_color: RGB tuple for text color
+        bg_color: RGB tuple for background color
+
+    Returns:
+        Tuple of (character image, actual width)
+    """
+    # Load font
+    try:
+        if font_path:
+            font = ImageFont.truetype(font_path, height)
+        else:
+            font = ImageFont.load_default()
+    except Exception:
+        font = ImageFont.load_default()
+
+    # Create temporary image to measure character
+    temp_img = Image.new('RGB', (height * 2, height), bg_color)
+    temp_draw = ImageDraw.Draw(temp_img)
+
+    # Get character bounding box
+    bbox = temp_draw.textbbox((0, 0), char, font=font)
+    char_width = max(1, bbox[2] - bbox[0])
+    char_height = bbox[3] - bbox[1]
+
+    # Create character image with exact width
+    char_img = Image.new('RGB', (char_width, height), bg_color)
+    char_draw = ImageDraw.Draw(char_img)
+
+    # Center vertically
+    y_offset = (height - char_height) // 2 - bbox[1]
+
+    # Draw character
+    char_draw.text((-bbox[0], y_offset), char, font=font, fill=text_color)
+
+    return char_img, char_width
+
+
+def clear_font_cache() -> None:
+    """Clear the font cache."""
+    cache = get_font_cache()
+    cache.clear_cache()
+    _LOGGER.info("Font cache cleared")

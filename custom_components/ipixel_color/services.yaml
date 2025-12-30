@@ -52,3 +52,129 @@ display_text:
       default: [0, 0, 0]
       selector:
         color_rgb:
+
+upload_gif:
+  name: Upload GIF
+  description: Upload and display a GIF animation on the iPIXEL device
+  target:
+    entity:
+      integration: ipixel_color
+      domain: media_player
+  fields:
+    gif_url:
+      name: GIF URL
+      description: URL to the GIF file to display
+      required: true
+      example: "https://example.com/animation.gif"
+      selector:
+        text:
+    buffer_slot:
+      name: Buffer Slot
+      description: Storage slot on device (1-255)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box
+
+add_schedule:
+  name: Add Schedule
+  description: Add a scheduled display item
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    name:
+      name: Schedule Name
+      description: Name for this schedule item
+      required: true
+      example: "Morning Message"
+      selector:
+        text:
+    text:
+      name: Text
+      description: Text to display when triggered
+      required: true
+      example: "Good Morning!"
+      selector:
+        text:
+    mode:
+      name: Mode
+      description: Display mode for this schedule
+      required: false
+      default: "textimage"
+      selector:
+        select:
+          options:
+            - "text"
+            - "textimage"
+            - "clock"
+            - "gif"
+    duration_ms:
+      name: Duration
+      description: How long to display this item (milliseconds)
+      required: false
+      default: 5000
+      selector:
+        number:
+          min: 1000
+          max: 3600000
+          mode: box
+          unit_of_measurement: "ms"
+
+remove_schedule:
+  name: Remove Schedule
+  description: Remove a scheduled item by ID
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    schedule_id:
+      name: Schedule ID
+      description: ID of the schedule to remove
+      required: true
+      selector:
+        text:
+
+trigger_schedule:
+  name: Trigger Schedule
+  description: Manually trigger a schedule item (for HA automations)
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    schedule_id:
+      name: Schedule ID
+      description: ID of the schedule to trigger
+      required: true
+      selector:
+        text:
+
+set_playlist:
+  name: Set Playlist
+  description: Set the playlist order for cycling
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    schedule_ids:
+      name: Schedule IDs
+      description: Comma-separated list of schedule IDs in order
+      required: true
+      example: "morning_msg,weather,time"
+      selector:
+        text:
+
+sync_time:
+  name: Sync Time
+  description: Synchronize the current time to the iPIXEL device
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
