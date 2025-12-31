@@ -12,12 +12,12 @@
  * Source files in /cards folder for development reference.
  * This bundled file is used by Home Assistant.
  *
- * @version 2.1.0
+ * @version 2.2.0
  * @author iPIXEL Color Team
  * @license MIT
  */
 
-const CARD_VERSION = '2.1.0';
+const CARD_VERSION = '2.2.0';
 
 // =============================================================================
 // SHARED STYLES
@@ -323,6 +323,82 @@ class iPIXELCardBase extends HTMLElement {
 // =============================================================================
 
 class iPIXELDisplayCard extends iPIXELCardBase {
+  constructor() {
+    super();
+    this._pixelFont = this._createPixelFont();
+  }
+
+  // Simple 5x7 pixel font for common characters
+  _createPixelFont() {
+    return {
+      'A': [0x7C,0x12,0x11,0x12,0x7C], 'B': [0x7F,0x49,0x49,0x49,0x36], 'C': [0x3E,0x41,0x41,0x41,0x22],
+      'D': [0x7F,0x41,0x41,0x22,0x1C], 'E': [0x7F,0x49,0x49,0x49,0x41], 'F': [0x7F,0x09,0x09,0x09,0x01],
+      'G': [0x3E,0x41,0x49,0x49,0x7A], 'H': [0x7F,0x08,0x08,0x08,0x7F], 'I': [0x00,0x41,0x7F,0x41,0x00],
+      'J': [0x20,0x40,0x41,0x3F,0x01], 'K': [0x7F,0x08,0x14,0x22,0x41], 'L': [0x7F,0x40,0x40,0x40,0x40],
+      'M': [0x7F,0x02,0x0C,0x02,0x7F], 'N': [0x7F,0x04,0x08,0x10,0x7F], 'O': [0x3E,0x41,0x41,0x41,0x3E],
+      'P': [0x7F,0x09,0x09,0x09,0x06], 'Q': [0x3E,0x41,0x51,0x21,0x5E], 'R': [0x7F,0x09,0x19,0x29,0x46],
+      'S': [0x46,0x49,0x49,0x49,0x31], 'T': [0x01,0x01,0x7F,0x01,0x01], 'U': [0x3F,0x40,0x40,0x40,0x3F],
+      'V': [0x1F,0x20,0x40,0x20,0x1F], 'W': [0x3F,0x40,0x38,0x40,0x3F], 'X': [0x63,0x14,0x08,0x14,0x63],
+      'Y': [0x07,0x08,0x70,0x08,0x07], 'Z': [0x61,0x51,0x49,0x45,0x43],
+      '0': [0x3E,0x51,0x49,0x45,0x3E], '1': [0x00,0x42,0x7F,0x40,0x00], '2': [0x42,0x61,0x51,0x49,0x46],
+      '3': [0x21,0x41,0x45,0x4B,0x31], '4': [0x18,0x14,0x12,0x7F,0x10], '5': [0x27,0x45,0x45,0x45,0x39],
+      '6': [0x3C,0x4A,0x49,0x49,0x30], '7': [0x01,0x71,0x09,0x05,0x03], '8': [0x36,0x49,0x49,0x49,0x36],
+      '9': [0x06,0x49,0x49,0x29,0x1E], ':': [0x00,0x36,0x36,0x00,0x00], ' ': [0x00,0x00,0x00,0x00,0x00],
+      '.': [0x00,0x60,0x60,0x00,0x00], '!': [0x00,0x00,0x5F,0x00,0x00], '-': [0x08,0x08,0x08,0x08,0x08],
+    };
+  }
+
+  // Render text to pixel array
+  _textToPixels(text, width, height, fgColor = '#ff6600', bgColor = '#111') {
+    const pixels = [];
+    const charWidth = 6; // 5 pixels + 1 space
+    const charHeight = 7;
+    const startY = Math.floor((height - charHeight) / 2);
+
+    // Initialize all pixels to background
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        pixels.push(bgColor);
+      }
+    }
+
+    // Render each character
+    let xOffset = 1;
+    for (const char of text.toUpperCase()) {
+      const charData = this._pixelFont[char] || this._pixelFont[' '];
+      for (let col = 0; col < 5; col++) {
+        for (let row = 0; row < 7; row++) {
+          const pixelOn = (charData[col] >> row) & 1;
+          const px = xOffset + col;
+          const py = startY + row;
+          if (px < width && py < height && py >= 0) {
+            pixels[py * width + px] = pixelOn ? fgColor : bgColor;
+          }
+        }
+      }
+      xOffset += charWidth;
+      if (xOffset >= width) break;
+    }
+    return pixels;
+  }
+
+  // Create SVG pixel display
+  _createPixelSvg(width, height, pixels, pixelGap = 1) {
+    const svgWidth = 100; // percentage-based
+    const pxWidth = svgWidth / width;
+    const pxHeight = pxWidth; // square pixels
+
+    let rects = '';
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const color = pixels[y * width + x] || '#111';
+        const isLit = color !== '#111' && color !== '#000' && color !== '#1a1a1a';
+        rects += `<rect x="${x * pxWidth}" y="${y * pxHeight}" width="${pxWidth - pixelGap * 0.1}" height="${pxHeight - pixelGap * 0.1}" fill="${color}" rx="0.3" ${isLit ? `style="filter: drop-shadow(0 0 1px ${color})"` : ''}/>`;
+      }
+    }
+    return `<svg viewBox="0 0 ${svgWidth} ${height * pxHeight}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block;">${rects}</svg>`;
+  }
+
   render() {
     if (!this._hass) return;
     const [width, height] = this.getResolution();
@@ -335,76 +411,41 @@ class iPIXELDisplayCard extends iPIXELCardBase {
     const modeEntity = this.getRelatedEntity('select', '_mode');
     const currentMode = modeEntity?.state || 'text';
 
-    // Determine what to show in the preview
-    let previewContent = '';
-    let previewClass = 'text-mode';
+    // Determine content and colors
+    let displayText = '';
+    let fgColor = '#ff6600';
+    let bgColor = '#111';
+
     if (!isOn) {
-      previewContent = '';
-      previewClass = 'off-mode';
+      displayText = '';
+      bgColor = '#050505';
     } else if (currentMode === 'clock') {
       const now = new Date();
-      previewContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-      previewClass = 'clock-mode';
+      displayText = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+      fgColor = '#00ff88';
     } else if (currentMode === 'gif') {
-      previewContent = '🎬 GIF';
-      previewClass = 'gif-mode';
+      displayText = 'GIF';
+      fgColor = '#ff44ff';
     } else if (currentMode === 'rhythm') {
-      previewContent = '🎵 Rhythm';
-      previewClass = 'rhythm-mode';
+      displayText = '***';
+      fgColor = '#44aaff';
     } else {
-      previewContent = currentText || 'No content';
-      previewClass = currentText ? 'text-mode' : 'empty-mode';
+      displayText = currentText || '';
     }
+
+    // Generate pixel data
+    const pixels = this._textToPixels(displayText, width, height, fgColor, bgColor);
+    const pixelSvg = this._createPixelSvg(width, height, pixels);
 
     this.shadowRoot.innerHTML = `
       <style>${iPIXELCardStyles}
-        .display-container { background: #000; border-radius: 8px; padding: 8px; }
+        .display-container { background: #000; border-radius: 8px; padding: 8px; border: 2px solid #222; }
         .display-screen {
-          background: linear-gradient(180deg, #0a0a0a 0%, #000 100%);
+          background: #000;
           border-radius: 4px;
           overflow: hidden;
-          aspect-ratio: ${width}/${height};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          min-height: 48px;
+          min-height: 60px;
         }
-        .display-screen::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(0,0,0,0.3) 2px,
-            rgba(0,0,0,0.3) 4px
-          );
-          pointer-events: none;
-        }
-        .display-content {
-          font-family: 'Courier New', monospace;
-          font-weight: bold;
-          font-size: clamp(12px, 3vw, 24px);
-          text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
-          padding: 8px 16px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 100%;
-          z-index: 1;
-        }
-        .display-content.text-mode { color: #ff6600; animation: glow 2s ease-in-out infinite alternate; }
-        .display-content.clock-mode { color: #00ff88; font-size: clamp(16px, 4vw, 32px); }
-        .display-content.gif-mode { color: #ff44ff; }
-        .display-content.rhythm-mode { color: #44aaff; animation: pulse 0.5s ease-in-out infinite; }
-        .display-content.empty-mode { color: #444; font-style: italic; text-shadow: none; }
-        .display-content.off-mode { color: #111; }
-        .display-content.scrolling { animation: scroll 8s linear infinite; }
-        @keyframes glow { from { opacity: 0.8; } to { opacity: 1; } }
-        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-        @keyframes scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         .display-footer { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.75em; opacity: 0.6; }
         .mode-badge { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; text-transform: capitalize; }
       </style>
@@ -420,9 +461,7 @@ class iPIXELDisplayCard extends iPIXELCardBase {
             </button>
           </div>
           <div class="display-container">
-            <div class="display-screen">
-              <div class="display-content ${previewClass}">${previewContent}</div>
-            </div>
+            <div class="display-screen">${pixelSvg}</div>
             <div class="display-footer">
               <span>${width} x ${height}</span>
               <span class="mode-badge">${isOn ? currentMode : 'Off'}</span>
@@ -431,16 +470,35 @@ class iPIXELDisplayCard extends iPIXELCardBase {
         </div>
       </ha-card>`;
 
+    // Power button - use stored switch entity ID for reliability
     this.shadowRoot.getElementById('power-btn')?.addEventListener('click', () => {
-      const sw = this.getRelatedEntity('switch');
-      if (sw) {
-        this._hass.callService('switch', 'toggle', { entity_id: sw.entity_id });
+      // Try to find switch entity
+      let switchId = this._switchEntityId;
+      if (!switchId) {
+        const sw = this.getRelatedEntity('switch');
+        if (sw) {
+          this._switchEntityId = sw.entity_id;
+          switchId = sw.entity_id;
+        }
+      }
+
+      if (switchId && this._hass.states[switchId]) {
+        this._hass.callService('switch', 'toggle', { entity_id: switchId });
       } else {
-        console.warn('iPIXEL: No power switch found. Config entity:', this._config.entity);
-        console.log('iPIXEL: Available switches:', Object.keys(this._hass.states).filter(e => e.startsWith('switch.')));
+        // Fallback: search for any ipixel switch
+        const allSwitches = Object.keys(this._hass.states).filter(e => e.startsWith('switch.'));
+        const baseName = this._config.entity?.replace(/^[^.]+\./, '').replace(/_?(text|display|gif_url)$/i, '') || '';
+        const match = allSwitches.find(s => s.includes(baseName.substring(0, 10)));
+        if (match) {
+          this._switchEntityId = match;
+          this._hass.callService('switch', 'toggle', { entity_id: match });
+        } else {
+          console.warn('iPIXEL: No switch found. Entity:', this._config.entity, 'Available:', allSwitches);
+        }
       }
     });
   }
+
   static getConfigElement() { return document.createElement('ipixel-simple-editor'); }
   static getStubConfig() { return { entity: '' }; }
 }
