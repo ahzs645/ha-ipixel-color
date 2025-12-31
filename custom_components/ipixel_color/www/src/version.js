@@ -1,4 +1,4 @@
 /**
  * Version information
  */
-export const CARD_VERSION = '2.9.0';
+export const CARD_VERSION = '2.10.0';

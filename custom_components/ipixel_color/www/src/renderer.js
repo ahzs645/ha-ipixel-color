@@ -5,6 +5,33 @@
  */
 
 /**
+ * Convert HSV to RGB
+ * @param {number} h - Hue (0-1)
+ * @param {number} s - Saturation (0-1)
+ * @param {number} v - Value (0-1)
+ * @returns {number[]} RGB array [0-255, 0-255, 0-255]
+ */
+function hsvToRgb(h, s, v) {
+  let r, g, b;
+  const i = Math.floor(h * 6);
+  const f = h * 6 - i;
+  const p = v * (1 - s);
+  const q = v * (1 - f * s);
+  const t = v * (1 - (1 - f) * s);
+
+  switch (i % 6) {
+    case 0: r = v; g = t; b = p; break;
+    case 1: r = q; g = v; b = p; break;
+    case 2: r = p; g = v; b = t; break;
+    case 3: r = p; g = q; b = v; break;
+    case 4: r = t; g = p; b = v; break;
+    case 5: r = v; g = p; b = q; break;
+  }
+
+  return [r * 255, g * 255, b * 255];
+}
+
+/**
  * LED Matrix Renderer class
  * Pre-creates SVG rect elements and updates them efficiently
  */
@@ -182,6 +209,41 @@ export class LEDMatrixRenderer {
     if (effect === 'blink') {
       this.effectState.visible = true;
     }
+
+    // Rainbow effect
+    if (effect === 'rainbow') {
+      this.effectState.position = 0;
+    }
+
+    // Matrix rain effect
+    if (effect === 'matrix') {
+      // Choose random color mode
+      const colorModes = [
+        [0, 255, 0],    // Matrix green
+        [0, 255, 255],  // Cyan
+        [255, 0, 255],  // Purple
+      ];
+      this.effectState.colorMode = colorModes[Math.floor(Math.random() * colorModes.length)];
+      // Create 2D buffer for rain trails
+      this.effectState.buffer = [];
+      for (let y = 0; y < this.height; y++) {
+        const row = [];
+        for (let x = 0; x < this.width; x++) {
+          row.push([0, 0, 0]);
+        }
+        this.effectState.buffer.push(row);
+      }
+    }
+
+    // Plasma effect
+    if (effect === 'plasma') {
+      this.effectState.time = 0;
+    }
+
+    // Gradient effect
+    if (effect === 'gradient') {
+      this.effectState.time = 0;
+    }
   }
 
   /**
@@ -239,6 +301,41 @@ export class LEDMatrixRenderer {
       this.effectState.visible = !this.effectState.visible;
     } else if (this.effect === 'snow' || this.effect === 'breeze' || this.effect === 'laser') {
       this.effectState.tick = (this.effectState.tick || 0) + 1;
+    } else if (this.effect === 'rainbow') {
+      this.effectState.position = (this.effectState.position + 0.01) % 1;
+    } else if (this.effect === 'matrix') {
+      this._stepMatrix();
+    } else if (this.effect === 'plasma' || this.effect === 'gradient') {
+      this.effectState.time = (this.effectState.time || 0) + 0.05;
+    }
+  }
+
+  /**
+   * Matrix rain step - shift rows down and add new drops
+   */
+  _stepMatrix() {
+    const buffer = this.effectState.buffer;
+    const colorMode = this.effectState.colorMode;
+    const fadeAmount = 0.15;
+
+    // Shift rows down (remove bottom, duplicate faded top)
+    buffer.pop();
+    const newRow = buffer[0].map(([r, g, b]) => [
+      r * (1 - fadeAmount),
+      g * (1 - fadeAmount),
+      b * (1 - fadeAmount)
+    ]);
+    buffer.unshift(JSON.parse(JSON.stringify(newRow)));
+
+    // Randomly place new drops in top row
+    for (let x = 0; x < this.width; x++) {
+      if (Math.random() < 0.08) {
+        buffer[0][x] = [
+          Math.floor(Math.random() * colorMode[0]),
+          Math.floor(Math.random() * colorMode[1]),
+          Math.floor(Math.random() * colorMode[2])
+        ];
+      }
     }
   }
 
@@ -246,6 +343,29 @@ export class LEDMatrixRenderer {
    * Render current frame to buffer and flush
    */
   _renderFrame() {
+    // Standalone effects (ignore text data)
+    if (this.effect === 'rainbow') {
+      this._renderRainbow();
+      this.flush();
+      return;
+    }
+    if (this.effect === 'matrix') {
+      this._renderMatrix();
+      this.flush();
+      return;
+    }
+    if (this.effect === 'plasma') {
+      this._renderPlasma();
+      this.flush();
+      return;
+    }
+    if (this.effect === 'gradient') {
+      this._renderGradient();
+      this.flush();
+      return;
+    }
+
+    // Text-based effects
     const extPixels = this._extendedColorPixels || this._colorPixels || [];
     const pixels = this._colorPixels || [];
 
@@ -296,6 +416,87 @@ export class LEDMatrixRenderer {
     }
 
     this.flush();
+  }
+
+  /**
+   * Render rainbow effect - HSV gradient scrolling horizontally
+   */
+  _renderRainbow() {
+    const position = this.effectState.position || 0;
+    for (let x = 0; x < this.width; x++) {
+      const hue = (position + x / this.width) % 1;
+      const [r, g, b] = hsvToRgb(hue, 1, 0.6);
+      for (let y = 0; y < this.height; y++) {
+        this.setPixel(x, y, [r, g, b]);
+      }
+    }
+  }
+
+  /**
+   * Render matrix rain effect - digital rain with fade trails
+   */
+  _renderMatrix() {
+    const buffer = this.effectState.buffer;
+    if (!buffer) return;
+
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const [r, g, b] = buffer[y][x];
+        this.setPixel(x, y, [r, g, b]);
+      }
+    }
+  }
+
+  /**
+   * Render plasma effect - classic demoscene sine wave patterns
+   */
+  _renderPlasma() {
+    const time = this.effectState.time || 0;
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        // Distance from center
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Multiple sine waves combined
+        const v1 = Math.sin(x / 8 + time);
+        const v2 = Math.sin(y / 6 + time * 0.8);
+        const v3 = Math.sin(dist / 6 - time * 1.2);
+        const v4 = Math.sin((x + y) / 10 + time * 0.5);
+
+        // Combine and normalize to 0-1
+        const value = (v1 + v2 + v3 + v4 + 4) / 8;
+
+        // Color cycling
+        const r = Math.sin(value * Math.PI * 2) * 0.5 + 0.5;
+        const g = Math.sin(value * Math.PI * 2 + 2) * 0.5 + 0.5;
+        const b = Math.sin(value * Math.PI * 2 + 4) * 0.5 + 0.5;
+
+        this.setPixel(x, y, [r * 255, g * 255, b * 255]);
+      }
+    }
+  }
+
+  /**
+   * Render gradient effect - simple moving color gradients
+   */
+  _renderGradient() {
+    const time = this.effectState.time || 0;
+    const t = time * 10;
+
+    for (let x = 0; x < this.width; x++) {
+      for (let y = 0; y < this.height; y++) {
+        const r = (Math.sin((x + t) * 0.05) * 0.5 + 0.5) * 255;
+        const g = (Math.cos((y + t) * 0.05) * 0.5 + 0.5) * 255;
+        const b = (Math.sin((x + y + t) * 0.03) * 0.5 + 0.5) * 255;
+
+        this.setPixel(x, y, [r, g, b]);
+      }
+    }
   }
 
   /**
