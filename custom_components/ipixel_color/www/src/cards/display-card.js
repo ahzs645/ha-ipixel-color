@@ -1,13 +1,17 @@
 /**
  * iPIXEL Display Card
  * LED matrix preview with power control and discrete pixel animation
+ * Fixed to preserve renderer state and resolution across re-renders
  */
 
 import { iPIXELCardBase } from '../base.js';
 import { iPIXELCardStyles } from '../styles.js';
 import { textToPixels, textToScrollPixels } from '../font.js';
-import { LEDMatrixRenderer, createPixelSvg } from '../renderer.js';
-import { getDisplayState } from '../state.js';
+import { LEDMatrixRenderer, createPixelSvg, EFFECTS } from '../renderer.js';
+import { getDisplayState, updateDisplayState } from '../state.js';
+
+// Global renderer cache - preserves renderer across card re-renders
+const rendererCache = new Map();
 
 export class iPIXELDisplayCard extends iPIXELCardBase {
   constructor() {
@@ -15,6 +19,8 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
     this._renderer = null;
     this._displayContainer = null;
     this._lastState = null;
+    this._cachedResolution = null; // Cache resolution
+    this._rendererId = null;
 
     this._handleDisplayUpdate = (e) => {
       this._updateDisplay(e.detail);
@@ -22,22 +28,91 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
     window.addEventListener('ipixel-display-update', this._handleDisplayUpdate);
   }
 
+  connectedCallback() {
+    // Generate unique ID for this card instance
+    if (!this._rendererId) {
+      this._rendererId = `renderer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // Restore renderer from cache if available
+    if (rendererCache.has(this._rendererId)) {
+      this._renderer = rendererCache.get(this._rendererId);
+    }
+  }
+
   disconnectedCallback() {
     window.removeEventListener('ipixel-display-update', this._handleDisplayUpdate);
-    if (this._renderer) {
+
+    // Don't destroy renderer - cache it for reconnection
+    if (this._renderer && this._rendererId) {
       this._renderer.stop();
-      this._renderer = null;
+      rendererCache.set(this._rendererId, this._renderer);
     }
+  }
+
+  /**
+   * Get resolution with caching and fallback
+   */
+  _getResolutionCached() {
+    const [sensorWidth, sensorHeight] = this.getResolution();
+
+    // If sensors return valid values, cache them
+    if (sensorWidth > 0 && sensorHeight > 0 && sensorWidth !== 64) {
+      this._cachedResolution = [sensorWidth, sensorHeight];
+      // Also save to localStorage for persistence
+      try {
+        localStorage.setItem('iPIXEL_Resolution', JSON.stringify([sensorWidth, sensorHeight]));
+      } catch (e) { }
+    }
+
+    // If we have cached resolution, use it
+    if (this._cachedResolution) {
+      return this._cachedResolution;
+    }
+
+    // Try to load from localStorage
+    try {
+      const saved = localStorage.getItem('iPIXEL_Resolution');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 2) {
+          this._cachedResolution = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) { }
+
+    // Fall back to config or default
+    if (this._config?.width && this._config?.height) {
+      return [this._config.width, this._config.height];
+    }
+
+    return [sensorWidth || 64, sensorHeight || 16];
   }
 
   /**
    * Update the display with new state
    */
   _updateDisplay(state) {
-    if (!this._renderer || !this._displayContainer) return;
+    if (!this._displayContainer) return;
 
-    const [width, height] = this.getResolution();
+    const [width, height] = this._getResolutionCached();
     const isOn = this.isOn();
+
+    // Ensure renderer exists and has correct dimensions
+    if (!this._renderer) {
+      this._renderer = new LEDMatrixRenderer(this._displayContainer, { width, height });
+      if (this._rendererId) {
+        rendererCache.set(this._rendererId, this._renderer);
+      }
+    } else {
+      // Update container reference in case it changed
+      this._renderer.setContainer(this._displayContainer);
+      // Update dimensions if changed
+      if (this._renderer.width !== width || this._renderer.height !== height) {
+        this._renderer.setDimensions(width, height);
+      }
+    }
 
     if (!isOn) {
       // Display off - show blank
@@ -70,27 +145,30 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
       displayFg = '#44aaff';
     }
 
-    // Update renderer dimensions if changed
-    if (this._renderer.width !== width || this._renderer.height !== height) {
-      this._renderer.width = width;
-      this._renderer.height = height;
-    }
+    // Check if effect is ambient (doesn't need text data)
+    const effectInfo = EFFECTS[effect];
+    const isAmbient = effectInfo?.category === 'ambient';
 
-    // Check if we need scrolling (text wider than display)
-    const textPixelWidth = displayText.length * 6; // 6 pixels per char
-    const needsScroll = (effect === 'scroll_ltr' || effect === 'scroll_rtl') && textPixelWidth > width;
-
-    if (needsScroll) {
-      // Generate extended pixel data for scrolling
-      const { pixels: extendedPixels, width: extendedWidth } = textToScrollPixels(
-        displayText, width, height, displayFg, bgColor
-      );
-      const displayPixels = textToPixels(displayText, width, height, displayFg, bgColor);
-      this._renderer.setData(displayPixels, extendedPixels, extendedWidth);
+    if (isAmbient) {
+      // Ambient effects don't need text pixels
+      this._renderer.setData([], [], width);
     } else {
-      // Static or non-scroll effects
-      const pixels = textToPixels(displayText, width, height, displayFg, bgColor);
-      this._renderer.setData(pixels);
+      // Check if we need scrolling (text wider than display)
+      const textPixelWidth = displayText.length * 6; // 6 pixels per char
+      const needsScroll = (effect === 'scroll_ltr' || effect === 'scroll_rtl' || effect === 'bounce') && textPixelWidth > width;
+
+      if (needsScroll) {
+        // Generate extended pixel data for scrolling
+        const { pixels: extendedPixels, width: extendedWidth } = textToScrollPixels(
+          displayText, width, height, displayFg, bgColor
+        );
+        const displayPixels = textToPixels(displayText, width, height, displayFg, bgColor);
+        this._renderer.setData(displayPixels, extendedPixels, extendedWidth);
+      } else {
+        // Static or non-scroll effects
+        const pixels = textToPixels(displayText, width, height, displayFg, bgColor);
+        this._renderer.setData(pixels);
+      }
     }
 
     // Set effect and speed
@@ -107,7 +185,8 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
 
   render() {
     if (!this._hass) return;
-    const [width, height] = this.getResolution();
+
+    const [width, height] = this._getResolutionCached();
     const isOn = this.isOn();
     const name = this._config.name || this.getEntity()?.attributes?.friendly_name || 'iPIXEL Display';
 
@@ -124,6 +203,26 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
     const fgColor = sharedState.fgColor || '#ff6600';
     const bgColor = sharedState.bgColor || '#111';
 
+    // Check if effect is ambient
+    const effectInfo = EFFECTS[currentEffect];
+    const isAmbient = effectInfo?.category === 'ambient';
+
+    // Build effect options grouped by category
+    const textEffects = Object.entries(EFFECTS)
+      .filter(([_, info]) => info.category === 'text')
+      .map(([name, info]) => `<option value="${name}">${info.name}</option>`)
+      .join('');
+
+    const ambientEffects = Object.entries(EFFECTS)
+      .filter(([_, info]) => info.category === 'ambient')
+      .map(([name, info]) => `<option value="${name}">${info.name}</option>`)
+      .join('');
+
+    const colorEffects = Object.entries(EFFECTS)
+      .filter(([_, info]) => info.category === 'color')
+      .map(([name, info]) => `<option value="${name}">${info.name}</option>`)
+      .join('');
+
     this.shadowRoot.innerHTML = `
       <style>${iPIXELCardStyles}
         .display-container { background: #000; border-radius: 8px; padding: 8px; border: 2px solid #222; }
@@ -135,6 +234,7 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
         }
         .display-footer { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.75em; opacity: 0.6; }
         .mode-badge { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; text-transform: capitalize; }
+        .effect-badge { background: rgba(100,149,237,0.2); padding: 2px 6px; border-radius: 3px; margin-left: 4px; }
       </style>
       <ha-card>
         <div class="card-content">
@@ -151,7 +251,10 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
             <div class="display-screen" id="display-screen"></div>
             <div class="display-footer">
               <span>${width} x ${height}</span>
-              <span class="mode-badge">${isOn ? (currentEffect !== 'fixed' ? currentEffect.replace('_', ' ') : currentMode) : 'Off'}</span>
+              <span>
+                <span class="mode-badge">${isOn ? currentMode : 'Off'}</span>
+                ${isOn && currentEffect !== 'fixed' ? `<span class="effect-badge">${EFFECTS[currentEffect]?.name || currentEffect}</span>` : ''}
+              </span>
             </div>
           </div>
         </div>
@@ -160,16 +263,7 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
     // Get display container
     this._displayContainer = this.shadowRoot.getElementById('display-screen');
 
-    // Create or update renderer
-    if (!this._renderer) {
-      this._renderer = new LEDMatrixRenderer(this._displayContainer, { width, height });
-    } else {
-      this._renderer.container = this._displayContainer;
-      this._renderer.width = width;
-      this._renderer.height = height;
-    }
-
-    // Update display with current state
+    // Update display with current state (renderer will be created/updated in _updateDisplay)
     this._updateDisplay({
       text: currentText,
       effect: currentEffect,
