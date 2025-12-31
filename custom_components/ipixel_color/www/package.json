@@ -1,6 +1,6 @@
 {
   "name": "ipixel-cards",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "Lovelace cards for iPIXEL Color LED displays",
   "type": "module",
   "scripts": {
