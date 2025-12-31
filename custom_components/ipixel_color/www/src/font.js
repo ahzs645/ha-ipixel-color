@@ -46,7 +46,7 @@ export const pixelFont = {
 };
 
 /**
- * Render text to a pixel array
+ * Render text to a pixel array (centered, clipped to display width)
  * @param {string} text - Text to render
  * @param {number} width - Display width in pixels
  * @param {number} height - Display height in pixels
@@ -88,4 +88,53 @@ export function textToPixels(text, width, height, fgColor = '#ff6600', bgColor =
     xOffset += charWidth;
   }
   return pixels;
+}
+
+/**
+ * Render text to an extended pixel array for scrolling
+ * The width is: displayWidth + textWidth + displayWidth (for seamless wrap)
+ * @param {string} text - Text to render
+ * @param {number} displayWidth - Display width in pixels
+ * @param {number} height - Display height in pixels
+ * @param {string} fgColor - Foreground color (hex)
+ * @param {string} bgColor - Background color (hex)
+ * @returns {{ pixels: string[], width: number }} Extended pixel array and its width
+ */
+export function textToScrollPixels(text, displayWidth, height, fgColor = '#ff6600', bgColor = '#111') {
+  const charWidth = 6; // 5 pixels + 1 space
+  const charHeight = 7;
+  const startY = Math.floor((height - charHeight) / 2);
+
+  // Calculate the text width in pixels
+  const textPixelWidth = text.length * charWidth;
+
+  // Extended width: display + text + display (for seamless loop)
+  const extendedWidth = displayWidth + textPixelWidth + displayWidth;
+
+  // Initialize all pixels to background
+  const pixels = [];
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < extendedWidth; x++) {
+      pixels.push(bgColor);
+    }
+  }
+
+  // Render text starting after one display width of padding
+  let xOffset = displayWidth;
+  for (const char of text) {
+    const charData = pixelFont[char] || pixelFont[' '];
+    for (let col = 0; col < 5; col++) {
+      for (let row = 0; row < 7; row++) {
+        const pixelOn = (charData[col] >> row) & 1;
+        const px = xOffset + col;
+        const py = startY + row;
+        if (px >= 0 && px < extendedWidth && py < height && py >= 0) {
+          pixels[py * extendedWidth + px] = pixelOn ? fgColor : bgColor;
+        }
+      }
+    }
+    xOffset += charWidth;
+  }
+
+  return { pixels, width: extendedWidth };
 }

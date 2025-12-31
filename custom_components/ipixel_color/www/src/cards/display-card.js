@@ -1,23 +1,108 @@
 /**
  * iPIXEL Display Card
- * LED matrix preview with power control
+ * LED matrix preview with power control and discrete pixel animation
  */
 
 import { iPIXELCardBase } from '../base.js';
 import { iPIXELCardStyles } from '../styles.js';
-import { textToPixels } from '../font.js';
-import { createPixelSvg } from '../renderer.js';
+import { textToPixels, textToScrollPixels } from '../font.js';
+import { LEDMatrixRenderer, createPixelSvg } from '../renderer.js';
 import { getDisplayState } from '../state.js';
 
 export class iPIXELDisplayCard extends iPIXELCardBase {
   constructor() {
     super();
-    this._handleDisplayUpdate = () => this.render();
+    this._renderer = null;
+    this._displayContainer = null;
+    this._lastState = null;
+
+    this._handleDisplayUpdate = (e) => {
+      this._updateDisplay(e.detail);
+    };
     window.addEventListener('ipixel-display-update', this._handleDisplayUpdate);
   }
 
   disconnectedCallback() {
     window.removeEventListener('ipixel-display-update', this._handleDisplayUpdate);
+    if (this._renderer) {
+      this._renderer.stop();
+      this._renderer = null;
+    }
+  }
+
+  /**
+   * Update the display with new state
+   */
+  _updateDisplay(state) {
+    if (!this._renderer || !this._displayContainer) return;
+
+    const [width, height] = this.getResolution();
+    const isOn = this.isOn();
+
+    if (!isOn) {
+      // Display off - show blank
+      this._renderer.stop();
+      const pixels = textToPixels('', width, height, '#111', '#050505');
+      this._displayContainer.innerHTML = createPixelSvg(width, height, pixels);
+      return;
+    }
+
+    const text = state?.text || '';
+    const effect = state?.effect || 'fixed';
+    const speed = state?.speed || 50;
+    const fgColor = state?.fgColor || '#ff6600';
+    const bgColor = state?.bgColor || '#111';
+    const mode = state?.mode || 'text';
+
+    // Determine display text based on mode
+    let displayText = text;
+    let displayFg = fgColor;
+
+    if (mode === 'clock') {
+      const now = new Date();
+      displayText = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+      displayFg = '#00ff88';
+    } else if (mode === 'gif') {
+      displayText = 'GIF';
+      displayFg = '#ff44ff';
+    } else if (mode === 'rhythm') {
+      displayText = '***';
+      displayFg = '#44aaff';
+    }
+
+    // Update renderer dimensions if changed
+    if (this._renderer.width !== width || this._renderer.height !== height) {
+      this._renderer.width = width;
+      this._renderer.height = height;
+    }
+
+    // Check if we need scrolling (text wider than display)
+    const textPixelWidth = displayText.length * 6; // 6 pixels per char
+    const needsScroll = (effect === 'scroll_ltr' || effect === 'scroll_rtl') && textPixelWidth > width;
+
+    if (needsScroll) {
+      // Generate extended pixel data for scrolling
+      const { pixels: extendedPixels, width: extendedWidth } = textToScrollPixels(
+        displayText, width, height, displayFg, bgColor
+      );
+      const displayPixels = textToPixels(displayText, width, height, displayFg, bgColor);
+      this._renderer.setData(displayPixels, extendedPixels, extendedWidth);
+    } else {
+      // Static or non-scroll effects
+      const pixels = textToPixels(displayText, width, height, displayFg, bgColor);
+      this._renderer.setData(pixels);
+    }
+
+    // Set effect and speed
+    this._renderer.setEffect(effect, speed);
+
+    // Start or stop animation based on effect
+    if (effect === 'fixed') {
+      this._renderer.stop();
+      this._renderer.renderStatic();
+    } else {
+      this._renderer.start();
+    }
   }
 
   render() {
@@ -26,7 +111,7 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
     const isOn = this.isOn();
     const name = this._config.name || this.getEntity()?.attributes?.friendly_name || 'iPIXEL Display';
 
-    // Get current display content from shared state or entity
+    // Get current state
     const sharedState = getDisplayState();
     const textEntity = this.getEntity();
     const entityText = textEntity?.state || '';
@@ -36,32 +121,8 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
     const currentText = sharedState.text || entityText;
     const currentEffect = sharedState.effect || 'fixed';
     const currentSpeed = sharedState.speed || 50;
-
-    let displayText = '';
-    let fgColor = sharedState.fgColor || '#ff6600';
-    let bgColor = sharedState.bgColor || '#111';
-    let effect = currentEffect;
-    let speed = currentSpeed;
-
-    if (!isOn) {
-      displayText = '';
-      bgColor = '#050505';
-    } else if (currentMode === 'clock') {
-      const now = new Date();
-      displayText = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-      fgColor = '#00ff88';
-    } else if (currentMode === 'gif') {
-      displayText = 'GIF';
-      fgColor = '#ff44ff';
-    } else if (currentMode === 'rhythm') {
-      displayText = '***';
-      fgColor = '#44aaff';
-    } else {
-      displayText = currentText || '';
-    }
-
-    const pixels = textToPixels(displayText, width, height, fgColor, bgColor);
-    const pixelSvg = createPixelSvg(width, height, pixels, 1, effect, speed);
+    const fgColor = sharedState.fgColor || '#ff6600';
+    const bgColor = sharedState.bgColor || '#111';
 
     this.shadowRoot.innerHTML = `
       <style>${iPIXELCardStyles}
@@ -87,14 +148,36 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
             </button>
           </div>
           <div class="display-container">
-            <div class="display-screen">${pixelSvg}</div>
+            <div class="display-screen" id="display-screen"></div>
             <div class="display-footer">
               <span>${width} x ${height}</span>
-              <span class="mode-badge">${isOn ? (effect !== 'fixed' ? effect.replace('_', ' ') : currentMode) : 'Off'}</span>
+              <span class="mode-badge">${isOn ? (currentEffect !== 'fixed' ? currentEffect.replace('_', ' ') : currentMode) : 'Off'}</span>
             </div>
           </div>
         </div>
       </ha-card>`;
+
+    // Get display container
+    this._displayContainer = this.shadowRoot.getElementById('display-screen');
+
+    // Create or update renderer
+    if (!this._renderer) {
+      this._renderer = new LEDMatrixRenderer(this._displayContainer, { width, height });
+    } else {
+      this._renderer.container = this._displayContainer;
+      this._renderer.width = width;
+      this._renderer.height = height;
+    }
+
+    // Update display with current state
+    this._updateDisplay({
+      text: currentText,
+      effect: currentEffect,
+      speed: currentSpeed,
+      fgColor: fgColor,
+      bgColor: bgColor,
+      mode: currentMode
+    });
 
     this._attachPowerButton();
   }
