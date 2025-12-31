@@ -20,6 +20,11 @@ from .device.commands import (
     make_show_slot_command,
     make_delete_slot_command,
     make_set_time_command,
+    make_upside_down_command,
+    make_default_mode_command,
+    make_erase_data_command,
+    make_program_mode_command,
+    make_rhythm_mode_advanced_command,
 )
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_command
@@ -522,7 +527,8 @@ class iPIXELAPI:
         font: str = "CUSONG",
         animation: int = 0,
         speed: int = 80,
-        rainbow_mode: int = 0
+        rainbow_mode: int = 0,
+        matrix_height: int | None = None
     ) -> bool:
         """Display text using pypixelcolor.
 
@@ -534,6 +540,7 @@ class iPIXELAPI:
             animation: Animation type (0-7)
             speed: Animation speed (0-100)
             rainbow_mode: Rainbow mode (0-9)
+            matrix_height: Override device height for text rendering (16, 20, 24, or 32)
 
         Returns:
             True if text was sent successfully
@@ -541,7 +548,7 @@ class iPIXELAPI:
         try:
             # Get device info for height
             device_info = await self.get_device_info()
-            device_height = device_info["height"]
+            device_height = matrix_height if matrix_height else device_info["height"]
 
             # Generate text commands using pypixelcolor
             commands = make_text_command(
@@ -720,6 +727,207 @@ class iPIXELAPI:
 
         except Exception as err:
             _LOGGER.error("Error displaying image with effect: %s", err)
+            return False
+
+    async def set_upside_down(self, upside_down: bool) -> bool:
+        """Set display upside down (flip 180°).
+
+        Args:
+            upside_down: True to flip display 180°, False for normal
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            command = make_upside_down_command(upside_down)
+            success = await self._bluetooth.send_command(command)
+
+            if success:
+                _LOGGER.info("Upside down mode %s", "enabled" if upside_down else "disabled")
+            else:
+                _LOGGER.error("Failed to set upside down mode")
+            return success
+
+        except Exception as err:
+            _LOGGER.error("Error setting upside down mode: %s", err)
+            return False
+
+    async def set_default_mode(self) -> bool:
+        """Reset device to factory default display mode.
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            command = make_default_mode_command()
+            success = await self._bluetooth.send_command(command)
+
+            if success:
+                _LOGGER.info("Device reset to default mode")
+            else:
+                _LOGGER.error("Failed to reset to default mode")
+            return success
+
+        except Exception as err:
+            _LOGGER.error("Error resetting to default mode: %s", err)
+            return False
+
+    async def erase_data(
+        self,
+        buffers: list[int] | None = None,
+        erase_all: bool = False
+    ) -> bool:
+        """Erase stored data from device EEPROM.
+
+        Args:
+            buffers: List of buffer numbers to erase (1-255), or None with erase_all=True
+            erase_all: True to erase all stored data
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            command = make_erase_data_command(buffers, erase_all)
+            success = await self._bluetooth.send_command(command)
+
+            if success:
+                if erase_all:
+                    _LOGGER.info("Erased all stored data from device")
+                else:
+                    _LOGGER.info("Erased buffers %s from device", buffers)
+            else:
+                _LOGGER.error("Failed to erase data")
+            return success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid erase parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error erasing data: %s", err)
+            return False
+
+    async def set_program_mode(self, buffers: list[int]) -> bool:
+        """Set program mode to auto-cycle through stored screens.
+
+        Args:
+            buffers: List of buffer numbers to cycle through (1-9)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            command = make_program_mode_command(buffers)
+            success = await self._bluetooth.send_command(command)
+
+            if success:
+                _LOGGER.info("Program mode set with buffers: %s", buffers)
+            else:
+                _LOGGER.error("Failed to set program mode")
+            return success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid program mode parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting program mode: %s", err)
+            return False
+
+    async def set_rhythm_mode_advanced(
+        self,
+        style: int,
+        levels: list[int]
+    ) -> bool:
+        """Set advanced rhythm mode with 11 frequency band levels.
+
+        Args:
+            style: Rhythm style 0-4 (5 different visualizer styles)
+            levels: List of 11 integers (0-15) for each frequency band level
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            command = make_rhythm_mode_advanced_command(style, levels)
+            success = await self._bluetooth.send_command(command)
+
+            if success:
+                _LOGGER.info("Advanced rhythm mode set: style=%d, levels=%s", style, levels)
+            else:
+                _LOGGER.error("Failed to set advanced rhythm mode")
+            return success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid rhythm mode parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting advanced rhythm mode: %s", err)
+            return False
+
+    async def display_image_url(
+        self,
+        url: str,
+        buffer_slot: int = 1
+    ) -> bool:
+        """Download and display image from URL (PNG, JPG, BMP).
+
+        Args:
+            url: URL to image file
+            buffer_slot: Storage slot on device (1-255)
+
+        Returns:
+            True if image was sent successfully
+        """
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status != 200:
+                        _LOGGER.error("Failed to download image: HTTP %d", response.status)
+                        return False
+
+                    image_bytes = await response.read()
+                    content_type = response.headers.get('Content-Type', '')
+
+            # Determine file extension from content type or URL
+            if 'png' in content_type or url.lower().endswith('.png'):
+                file_ext = '.png'
+            elif 'jpeg' in content_type or 'jpg' in content_type or url.lower().endswith(('.jpg', '.jpeg')):
+                file_ext = '.jpg'
+            elif 'bmp' in content_type or url.lower().endswith('.bmp'):
+                file_ext = '.bmp'
+            elif 'gif' in content_type or url.lower().endswith('.gif'):
+                # For GIFs, use the existing GIF method
+                _LOGGER.debug("URL is a GIF, using display_gif method")
+                return await self.display_gif(image_bytes, buffer_slot)
+            else:
+                file_ext = '.png'  # Default to PNG
+
+            _LOGGER.debug("Downloaded image from %s (%d bytes, type=%s)", url, len(image_bytes), file_ext)
+
+            # Get device info for dimensions
+            device_info = await self.get_device_info()
+
+            # Generate image commands
+            commands = make_image_command(
+                image_bytes=image_bytes,
+                file_extension=file_ext,
+                resize_method="crop",
+                device_info_dict=device_info
+            )
+
+            # Send all command frames
+            for i, command in enumerate(commands):
+                success = await self._bluetooth.send_command(command)
+                if not success:
+                    _LOGGER.error("Failed to send image frame %d/%d", i + 1, len(commands))
+                    return False
+
+            _LOGGER.info("Image from URL displayed successfully: %s", url)
+            return True
+
+        except Exception as err:
+            _LOGGER.error("Error displaying image from URL %s: %s", url, err)
             return False
 
     def _notification_handler(self, sender: Any, data: bytearray) -> None:

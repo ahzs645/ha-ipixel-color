@@ -197,3 +197,126 @@ def make_set_time_command(hour: int, minute: int, second: int) -> bytes:
         raise ValueError("Second must be 0-59")
 
     return bytes([8, 0, 1, 0x80, hour, minute, second, 0])
+
+
+def make_upside_down_command(upside_down: bool) -> bytes:
+    """Build upside down (flip display 180°) command.
+
+    Command format from ipixel-ctrl (opcode 0x8006):
+    [length, 0, 0x06, 0x80, flip_flag]
+
+    Args:
+        upside_down: True to flip display 180°, False for normal
+
+    Returns:
+        Command bytes for upside down mode
+    """
+    flip_byte = 0x01 if upside_down else 0x00
+    return make_command_payload(0x8006, bytes([flip_byte]))
+
+
+def make_default_mode_command() -> bytes:
+    """Build command to reset device to factory default display mode.
+
+    Command format from ipixel-ctrl (opcode 0x8003):
+    [length, 0, 0x03, 0x80] (no payload)
+
+    Returns:
+        Command bytes for default mode reset
+    """
+    return make_command_payload(0x8003, bytes([]))
+
+
+def make_erase_data_command(buffers: list[int] | None = None, erase_all: bool = False) -> bytes:
+    """Build command to erase stored data from device EEPROM.
+
+    Command format from ipixel-ctrl (opcode 0x0102):
+    Selective: [length, 0, 0x02, 0x01, count_low, count_high, buffer1, buffer2, ...]
+    All: [length, 0, 0x02, 0x01, 0xFF, 0x00, 0x01, 0x02, ..., 0xFE]
+
+    Args:
+        buffers: List of buffer numbers to erase (1-255), or None with erase_all=True
+        erase_all: True to erase all stored data
+
+    Returns:
+        Command bytes for erasing data
+
+    Raises:
+        ValueError: If neither buffers nor erase_all specified
+    """
+    if erase_all:
+        # Erase all buffers (0x01 to 0xFE)
+        payload = bytearray()
+        payload.extend((0x00FF).to_bytes(2, 'little'))  # Count = 0x00FF flag for all
+        payload.extend(bytes(range(0x01, 0xFF)))  # All buffer numbers 1-254
+        return make_command_payload(0x0102, bytes(payload))
+    elif buffers:
+        # Selective erase
+        for buf in buffers:
+            if buf < 1 or buf > 255:
+                raise ValueError("Buffer numbers must be 1-255")
+        payload = bytearray()
+        payload.extend(len(buffers).to_bytes(2, 'little'))
+        payload.extend(bytes(buffers))
+        return make_command_payload(0x0102, bytes(payload))
+    else:
+        raise ValueError("Must specify buffers list or erase_all=True")
+
+
+def make_program_mode_command(buffers: list[int]) -> bytes:
+    """Build command to set program mode (auto-cycle through stored screens).
+
+    Command format from ipixel-ctrl (opcode 0x8008):
+    [length, 0, 0x08, 0x80, count_low, count_high, buffer1, buffer2, ...]
+
+    Args:
+        buffers: List of buffer numbers to cycle through (1-9 typically)
+
+    Returns:
+        Command bytes for program mode
+
+    Raises:
+        ValueError: If buffers list is empty or contains invalid values
+    """
+    if not buffers:
+        raise ValueError("Must specify at least one buffer")
+    if len(buffers) > 9:
+        raise ValueError("Maximum 9 buffers in program mode")
+    for buf in buffers:
+        if buf < 1 or buf > 255:
+            raise ValueError("Buffer numbers must be 1-255")
+
+    payload = bytearray()
+    payload.extend(len(buffers).to_bytes(2, 'little'))
+    payload.extend(bytes(buffers))
+    return make_command_payload(0x8008, bytes(payload))
+
+
+def make_rhythm_mode_advanced_command(style: int, levels: list[int]) -> bytes:
+    """Build advanced rhythm mode command with 11 frequency band levels.
+
+    Command format from pypixelcolor set_rhythm_mode.py:
+    [16, 0, 1, 2, style, l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11]
+
+    Args:
+        style: Rhythm style 0-4 (5 different visualizer styles)
+        levels: List of 11 integers (0-15) for each frequency band level
+
+    Returns:
+        Command bytes for advanced rhythm mode
+
+    Raises:
+        ValueError: If style or levels are out of valid range
+    """
+    if style < 0 or style > 4:
+        raise ValueError("Rhythm style must be 0-4")
+    if len(levels) != 11:
+        raise ValueError("Must provide exactly 11 frequency levels")
+    for i, level in enumerate(levels):
+        if level < 0 or level > 15:
+            raise ValueError(f"Level {i+1} must be 0-15, got {level}")
+
+    # Build command: [16, 0, 1, 2, style, l1-l11]
+    command = bytearray([16, 0, 1, 2, style])
+    command.extend(levels)
+    return bytes(command)

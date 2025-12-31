@@ -55,6 +55,13 @@ SERVICE_START_PLAYLIST = "start_playlist"
 SERVICE_STOP_PLAYLIST = "stop_playlist"
 SERVICE_SET_POWER_SCHEDULE = "set_power_schedule"
 SERVICE_ADD_TIME_SLOT = "add_time_slot"
+# New features from related projects
+SERVICE_SET_UPSIDE_DOWN = "set_upside_down"
+SERVICE_SET_DEFAULT_MODE = "set_default_mode"
+SERVICE_ERASE_DATA = "erase_data"
+SERVICE_SET_PROGRAM_MODE = "set_program_mode"
+SERVICE_SET_RHYTHM_MODE_ADVANCED = "set_rhythm_mode_advanced"
+SERVICE_DISPLAY_IMAGE_URL = "display_image_url"
 
 # Frontend card registration flag
 FRONTEND_REGISTERED = False
@@ -186,6 +193,8 @@ async def _async_register_services(
         speed = call.data.get("speed", 50)
         color_fg = call.data.get("color_fg", [255, 255, 255])
         color_bg = call.data.get("color_bg", [0, 0, 0])
+        font = call.data.get("font", "CUSONG")
+        matrix_height_str = call.data.get("matrix_height", "")
 
         if not text:
             _LOGGER.warning("No text provided for display_text service")
@@ -199,16 +208,21 @@ async def _async_register_services(
             fg_hex = rgb_to_hex(color_fg)
             bg_hex = rgb_to_hex(color_bg)
 
+            # Parse matrix height (empty string means auto)
+            matrix_height = int(matrix_height_str) if matrix_height_str else None
+
             success = await api.display_text_pypixelcolor(
                 text=text,
                 color=fg_hex,
                 bg_color=bg_hex,
+                font=font,
                 animation=animation,
-                speed=speed
+                speed=speed,
+                matrix_height=matrix_height
             )
 
             if success:
-                _LOGGER.info("Text displayed: '%s' (effect=%s, speed=%d)", text, effect, speed)
+                _LOGGER.info("Text displayed: '%s' (effect=%s, speed=%d, font=%s)", text, effect, speed, font)
             else:
                 _LOGGER.error("Failed to display text: '%s'", text)
         except Exception as err:
@@ -475,6 +489,117 @@ async def _async_register_services(
         except Exception as err:
             _LOGGER.error("Error adding time slot: %s", err)
 
+    # New feature handlers
+
+    async def handle_set_upside_down(call: ServiceCall) -> None:
+        """Handle set_upside_down service call."""
+        upside_down = call.data.get("upside_down", False)
+
+        try:
+            success = await api.set_upside_down(upside_down)
+            if success:
+                _LOGGER.info("Upside down mode %s", "enabled" if upside_down else "disabled")
+            else:
+                _LOGGER.error("Failed to set upside down mode")
+        except Exception as err:
+            _LOGGER.error("Error setting upside down mode: %s", err)
+
+    async def handle_set_default_mode(call: ServiceCall) -> None:
+        """Handle set_default_mode service call."""
+        try:
+            success = await api.set_default_mode()
+            if success:
+                _LOGGER.info("Device reset to default mode")
+            else:
+                _LOGGER.error("Failed to reset to default mode")
+        except Exception as err:
+            _LOGGER.error("Error resetting to default mode: %s", err)
+
+    async def handle_erase_data(call: ServiceCall) -> None:
+        """Handle erase_data service call."""
+        erase_all = call.data.get("erase_all", False)
+        buffers_str = call.data.get("buffers", "")
+
+        try:
+            # Parse buffers from comma-separated string
+            buffers = None
+            if buffers_str and not erase_all:
+                buffers = [int(b.strip()) for b in buffers_str.split(",") if b.strip()]
+
+            success = await api.erase_data(buffers=buffers, erase_all=erase_all)
+            if success:
+                if erase_all:
+                    _LOGGER.info("All data erased from device")
+                else:
+                    _LOGGER.info("Buffers %s erased from device", buffers)
+            else:
+                _LOGGER.error("Failed to erase data")
+        except Exception as err:
+            _LOGGER.error("Error erasing data: %s", err)
+
+    async def handle_set_program_mode(call: ServiceCall) -> None:
+        """Handle set_program_mode service call."""
+        buffers_str = call.data.get("buffers", "")
+
+        if not buffers_str:
+            _LOGGER.error("No buffers specified for program mode")
+            return
+
+        try:
+            # Parse buffers from comma-separated string
+            buffers = [int(b.strip()) for b in buffers_str.split(",") if b.strip()]
+
+            success = await api.set_program_mode(buffers)
+            if success:
+                _LOGGER.info("Program mode set with buffers: %s", buffers)
+            else:
+                _LOGGER.error("Failed to set program mode")
+        except Exception as err:
+            _LOGGER.error("Error setting program mode: %s", err)
+
+    async def handle_set_rhythm_mode_advanced(call: ServiceCall) -> None:
+        """Handle set_rhythm_mode_advanced service call."""
+        style = call.data.get("style", 0)
+        levels_str = call.data.get("levels", "")
+
+        if not levels_str:
+            _LOGGER.error("No frequency levels specified")
+            return
+
+        try:
+            # Parse levels from comma-separated string
+            levels = [int(l.strip()) for l in levels_str.split(",") if l.strip()]
+
+            if len(levels) != 11:
+                _LOGGER.error("Must provide exactly 11 frequency levels, got %d", len(levels))
+                return
+
+            success = await api.set_rhythm_mode_advanced(style, levels)
+            if success:
+                _LOGGER.info("Advanced rhythm mode set: style=%d", style)
+            else:
+                _LOGGER.error("Failed to set advanced rhythm mode")
+        except Exception as err:
+            _LOGGER.error("Error setting advanced rhythm mode: %s", err)
+
+    async def handle_display_image_url(call: ServiceCall) -> None:
+        """Handle display_image_url service call."""
+        url = call.data.get("url")
+        buffer_slot = call.data.get("buffer_slot", 1)
+
+        if not url:
+            _LOGGER.error("No URL provided for display_image_url")
+            return
+
+        try:
+            success = await api.display_image_url(url, buffer_slot)
+            if success:
+                _LOGGER.info("Image from URL displayed: %s", url)
+            else:
+                _LOGGER.error("Failed to display image from URL: %s", url)
+        except Exception as err:
+            _LOGGER.error("Error displaying image from URL: %s", err)
+
     # Register all services if not already registered
     if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_TEXT):
         hass.services.async_register(DOMAIN, SERVICE_DISPLAY_TEXT, handle_display_text)
@@ -516,6 +641,19 @@ async def _async_register_services(
         hass.services.async_register(DOMAIN, SERVICE_SET_POWER_SCHEDULE, handle_set_power_schedule)
     if not hass.services.has_service(DOMAIN, SERVICE_ADD_TIME_SLOT):
         hass.services.async_register(DOMAIN, SERVICE_ADD_TIME_SLOT, handle_add_time_slot)
+    # New feature services
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_UPSIDE_DOWN):
+        hass.services.async_register(DOMAIN, SERVICE_SET_UPSIDE_DOWN, handle_set_upside_down)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_DEFAULT_MODE):
+        hass.services.async_register(DOMAIN, SERVICE_SET_DEFAULT_MODE, handle_set_default_mode)
+    if not hass.services.has_service(DOMAIN, SERVICE_ERASE_DATA):
+        hass.services.async_register(DOMAIN, SERVICE_ERASE_DATA, handle_erase_data)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_PROGRAM_MODE):
+        hass.services.async_register(DOMAIN, SERVICE_SET_PROGRAM_MODE, handle_set_program_mode)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_RHYTHM_MODE_ADVANCED):
+        hass.services.async_register(DOMAIN, SERVICE_SET_RHYTHM_MODE_ADVANCED, handle_set_rhythm_mode_advanced)
+    if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_IMAGE_URL):
+        hass.services.async_register(DOMAIN, SERVICE_DISPLAY_IMAGE_URL, handle_display_image_url)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

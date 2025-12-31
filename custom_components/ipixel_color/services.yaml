@@ -48,6 +48,34 @@ display_text:
       default: [0, 0, 0]
       selector:
         color_rgb:
+    font:
+      name: Font
+      description: Font name for text rendering
+      required: false
+      default: "CUSONG"
+      selector:
+        select:
+          options:
+            - "CUSONG"
+            - "SIMSUN"
+            - "VCR_OSD_MONO"
+    matrix_height:
+      name: Matrix Height
+      description: Override display height for text rendering (auto-detected if not set)
+      required: false
+      selector:
+        select:
+          options:
+            - label: "Auto (use device height)"
+              value: ""
+            - label: "16 pixels"
+              value: "16"
+            - label: "20 pixels"
+              value: "20"
+            - label: "24 pixels"
+              value: "24"
+            - label: "32 pixels"
+              value: "32"
 
 upload_gif:
   name: Upload GIF
@@ -517,4 +545,121 @@ add_time_slot:
         number:
           min: 0
           max: 100
+          mode: box
+
+# New features from related projects
+
+set_upside_down:
+  name: Set Upside Down
+  description: Flip the display 180 degrees for inverted mounting
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    upside_down:
+      name: Upside Down
+      description: Enable upside down mode (flip 180°)
+      required: true
+      default: false
+      selector:
+        boolean:
+
+set_default_mode:
+  name: Set Default Mode
+  description: Reset device to factory default display mode
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+
+erase_data:
+  name: Erase Data
+  description: Erase stored data from device EEPROM (slots/buffers)
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    erase_all:
+      name: Erase All
+      description: Erase all stored data (ignores buffers field if true)
+      required: false
+      default: false
+      selector:
+        boolean:
+    buffers:
+      name: Buffers
+      description: List of buffer numbers to erase (1-255), comma-separated
+      required: false
+      example: "1,2,3"
+      selector:
+        text:
+
+set_program_mode:
+  name: Set Program Mode
+  description: Auto-cycle through stored screens (slideshow mode)
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    buffers:
+      name: Buffers
+      description: List of buffer numbers to cycle through (1-9), comma-separated
+      required: true
+      example: "1,2,3"
+      selector:
+        text:
+
+set_rhythm_mode_advanced:
+  name: Set Rhythm Mode (Advanced)
+  description: Set music visualizer mode with 11 frequency band level controls
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    style:
+      name: Style
+      description: Rhythm visualizer style (0-4)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 4
+          mode: box
+    levels:
+      name: Frequency Levels
+      description: 11 frequency band levels (0-15 each), comma-separated
+      required: true
+      example: "8,8,8,8,8,8,8,8,8,8,8"
+      selector:
+        text:
+
+display_image_url:
+  name: Display Image URL
+  description: Download and display an image from a URL (PNG, JPG, BMP, GIF)
+  target:
+    entity:
+      integration: ipixel_color
+      domain: switch
+  fields:
+    url:
+      name: Image URL
+      description: URL to the image file to display
+      required: true
+      example: "https://example.com/image.png"
+      selector:
+        text:
+    buffer_slot:
+      name: Buffer Slot
+      description: Storage slot on device (1-255)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 255
           mode: box
