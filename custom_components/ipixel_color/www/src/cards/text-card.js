@@ -36,6 +36,8 @@ export class iPIXELTextCard extends iPIXELCardBase {
     super();
     this._activeTab = 'text'; // 'text', 'ambient', 'rhythm', or 'advanced'
     this._rhythmLevels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 11 frequency bands
+    this._selectedRhythmStyle = 0;
+    this._selectedAmbient = 'rainbow';
   }
 
   /**
@@ -447,6 +449,16 @@ Example:
       this.render();
     });
 
+    this.shadowRoot.getElementById('tab-rhythm')?.addEventListener('click', () => {
+      this._activeTab = 'rhythm';
+      this.render();
+    });
+
+    this.shadowRoot.getElementById('tab-advanced')?.addEventListener('click', () => {
+      this._activeTab = 'advanced';
+      this.render();
+    });
+
     // === Text Tab Listeners ===
 
     // Text speed slider with live preview
@@ -462,6 +474,11 @@ Example:
 
     // Text effect dropdown with live preview
     this.shadowRoot.getElementById('text-effect')?.addEventListener('change', () => {
+      this._updateTextPreview();
+    });
+
+    // Rainbow mode dropdown with live preview
+    this.shadowRoot.getElementById('rainbow-mode')?.addEventListener('change', () => {
       this._updateTextPreview();
     });
 
@@ -485,7 +502,7 @@ Example:
 
     // Send text button
     this.shadowRoot.getElementById('send-btn')?.addEventListener('click', () => {
-      const { text, effect, speed, fgColor, bgColor, font } = this._getTextFormValues();
+      const { text, effect, rainbowMode, speed, fgColor, bgColor, font } = this._getTextFormValues();
 
       if (text) {
         updateDisplayState({
@@ -495,7 +512,8 @@ Example:
           speed,
           fgColor,
           bgColor,
-          font
+          font,
+          rainbowMode
         });
 
         if (this._config.entity) {
@@ -515,6 +533,7 @@ Example:
           color_fg: this.hexToRgb(fgColor),
           color_bg: this.hexToRgb(bgColor),
           font: backendFont,
+          rainbow_mode: rainbowMode,
         });
       }
     });
@@ -562,6 +581,89 @@ Example:
 
       // TODO: Send ambient effect to device when service is available
       // For now just update the preview
+    });
+
+    // === Rhythm Tab Listeners ===
+
+    // Rhythm style buttons
+    this.shadowRoot.querySelectorAll('.style-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const style = parseInt(e.target.dataset.style);
+        this._selectedRhythmStyle = style;
+
+        // Update button states
+        this.shadowRoot.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+      });
+    });
+
+    // Rhythm level sliders
+    this.shadowRoot.querySelectorAll('.rhythm-slider').forEach(slider => {
+      slider.addEventListener('input', (e) => {
+        const band = parseInt(e.target.dataset.band);
+        const value = parseInt(e.target.value);
+        this._rhythmLevels[band] = value;
+        e.target.nextElementSibling.textContent = value;
+      });
+    });
+
+    // Apply rhythm button
+    this.shadowRoot.getElementById('apply-rhythm-btn')?.addEventListener('click', () => {
+      const { style, levels } = this._getRhythmFormValues();
+
+      updateDisplayState({
+        text: '',
+        mode: 'rhythm',
+        rhythmStyle: style,
+        rhythmLevels: levels
+      });
+
+      // Call rhythm service if available
+      this.callService('ipixel_color', 'set_rhythm_level', {
+        style,
+        levels
+      });
+    });
+
+    // === Advanced/GFX Tab Listeners ===
+
+    // Apply GFX button
+    this.shadowRoot.getElementById('apply-gfx-btn')?.addEventListener('click', () => {
+      const gfxData = this._getGfxFormValues();
+      if (!gfxData) {
+        console.warn('iPIXEL: Invalid GFX JSON');
+        return;
+      }
+
+      updateDisplayState({
+        text: '',
+        mode: 'gfx',
+        gfxData
+      });
+
+      // Call GFX service if available
+      this.callService('ipixel_color', 'render_gfx', {
+        data: gfxData
+      });
+    });
+
+    // Apply multicolor text button
+    this.shadowRoot.getElementById('apply-multicolor-btn')?.addEventListener('click', () => {
+      const { text, colors } = this._getMulticolorFormValues();
+
+      if (text && colors.length > 0) {
+        updateDisplayState({
+          text,
+          mode: 'multicolor',
+          colors
+        });
+
+        // Call multicolor text service if available
+        this.callService('ipixel_color', 'display_multicolor_text', {
+          text,
+          colors: colors.map(c => this.hexToRgb(c))
+        });
+      }
     });
   }
 

@@ -346,6 +346,71 @@ export async function selectScreen(slot) {
   await sendCommand([0x05, 0x00, 0x07, 0x80, s]);
 }
 
+/**
+ * Set rainbow mode for text
+ * @param {number} mode - Rainbow mode (0-9)
+ *   0=None, 1=Wave, 2=Cycle, 3=Pulse, 4=Fade,
+ *   5=Chase, 6=Sparkle, 7=Gradient, 8=Theater, 9=Fire
+ */
+export async function setRainbowMode(mode) {
+  const m = Math.max(0, Math.min(9, mode));
+  // Rainbow mode command based on iPixel-ESP32 protocol
+  await sendCommand([0x05, 0x00, 0x0A, 0x01, m]);
+}
+
+/**
+ * Send text with per-character colors
+ * @param {string} text - Text to display
+ * @param {Array<{r: number, g: number, b: number}>} colors - Array of RGB colors for each character
+ */
+export async function sendMulticolorText(text, colors) {
+  if (!text || colors.length === 0) return;
+
+  // Build the multicolor text command
+  // Format: [length_lo, length_hi, 0x03, 0x01, char_count, ...char_data]
+  // Each char_data: [char_code, r, g, b]
+  const charData = [];
+  for (let i = 0; i < text.length; i++) {
+    const charCode = text.charCodeAt(i);
+    const color = colors[i % colors.length]; // Cycle colors if fewer than chars
+    charData.push(charCode, color.r, color.g, color.b);
+  }
+
+  const length = 4 + charData.length; // header + char data
+  const data = [
+    length & 0xFF,
+    (length >> 8) & 0xFF,
+    0x03, 0x01,  // Multicolor text command
+    text.length,
+    ...charData
+  ];
+
+  await sendCommand(data);
+}
+
+/**
+ * Send GFX pixel data (DIY mode)
+ * @param {Array<{x: number, y: number, color: string}>} pixels - Array of pixel data
+ */
+export async function sendGfxPixels(pixels) {
+  if (!pixels || pixels.length === 0) return;
+
+  // Enter DIY mode first
+  await enterDiyMode();
+  await new Promise(r => setTimeout(r, 100));
+
+  // Send each pixel
+  for (const pixel of pixels) {
+    const rgb = hexToRgb(pixel.color);
+    if (rgb.r > 0 || rgb.g > 0 || rgb.b > 0) {
+      await setPixel(pixel.x, pixel.y, rgb.r, rgb.g, rgb.b);
+      await new Promise(r => setTimeout(r, 5));
+    }
+  }
+
+  console.log('iPIXEL BLE: Finished sending GFX pixels');
+}
+
 // Export connection state for debugging
 export function getConnectionState() {
   return {

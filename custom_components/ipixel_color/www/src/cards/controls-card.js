@@ -65,13 +65,17 @@ export class iPIXELControlsCard extends iPIXELCardBase {
               ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="mode-btn" data-screen="${n}">${n}</button>`).join('')}
             </div>
           </div>
-          <div class="section-title">Advanced</div>
+          <div class="section-title">DIY Mode</div>
           <div class="control-row">
-            <div class="button-grid button-grid-2">
-              <button class="mode-btn" id="diy-mode-btn" data-action="diy-on">DIY Mode On</button>
-              <button class="mode-btn" data-action="diy-off">DIY Mode Off</button>
-            </div>
+            <select class="dropdown" id="diy-mode">
+              <option value="">-- Select Action --</option>
+              <option value="1">Enter (Clear Display)</option>
+              <option value="3">Enter (Preserve Content)</option>
+              <option value="0">Exit (Keep Previous)</option>
+              <option value="2">Exit (Keep Current)</option>
+            </select>
           </div>
+          <div class="section-title">Raw Command</div>
           <div class="control-row" style="margin-top: 8px;">
             <div style="display: flex; gap: 8px;">
               <input type="text" class="text-input" id="raw-command" placeholder="Raw hex (e.g., 05 00 07 01 01)" style="flex: 1;">
@@ -162,12 +166,14 @@ export class iPIXELControlsCard extends iPIXELCardBase {
       });
     });
 
-    // DIY mode buttons
-    this.shadowRoot.querySelectorAll('[data-action="diy-on"], [data-action="diy-off"]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const enable = e.currentTarget.dataset.action === 'diy-on';
-        this.callService('ipixel_color', 'set_diy_mode', { enable: enable });
-      });
+    // DIY mode dropdown
+    this.shadowRoot.getElementById('diy-mode')?.addEventListener('change', (e) => {
+      const mode = e.target.value;
+      if (mode !== '') {
+        this.callService('ipixel_color', 'set_diy_mode', { mode: mode });
+        // Reset dropdown after action
+        setTimeout(() => { e.target.value = ''; }, 500);
+      }
     });
 
     // Raw command input
