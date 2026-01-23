@@ -238,6 +238,14 @@
       <button onclick="blePowerOff()">Power Off</button>
       <button onclick="bleSendPreview()">Send Preview to Device</button>
     </div>
+    <div class="control-row" id="ble-controls-debug" style="display:none;">
+      <button onclick="bleTestPattern()" style="background:#f80;">Test 3px</button>
+      <button onclick="bleTestCamera()" style="background:#f0f;">Test Cam</button>
+      <button onclick="bleSendCamera()" style="background:#0a0;">Camera (Fast)</button>
+      <button onclick="bleSendDiyPixels()" style="background:#888;">DIY (Slow)</button>
+      <button onclick="debugRenderer()" style="background:#08f;">Debug</button>
+      <button onclick="bleResetLock()" style="background:#f00;">Reset</button>
+    </div>
     <div class="control-row" id="ble-controls-2" style="display:none;">
       <label>Brightness:</label>
       <input type="range" id="ble-brightness" min="1" max="100" value="50" style="flex:1;">
@@ -370,7 +378,7 @@
     // Mock hass object
     const mockHass = {
       states: mockStates,
-      callService: (domain, service, data) => {
+      callService: async (domain, service, data) => {
         console.log(`Service call: ${domain}.${service}`, data);
         logService(domain, service, data);
 
@@ -386,6 +394,27 @@
           const entityId = data.entity_id;
           if (mockStates[entityId]) {
             mockStates[entityId].state = data.value;
+          }
+        }
+
+        // Forward iPIXEL service calls to BLE device when connected
+        if (domain === 'ipixel_color' && BLE.isDeviceConnected()) {
+          try {
+            if (service === 'display_text') {
+              // Wait for the display to update before sending pixels
+              // The updateDisplayState event needs time to propagate
+              logService('ble', 'forwarding_display_text', data);
+              await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+              await bleSendPreview();
+            } else if (service === 'set_rhythm_level') {
+              await BLE.setRhythmLevelMode(data.style, data.levels);
+              logService('ble', 'set_rhythm_level', data);
+            } else if (service === 'set_rainbow_mode') {
+              await BLE.setRainbowMode(data.mode);
+              logService('ble', 'set_rainbow_mode', data);
+            }
+          } catch (e) {
+            logService('ble', 'error', { message: e.message });
           }
         }
 
@@ -450,6 +479,7 @@
         document.getElementById('ble-connect-btn').style.display = 'none';
         document.getElementById('ble-disconnect-btn').style.display = 'inline-block';
         document.getElementById('ble-controls').style.display = 'flex';
+        document.getElementById('ble-controls-debug').style.display = 'flex';
         document.getElementById('ble-controls-2').style.display = 'flex';
         document.getElementById('ble-controls-3').style.display = 'flex';
         document.getElementById('ble-controls-4').style.display = 'flex';
@@ -469,6 +499,7 @@
       document.getElementById('ble-connect-btn').style.display = 'inline-block';
       document.getElementById('ble-disconnect-btn').style.display = 'none';
       document.getElementById('ble-controls').style.display = 'none';
+      document.getElementById('ble-controls-debug').style.display = 'none';
       document.getElementById('ble-controls-2').style.display = 'none';
       document.getElementById('ble-controls-3').style.display = 'none';
       document.getElementById('ble-controls-4').style.display = 'none';
@@ -529,13 +560,188 @@
       logService('ble', 'set_rhythm_level', { style, levels });
     };
 
-    // Update brightness display
+    // Update brightness display and auto-send on change
     document.getElementById('ble-brightness').addEventListener('input', (e) => {
       document.getElementById('ble-brightness-value').textContent = e.target.value;
     });
 
+    // Auto-send brightness when slider stops (on change)
+    document.getElementById('ble-brightness').addEventListener('change', (e) => {
+      if (BLE.isDeviceConnected()) {
+        bleSetBrightness();
+      }
+    });
+
+    // Auto-send clock style on change (but not while sending pixels)
+    document.getElementById('ble-clock-style').addEventListener('change', (e) => {
+      if (BLE.isDeviceConnected() && !isSendingPixels) {
+        bleSetClockMode();
+      }
+    });
+
+    // Auto-send orientation on change
+    document.getElementById('ble-orientation').addEventListener('change', (e) => {
+      if (BLE.isDeviceConnected() && !isSendingPixels) {
+        bleSetOrientation();
+      }
+    });
+
+    // Auto-send rainbow mode on change
+    document.getElementById('ble-rainbow-mode').addEventListener('change', (e) => {
+      if (BLE.isDeviceConnected() && !isSendingPixels) {
+        bleSetRainbowMode();
+      }
+    });
+
+    // Auto-send rhythm style on change
+    document.getElementById('ble-rhythm-style').addEventListener('change', (e) => {
+      if (BLE.isDeviceConnected() && !isSendingPixels) {
+        bleSetRhythmDemo();
+      }
+    });
+
+    // Flag to prevent mode changes while sending pixels
+    let isSendingPixels = false;
+
     window.bleSendPreview = async function() {
       // Get current preview pixels from the renderer
+      const displayCard = document.getElementById('display-card');
+      if (!displayCard || !displayCard._renderer) {
+        logService('ble', 'error', { message: 'No renderer available' });
+        return;
+      }
+
+      const renderer = displayCard._renderer;
+      const width = renderer.width;
+      const height = renderer.height;
+      const pixels = renderer._colorPixels || [];
+
+      // Find actual non-black pixels with their positions
+      const nonBlackPixels = [];
+      for (let i = 0; i < pixels.length; i++) {
+        const p = pixels[i];
+        if (p && p !== '#000000' && p !== '#000' && p !== '#111' && p !== '#111111' && p !== '#050505') {
+          const x = i % width;
+          const y = Math.floor(i / width);
+          nonBlackPixels.push({ idx: i, x, y, color: p });
+        }
+      }
+
+      if (pixels.length === 0) {
+        logService('ble', 'error', { message: 'No pixels to send' });
+        return;
+      }
+
+      logService('ble', 'send_preview', {
+        width,
+        height,
+        pixelCount: pixels.length,
+        nonBlackCount: nonBlackPixels.length,
+        firstFewColoredPixels: nonBlackPixels.slice(0, 5)
+      });
+
+      if (nonBlackPixels.length === 0) {
+        logService('ble', 'warning', { message: 'No colored pixels to send - all black!' });
+        return;
+      }
+
+      try {
+        isSendingPixels = true;
+        // Use TYPE_CAMERA protocol (fastest method from go-ipxl)
+        await BLE.sendImageCamera(pixels, width, height);
+        logService('ble', 'send_preview_complete', { sentPixels: nonBlackPixels.length, method: 'camera' });
+      } catch (e) {
+        logService('ble', 'error', { message: e.message });
+      } finally {
+        isSendingPixels = false;
+      }
+    };
+
+    // Debug function to test BLE with a simple pattern
+    window.bleTestPattern = async function() {
+      if (!BLE.isDeviceConnected()) {
+        logService('ble', 'error', { message: 'Not connected' });
+        return;
+      }
+
+      logService('ble', 'test_pattern', { message: 'Sending test pattern (3 pixels)...' });
+
+      try {
+        // Enter DIY mode
+        logService('ble', 'test', { step: 'Entering DIY mode...' });
+        await BLE.enterDiyMode();
+        await new Promise(r => setTimeout(r, 300));
+
+        // Just send 3 pixels with longer delays
+        logService('ble', 'test', { step: 'Sending red pixel at (0,0)...' });
+        await BLE.setPixel(0, 0, 255, 0, 0);
+        await new Promise(r => setTimeout(r, 150));
+
+        logService('ble', 'test', { step: 'Sending green pixel at (1,0)...' });
+        await BLE.setPixel(1, 0, 0, 255, 0);
+        await new Promise(r => setTimeout(r, 150));
+
+        logService('ble', 'test', { step: 'Sending blue pixel at (2,0)...' });
+        await BLE.setPixel(2, 0, 0, 0, 255);
+        await new Promise(r => setTimeout(r, 150));
+
+        logService('ble', 'test_pattern_complete', { message: 'Test pattern sent! You should see R-G-B pixels at top-left.' });
+      } catch (e) {
+        logService('ble', 'error', { message: e.message, stack: e.stack });
+      }
+    };
+
+    // Test single pixel
+    window.bleTestSinglePixel = async function() {
+      if (!BLE.isDeviceConnected()) {
+        logService('ble', 'error', { message: 'Not connected' });
+        return;
+      }
+
+      try {
+        logService('ble', 'test', { step: 'Entering DIY mode...' });
+        await BLE.enterDiyMode();
+        await new Promise(r => setTimeout(r, 300));
+
+        logService('ble', 'test', { step: 'Sending single white pixel at (5,5)...' });
+        await BLE.setPixel(5, 5, 255, 255, 255);
+
+        logService('ble', 'test_complete', { message: 'Single pixel sent! Look for white pixel at (5,5).' });
+      } catch (e) {
+        logService('ble', 'error', { message: e.message });
+      }
+    };
+
+    // Test camera protocol with simple gradient pattern
+    window.bleTestCamera = async function() {
+      if (!BLE.isDeviceConnected()) {
+        logService('ble', 'error', { message: 'Not connected' });
+        return;
+      }
+
+      logService('ble', 'test_camera', { message: 'Testing TYPE_CAMERA protocol...' });
+
+      try {
+        await BLE.testCameraProtocol();
+        logService('ble', 'test_camera_complete', { message: 'Camera test sent! You should see a red gradient on the left side.' });
+      } catch (e) {
+        logService('ble', 'error', { message: e.message, stack: e.stack });
+      }
+    };
+
+    // Reset BLE lock if it gets stuck
+    window.bleResetLock = function() {
+      BLE.resetBleLock();
+      logService('ble', 'lock_reset', { message: 'BLE lock has been reset' });
+    };
+
+    // Send using TYPE_CAMERA protocol (fastest, from go-ipxl)
+    window.bleSendCamera = async function() {
+      if (!BLE.isDeviceConnected()) {
+        logService('ble', 'error', { message: 'Not connected' });
+        return;
+      }
+
       const displayCard = document.getElementById('display-card');
       if (!displayCard || !displayCard._renderer) {
         logService('ble', 'error', { message: 'No renderer available' });
@@ -552,14 +758,84 @@
         return;
       }
 
-      logService('ble', 'send_preview', { width, height, pixelCount: pixels.length });
+      logService('ble', 'send_camera', { width, height, pixelCount: pixels.length });
 
       try {
-        await BLE.sendPixels(pixels, width, height);
-        logService('ble', 'send_preview_complete', {});
+        isSendingPixels = true;
+        await BLE.sendImageCamera(pixels, width, height);
+        logService('ble', 'send_camera_complete', { message: 'Camera image sent!' });
       } catch (e) {
         logService('ble', 'error', { message: e.message });
+      } finally {
+        isSendingPixels = false;
       }
+    };
+
+    // Send using old DIY pixel-by-pixel mode (slower but known to work)
+    window.bleSendDiyPixels = async function() {
+      if (!BLE.isDeviceConnected()) {
+        logService('ble', 'error', { message: 'Not connected' });
+        return;
+      }
+
+      const displayCard = document.getElementById('display-card');
+      if (!displayCard || !displayCard._renderer) {
+        logService('ble', 'error', { message: 'No renderer available' });
+        return;
+      }
+
+      const renderer = displayCard._renderer;
+      const width = renderer.width;
+      const height = renderer.height;
+      const pixels = renderer._colorPixels || [];
+
+      if (pixels.length === 0) {
+        logService('ble', 'error', { message: 'No pixels to send' });
+        return;
+      }
+
+      logService('ble', 'send_diy_pixels', { width, height, pixelCount: pixels.length });
+
+      try {
+        isSendingPixels = true;
+        await BLE.sendPixels(pixels, width, height);
+        logService('ble', 'send_diy_complete', { message: 'DIY pixels sent!' });
+      } catch (e) {
+        logService('ble', 'error', { message: e.message });
+      } finally {
+        isSendingPixels = false;
+      }
+    };
+
+    // Debug function to check renderer state
+    window.debugRenderer = function() {
+      const displayCard = document.getElementById('display-card');
+      const renderer = displayCard?._renderer;
+
+      if (!renderer) {
+        console.log('No renderer found');
+        logService('debug', 'renderer', { error: 'No renderer found' });
+        return;
+      }
+
+      const info = {
+        width: renderer.width,
+        height: renderer.height,
+        pixelCount: renderer._colorPixels?.length || 0,
+        extendedWidth: renderer.extendedWidth,
+        effect: renderer._currentEffect,
+        container: !!renderer._container
+      };
+
+      // Sample some pixels
+      const pixels = renderer._colorPixels || [];
+      const nonBlack = pixels.filter(p => p && p !== '#000000' && p !== '#000' && p !== '#111' && p !== '#111111');
+      info.nonBlackPixels = nonBlack.length;
+      info.sampleNonBlack = nonBlack.slice(0, 5);
+
+      console.log('Renderer state:', info);
+      logService('debug', 'renderer', info);
+      return info;
     };
 
     // Handle BLE disconnect events
@@ -570,6 +846,7 @@
       document.getElementById('ble-connect-btn').style.display = 'inline-block';
       document.getElementById('ble-disconnect-btn').style.display = 'none';
       document.getElementById('ble-controls').style.display = 'none';
+      document.getElementById('ble-controls-debug').style.display = 'none';
       document.getElementById('ble-controls-2').style.display = 'none';
       document.getElementById('ble-controls-3').style.display = 'none';
       document.getElementById('ble-controls-4').style.display = 'none';
