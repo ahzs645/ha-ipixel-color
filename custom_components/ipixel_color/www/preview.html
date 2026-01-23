@@ -186,6 +186,21 @@
       <div class="card-label">Controls Card</div>
       <ipixel-controls-card id="controls-card"></ipixel-controls-card>
     </div>
+
+    <div class="card-wrapper">
+      <div class="card-label">Playlist Card</div>
+      <ipixel-playlist-card id="playlist-card"></ipixel-playlist-card>
+    </div>
+
+    <div class="card-wrapper">
+      <div class="card-label">Schedule Card</div>
+      <ipixel-schedule-card id="schedule-card"></ipixel-schedule-card>
+    </div>
+
+    <div class="card-wrapper">
+      <div class="card-label">Editor Card</div>
+      <ipixel-editor-card id="editor-card"></ipixel-editor-card>
+    </div>
   </div>
 
   <div class="controls-section">
@@ -252,6 +267,33 @@
       </select>
       <button onclick="bleSetOrientation()">Set</button>
       <button onclick="bleClearDisplay()">Clear</button>
+    </div>
+    <div class="control-row" id="ble-controls-5" style="display:none;">
+      <label>Rainbow:</label>
+      <select id="ble-rainbow-mode">
+        <option value="0">None</option>
+        <option value="1">Wave</option>
+        <option value="2">Cycle</option>
+        <option value="3">Pulse</option>
+        <option value="4">Fade</option>
+        <option value="5">Chase</option>
+        <option value="6">Sparkle</option>
+        <option value="7">Gradient</option>
+        <option value="8">Theater</option>
+        <option value="9">Fire</option>
+      </select>
+      <button onclick="bleSetRainbowMode()">Set Rainbow</button>
+    </div>
+    <div class="control-row" id="ble-controls-6" style="display:none;">
+      <label>Rhythm:</label>
+      <select id="ble-rhythm-style">
+        <option value="0">Classic Bars</option>
+        <option value="1">Mirrored Bars</option>
+        <option value="2">Center Out</option>
+        <option value="3">Wave Style</option>
+        <option value="4">Particle Style</option>
+      </select>
+      <button onclick="bleSetRhythmDemo()">Demo Rhythm</button>
     </div>
     <p style="font-size: 0.75em; color: #666; margin-top: 8px;">
       Requires Chrome or Edge. Click "Connect Device" and select your LED_BLE_* device.
@@ -387,7 +429,7 @@
 
     // Update all cards
     function updateCards() {
-      document.querySelectorAll('ipixel-display-card, ipixel-text-card, ipixel-controls-card').forEach(card => {
+      document.querySelectorAll('ipixel-display-card, ipixel-text-card, ipixel-controls-card, ipixel-playlist-card, ipixel-schedule-card, ipixel-editor-card').forEach(card => {
         if (card.hass !== undefined) {
           card.hass = { ...mockHass };
         }
@@ -411,6 +453,8 @@
         document.getElementById('ble-controls-2').style.display = 'flex';
         document.getElementById('ble-controls-3').style.display = 'flex';
         document.getElementById('ble-controls-4').style.display = 'flex';
+        document.getElementById('ble-controls-5').style.display = 'flex';
+        document.getElementById('ble-controls-6').style.display = 'flex';
         logService('ble', 'connect', { device: deviceName });
       } catch (e) {
         logService('ble', 'error', { message: e.message });
@@ -428,6 +472,8 @@
       document.getElementById('ble-controls-2').style.display = 'none';
       document.getElementById('ble-controls-3').style.display = 'none';
       document.getElementById('ble-controls-4').style.display = 'none';
+      document.getElementById('ble-controls-5').style.display = 'none';
+      document.getElementById('ble-controls-6').style.display = 'none';
       logService('ble', 'disconnect', {});
     };
 
@@ -467,6 +513,20 @@
     window.bleClearDisplay = async function() {
       await BLE.enterDiyMode();
       logService('ble', 'clear_display', {});
+    };
+
+    window.bleSetRainbowMode = async function() {
+      const mode = parseInt(document.getElementById('ble-rainbow-mode').value);
+      await BLE.setRainbowMode(mode);
+      logService('ble', 'set_rainbow_mode', { mode });
+    };
+
+    window.bleSetRhythmDemo = async function() {
+      const style = parseInt(document.getElementById('ble-rhythm-style').value);
+      // Send a demo rhythm with random levels
+      const levels = Array.from({length: 11}, () => Math.floor(Math.random() * 16));
+      await BLE.setRhythmLevelMode(style, levels);
+      logService('ble', 'set_rhythm_level', { style, levels });
     };
 
     // Update brightness display
@@ -513,6 +573,8 @@
       document.getElementById('ble-controls-2').style.display = 'none';
       document.getElementById('ble-controls-3').style.display = 'none';
       document.getElementById('ble-controls-4').style.display = 'none';
+      document.getElementById('ble-controls-5').style.display = 'none';
+      document.getElementById('ble-controls-6').style.display = 'none';
     });
 
     // Check WebBluetooth availability
@@ -531,6 +593,9 @@
       const displayCard = document.getElementById('display-card');
       const textCard = document.getElementById('text-card');
       const controlsCard = document.getElementById('controls-card');
+      const playlistCard = document.getElementById('playlist-card');
+      const scheduleCard = document.getElementById('schedule-card');
+      const editorCard = document.getElementById('editor-card');
 
       // Set config
       const config = {
@@ -541,11 +606,17 @@
       displayCard.setConfig(config);
       textCard.setConfig(config);
       controlsCard.setConfig(config);
+      playlistCard.setConfig(config);
+      scheduleCard.setConfig(config);
+      editorCard.setConfig(config);
 
       // Set hass
       displayCard.hass = mockHass;
       textCard.hass = mockHass;
       controlsCard.hass = mockHass;
+      playlistCard.hass = mockHass;
+      scheduleCard.hass = mockHass;
+      editorCard.hass = mockHass;
 
       console.log('Cards initialized');
     }).catch(err => {

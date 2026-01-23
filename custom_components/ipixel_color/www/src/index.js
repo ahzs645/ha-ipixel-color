@@ -9,6 +9,7 @@ import { iPIXELControlsCard } from './cards/controls-card.js';
 import { iPIXELTextCard } from './cards/text-card.js';
 import { iPIXELPlaylistCard } from './cards/playlist-card.js';
 import { iPIXELScheduleCard } from './cards/schedule-card.js';
+import { iPIXELEditorCard } from './cards/editor-card.js';
 import { iPIXELSimpleEditor } from './editor.js';
 
 // Initialize shared state
@@ -20,6 +21,7 @@ customElements.define('ipixel-controls-card', iPIXELControlsCard);
 customElements.define('ipixel-text-card', iPIXELTextCard);
 customElements.define('ipixel-playlist-card', iPIXELPlaylistCard);
 customElements.define('ipixel-schedule-card', iPIXELScheduleCard);
+customElements.define('ipixel-editor-card', iPIXELEditorCard);
 customElements.define('ipixel-simple-editor', iPIXELSimpleEditor);
 
 // Register with Home Assistant's custom card registry
@@ -30,6 +32,7 @@ window.customCards = window.customCards || [];
   { type: 'ipixel-text-card', name: 'iPIXEL Text', description: 'Text input with effects and colors' },
   { type: 'ipixel-playlist-card', name: 'iPIXEL Playlist', description: 'Playlist management' },
   { type: 'ipixel-schedule-card', name: 'iPIXEL Schedule', description: 'Power schedule and time slots' },
+  { type: 'ipixel-editor-card', name: 'iPIXEL Pixel Editor', description: 'Draw custom pixel art and send to your LED matrix' },
 ].forEach(card => window.customCards.push({
   ...card,
   preview: true,
