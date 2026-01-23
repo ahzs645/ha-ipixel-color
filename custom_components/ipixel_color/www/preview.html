@@ -621,6 +621,29 @@
     // Flag to prevent mode changes while sending pixels
     let isSendingPixels = false;
 
+    // Helper function to get pixels from renderer
+    // Ambient effects write to buffer (RGB arrays), text effects write to _colorPixels (hex strings)
+    function getRendererPixels(renderer) {
+      // Check if buffer has RGB data from ambient effects
+      if (renderer.buffer && renderer.buffer.length > 0) {
+        const firstPixel = renderer.buffer[0];
+        // If buffer contains RGB arrays, convert to hex strings
+        if (Array.isArray(firstPixel) && firstPixel.length >= 3) {
+          return renderer.buffer.map(rgb => {
+            if (Array.isArray(rgb) && rgb.length >= 3) {
+              const r = Math.floor(rgb[0]).toString(16).padStart(2, '0');
+              const g = Math.floor(rgb[1]).toString(16).padStart(2, '0');
+              const b = Math.floor(rgb[2]).toString(16).padStart(2, '0');
+              return `#${r}${g}${b}`;
+            }
+            return '#000000';
+          });
+        }
+      }
+      // Fallback to _colorPixels (for text effects)
+      return renderer._colorPixels || [];
+    }
+
     window.bleSendPreview = async function() {
       // Get current preview pixels from the renderer
       const displayCard = document.getElementById('display-card');
@@ -632,7 +655,7 @@
       const renderer = displayCard._renderer;
       const width = renderer.width;
       const height = renderer.height;
-      const pixels = renderer._colorPixels || [];
+      const pixels = getRendererPixels(renderer);
 
       // Find actual non-black pixels with their positions
       const nonBlackPixels = [];
@@ -792,10 +815,8 @@
 
       logService('ble', 'stream_starting', { width, height, fps });
 
-      // Function to get current frame pixels
-      const getFramePixels = () => {
-        return renderer._colorPixels || [];
-      };
+      // Function to get current frame pixels (uses helper that handles both buffer and _colorPixels)
+      const getFramePixels = () => getRendererPixels(renderer);
 
       try {
         updateStreamButton(true);
@@ -828,7 +849,7 @@
       const renderer = displayCard._renderer;
       const width = renderer.width;
       const height = renderer.height;
-      const pixels = renderer._colorPixels || [];
+      const pixels = getRendererPixels(renderer);
 
       if (pixels.length === 0) {
         logService('ble', 'error', { message: 'No pixels to send' });
@@ -864,7 +885,7 @@
       const renderer = displayCard._renderer;
       const width = renderer.width;
       const height = renderer.height;
-      const pixels = renderer._colorPixels || [];
+      const pixels = getRendererPixels(renderer);
 
       if (pixels.length === 0) {
         logService('ble', 'error', { message: 'No pixels to send' });
@@ -905,7 +926,7 @@
       };
 
       // Sample some pixels
-      const pixels = renderer._colorPixels || [];
+      const pixels = getRendererPixels(renderer);
       const nonBlack = pixels.filter(p => p && p !== '#000000' && p !== '#000' && p !== '#111' && p !== '#111111');
       info.nonBlackPixels = nonBlack.length;
       info.sampleNonBlack = nonBlack.slice(0, 5);
