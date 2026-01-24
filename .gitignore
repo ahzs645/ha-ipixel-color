@@ -165,6 +165,7 @@ tts/
 custom_components/*/*/__pycache__/
 # But include our component's www folder
 !custom_components/ipixel_color/www/
+!custom_components/ipixel_color/www/lib/
 
 # Testing files
 test_*.py
