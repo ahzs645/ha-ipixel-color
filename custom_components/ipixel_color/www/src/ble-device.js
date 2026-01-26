@@ -86,6 +86,25 @@ export function getDeviceName() {
 }
 
 /**
+ * Get device dimensions from device name (e.g., "LED_BLE_96x16" -> {width: 96, height: 16})
+ * @returns {{width: number, height: number}|null}
+ */
+export function getDeviceDimensions() {
+  const name = device?.name;
+  if (!name) return null;
+
+  // Parse dimensions from name like "LED_BLE_96x16" or "LED_BLE_64x16"
+  const match = name.match(/(\d+)x(\d+)/i);
+  if (match) {
+    return {
+      width: parseInt(match[1], 10),
+      height: parseInt(match[2], 10)
+    };
+  }
+  return null;
+}
+
+/**
  * Add event listener
  */
 export function addEventListener(event, callback) {

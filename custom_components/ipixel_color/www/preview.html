@@ -497,6 +497,16 @@
         document.getElementById('ble-controls-4').style.display = 'flex';
         document.getElementById('ble-controls-5').style.display = 'flex';
         document.getElementById('ble-controls-6').style.display = 'flex';
+
+        // Auto-detect and set device dimensions from device name
+        const dimensions = BLE.getDeviceDimensions();
+        if (dimensions) {
+          document.getElementById('preview-width').value = dimensions.width;
+          document.getElementById('preview-height').value = dimensions.height;
+          updateResolution();
+          logService('ble', 'auto_dimensions', dimensions);
+        }
+
         logService('ble', 'connect', { device: deviceName });
       } catch (e) {
         logService('ble', 'error', { message: e.message });
