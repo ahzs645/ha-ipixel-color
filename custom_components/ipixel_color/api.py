@@ -770,8 +770,8 @@ class iPIXELAPI:
             _LOGGER.error("Failed to get device info: %s", err)
             # Return default values
             self._device_info = {
-                "width": 64,
-                "height": 16,
+                "width": 32,
+                "height": 32,
                 "device_type": 0,
                 "device_type_str": "Unknown",
                 "led_type": 0,
