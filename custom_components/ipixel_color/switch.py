@@ -148,7 +148,7 @@ class iPIXELSwitch(SwitchEntity):
         last_state = await self.async_get_last_state()
         if last_state is not None:
             self._is_on = last_state.state == "on"
-            self._api.set_power(self._is_on)  # Ensure device state matches restored state
+            await self._api.set_power(self._is_on)  # Ensure device state matches restored state
             _LOGGER.debug("Restored entity state: %s", self._is_on)
 
 class iPIXELAntialiasingSwitch(SwitchEntity, RestoreEntity):
@@ -581,7 +581,7 @@ class iPIXELFunModeSwitch(SwitchEntity, RestoreEntity):
             self._is_on = last_state.state == "on"
             _LOGGER.debug("Restored fun mode state: %s", self._is_on)
         
-        self._api.set_fun_mode(self._is_on)  # Ensure device state matches restored state
+        await self._api.set_fun_mode(self._is_on)  # Ensure device state matches restored state
 
     @property
     def is_on(self) -> bool:
