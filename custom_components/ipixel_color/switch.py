@@ -140,17 +140,6 @@ class iPIXELSwitch(SwitchEntity):
             self._available = False
 
 
-    async def async_added_to_hass(self) -> None:
-        """Run when entity about to be added to hass."""
-        await super().async_added_to_hass()
-        
-        # Restore last state if available
-        last_state = await self.async_get_last_state()
-        if last_state is not None:
-            self._is_on = last_state.state == "on"
-            await self._api.set_power(self._is_on)  # Ensure device state matches restored state
-            _LOGGER.debug("Restored entity state: %s", self._is_on)
-
 class iPIXELAntialiasingSwitch(SwitchEntity, RestoreEntity):
     """Representation of an iPIXEL Color antialiasing setting."""
 
