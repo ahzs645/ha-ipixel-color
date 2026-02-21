@@ -8,7 +8,7 @@ from pathlib import Path
 
 from homeassistant.components.frontend import async_register_built_in_panel
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigType
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -17,6 +17,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from .api import iPIXELAPI, iPIXELConnectionError, iPIXELTimeoutError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .schedule import iPIXELScheduleManager, ScheduleItem
+from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +38,11 @@ PLATFORMS: list[Platform] = [
 # Frontend card registration flag
 FRONTEND_REGISTERED = False
 
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the Bring! services."""
+
+    async_setup_services(hass)
+    return True
 
 async def _async_register_frontend(hass: HomeAssistant) -> None:
     """Register the Lovelace card as a frontend resource."""
