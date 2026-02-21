@@ -94,7 +94,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Get device info for sensors
         await api.get_device_info()
 
-        await api.set_power_state(True)  # Ensure device is on at startup
+        await api.set_power(True)  # Ensure device is on at startup
 
     except iPIXELTimeoutError as err:
         _LOGGER.error("Connection timeout to iPIXEL device %s: %s", address, err)
