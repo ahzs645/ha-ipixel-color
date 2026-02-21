@@ -777,6 +777,10 @@ class iPIXELAPI:
                 await self._bluetooth._client.stop_notify(
                     NOTIFY_UUID
                 )
+                # Reset response handler to default for future notifications
+                await self._bluetooth._client.start_notify(
+                    NOTIFY_UUID, self._notification_handler
+                )
             
             _LOGGER.info("Device info retrieved: %s", self._device_info)
             return self._device_info
