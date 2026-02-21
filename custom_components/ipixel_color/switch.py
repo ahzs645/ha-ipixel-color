@@ -147,7 +147,8 @@ class iPIXELSwitch(SwitchEntity):
         # Restore last state if available
         last_state = await self.async_get_last_state()
         if last_state is not None:
-            self._is_on = last_state.state == "on"            
+            self._is_on = last_state.state == "on"
+            await self._api.set_power(self._is_on)  # Ensure device state matches restored state
             _LOGGER.debug("Restored entity state: %s", self._is_on)
 
 class iPIXELAntialiasingSwitch(SwitchEntity, RestoreEntity):
