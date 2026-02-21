@@ -1,11 +1,12 @@
 display_text:
   name: Display Text
   description: Display text on the iPIXEL device with custom effects and colors
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     text:
       name: Text
       description: Text to display (max 500 characters)
@@ -86,11 +87,12 @@ display_text:
 upload_gif:
   name: Upload GIF
   description: Upload and display a GIF animation on the iPIXEL device
-  target:
-    entity:
-      integration: ipixel_color
-      domain: media_player
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     gif_url:
       name: GIF URL
       description: URL to the GIF file to display
@@ -112,11 +114,12 @@ upload_gif:
 add_schedule:
   name: Add Schedule
   description: Add a scheduled display item
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     name:
       name: Schedule Name
       description: Name for this schedule item
@@ -158,11 +161,12 @@ add_schedule:
 remove_schedule:
   name: Remove Schedule
   description: Remove a scheduled item by ID
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     schedule_id:
       name: Schedule ID
       description: ID of the schedule to remove
@@ -173,11 +177,12 @@ remove_schedule:
 trigger_schedule:
   name: Trigger Schedule
   description: Manually trigger a schedule item (for HA automations)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     schedule_id:
       name: Schedule ID
       description: ID of the schedule to trigger
@@ -188,11 +193,12 @@ trigger_schedule:
 set_playlist:
   name: Set Playlist
   description: Set the playlist order for cycling
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     schedule_ids:
       name: Schedule IDs
       description: Comma-separated list of schedule IDs in order
@@ -204,19 +210,22 @@ set_playlist:
 sync_time:
   name: Sync Time
   description: Synchronize the current time to the iPIXEL device
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
 
 set_pixel:
   name: Set Pixel
   description: Set a single pixel color at specified coordinates
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     x:
       name: X Coordinate
       description: Horizontal position (0 to width-1)
@@ -248,11 +257,12 @@ set_pixel:
 set_pixels:
   name: Set Pixels
   description: Set multiple pixels at once (batch mode)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     pixels:
       name: Pixels
       description: List of pixel objects with x, y, and color properties
@@ -264,19 +274,22 @@ set_pixels:
 clear_pixels:
   name: Clear Pixels
   description: Clear the display (blank screen without powering off)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
 
 show_slot:
   name: Show Slot
   description: Display content from a stored slot on the device
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     slot:
       name: Slot Number
       description: Slot number to display (0-255)
@@ -291,11 +304,12 @@ show_slot:
 delete_slot:
   name: Delete Slot
   description: Delete stored content from a specific slot
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     slot:
       name: Slot Number
       description: Slot index to delete (0-255)
@@ -310,11 +324,12 @@ delete_slot:
 set_brightness:
   name: Set Brightness
   description: Set display brightness level directly via service
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     level:
       name: Brightness Level
       description: Brightness percentage (1-100)
@@ -330,11 +345,12 @@ set_brightness:
 set_clock_mode:
   name: Set Clock Mode
   description: Configure and activate clock display mode
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     style:
       name: Clock Style
       description: Clock style (0-8)
@@ -370,11 +386,12 @@ set_clock_mode:
 set_time:
   name: Set Time
   description: Set specific time on device (does not sync with HA time)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     hour:
       name: Hour
       description: Hour (0-23)
@@ -411,11 +428,12 @@ set_time:
 create_playlist:
   name: Create Playlist
   description: Create a new playlist for content rotation
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     name:
       name: Playlist Name
       description: Name for the new playlist
@@ -441,11 +459,12 @@ create_playlist:
 start_playlist:
   name: Start Playlist
   description: Start playing a playlist with per-item durations
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     playlist_id:
       name: Playlist ID
       description: ID of playlist to start (optional, uses active playlist if not specified)
@@ -456,19 +475,22 @@ start_playlist:
 stop_playlist:
   name: Stop Playlist
   description: Stop the currently playing playlist
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
 
 set_power_schedule:
   name: Set Power Schedule
   description: Configure automatic power on/off times
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     enabled:
       name: Enabled
       description: Enable power scheduling
@@ -503,11 +525,12 @@ set_power_schedule:
 add_time_slot:
   name: Add Time Slot
   description: Schedule a playlist to play at specific times
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     name:
       name: Slot Name
       description: Name for this time slot
@@ -558,11 +581,12 @@ add_time_slot:
 set_upside_down:
   name: Set Upside Down
   description: Flip the display 180 degrees for inverted mounting
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     upside_down:
       name: Upside Down
       description: Enable upside down mode (flip 180°)
@@ -574,19 +598,21 @@ set_upside_down:
 set_default_mode:
   name: Set Default Mode
   description: Reset device to factory default display mode
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
-
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
 erase_data:
   name: Erase Data
   description: Erase stored data from device EEPROM (slots/buffers)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     erase_all:
       name: Erase All
       description: Erase all stored data (ignores buffers field if true)
@@ -605,11 +631,12 @@ erase_data:
 set_program_mode:
   name: Set Program Mode
   description: Auto-cycle through stored screens (slideshow mode)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     buffers:
       name: Buffers
       description: List of buffer numbers to cycle through (1-9), comma-separated
@@ -621,11 +648,12 @@ set_program_mode:
 set_rhythm_mode_advanced:
   name: Set Rhythm Mode (Advanced)
   description: Set music visualizer mode with 11 frequency band level controls
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     style:
       name: Style
       description: Rhythm visualizer style (0-4)
@@ -647,11 +675,12 @@ set_rhythm_mode_advanced:
 display_image_url:
   name: Display Image URL
   description: Download and display an image from a URL (PNG, JPG, BMP, GIF)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     url:
       name: Image URL
       description: URL to the image file to display
@@ -675,11 +704,12 @@ display_image_url:
 set_screen:
   name: Set Screen
   description: Select which stored screen buffer to display (1-9)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     screen:
       name: Screen Number
       description: Screen buffer to display (1-9)
@@ -694,11 +724,12 @@ set_screen:
 set_diy_mode:
   name: Set DIY Mode
   description: Control DIY mode with extended options for custom content creation
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     mode:
       name: Mode
       description: "DIY mode option: 0=Exit (keep prev), 1=Enter (clear), 2=Exit (keep current), 3=Enter (preserve)"
@@ -719,11 +750,12 @@ set_diy_mode:
 send_raw_command:
   name: Send Raw Command
   description: Send raw hex command to device (for expert/debugging use)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     hex_data:
       name: Hex Data
       description: Raw command as hex string (e.g., 'AABBCC' or 'AA BB CC')
@@ -737,11 +769,12 @@ send_raw_command:
 set_password:
   name: Set Password
   description: Enable or disable password protection on the device
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     enabled:
       name: Enabled
       description: Enable password protection
@@ -760,11 +793,12 @@ set_password:
 verify_password:
   name: Verify Password
   description: Verify password on a password-protected device (required before other commands)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     password:
       name: Password
       description: 6-digit password to verify (e.g., '123456')
@@ -778,11 +812,12 @@ verify_password:
 send_mix_data:
   name: Send Mixed Data
   description: Send combined PNG/GIF/TEXT data to device (advanced, partially documented protocol)
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     hex_data:
       name: Hex Data
       description: Raw mixed data blocks as hex string (block headers + content)
@@ -807,11 +842,12 @@ send_mix_data:
 set_pixels_batched:
   name: Set Pixels (Batched)
   description: Set multiple pixels using optimized batch sending, grouped by color. More efficient than set_pixels for drawing shapes or patterns.
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     pixels:
       name: Pixels
       description: List of pixel objects with x, y, and color properties. Pixels are automatically grouped by color for efficient transmission.
@@ -823,11 +859,12 @@ set_pixels_batched:
 display_image_raw_rgb:
   name: Display Image (Raw RGB)
   description: Display image using raw RGB protocol (camera mode). Sends pixel data directly without PNG encoding, useful for real-time streaming applications.
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     image_path:
       name: Image Path
       description: Path to the image file (PNG, JPEG, etc.)
@@ -850,11 +887,12 @@ display_image_raw_rgb:
 display_image_raw_rgb_url:
   name: Display Image URL (Raw RGB)
   description: Download and display image using raw RGB protocol. Uses direct pixel data transmission for potentially faster updates.
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     url:
       name: Image URL
       description: URL to the image file (PNG, JPEG, etc.)
@@ -877,11 +915,12 @@ display_image_raw_rgb_url:
 draw_solid_color:
   name: Draw Solid Color
   description: Fill the entire display with a single color using raw RGB protocol. Faster than setting each pixel individually.
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     color:
       name: Color
       description: Hex color to fill display with (e.g., 'ff0000' for red)
@@ -893,11 +932,12 @@ draw_solid_color:
 draw_visuals:
   name: Draw Visuals
   description: Render multiple visual elements (text, scrolling text, images, pixels) with animation support. Based on UnexpectedMatrixPixels.
-  target:
-    entity:
-      integration: ipixel_color
-      domain: switch
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
     elements:
       name: Elements
       description: |
