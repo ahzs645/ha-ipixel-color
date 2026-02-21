@@ -759,7 +759,7 @@ class iPIXELAPI:
             try:
                 # Send command
                 await self._bluetooth._client.write_gatt_char(
-                    "0000fa02-0000-1000-8000-00805f9b34fb", command
+                    WRITE_UUID, command
                 )
                 _LOGGER.debug("Device info command sent, waiting for response...")
                 
