@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # GIF protocol constants
 GIF_TYPE_BYTE = 0x03
-WINDOW_SIZE = 6 * 1024  # 6KB windows
+WINDOW_SIZE = 12 * 1024  # 12KB windows
 CHUNK_SIZE = 244  # BLE chunk size
 
 

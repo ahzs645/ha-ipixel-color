@@ -23,8 +23,8 @@ _LOGGER = logging.getLogger(__name__)
 
 # Windowed protocol constants
 DEFAULT_CHUNK_SIZE = 244
-DEFAULT_WINDOW_SIZE = 6 * 1024  # 12KB
-DEFAULT_ACK_TIMEOUT = 18.0
+DEFAULT_WINDOW_SIZE = 12 * 1024  # 12KB
+DEFAULT_ACK_TIMEOUT = 8.0
 
 
 class BleAckManager:
