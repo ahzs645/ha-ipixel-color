@@ -2,8 +2,8 @@ display_text:
   name: Display Text
   description: Display text on the iPIXEL device with custom effects and colors
   target:
-    device:
-      domain: ipixel_color
+    device_id:
+      integration: ipixel_color
   fields:
     text:
       name: Text
