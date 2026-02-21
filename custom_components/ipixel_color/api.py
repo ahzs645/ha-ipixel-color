@@ -8,6 +8,7 @@ from typing import Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
+from .const import NOTIFY_UUID, WRITE_UUID
 from .bluetooth.client import BluetoothClient
 from .device.commands import (
     make_power_command,
@@ -740,9 +741,17 @@ class iPIXELAPI:
                 response_received.set()
             
             try:
+                # Ensure notifications are stopped before starting new ones
+                await self._bluetooth._client.stop_notify(
+                    NOTIFY_UUID
+                )
+            except Exception as err:
+                _LOGGER.warning("Failed to stop existing notifications: %s", err)
+
+            try:
                 # Enable notifications temporarily
                 await self._bluetooth._client.start_notify(
-                    "0000fa03-0000-1000-8000-00805f9b34fb", response_handler
+                    NOTIFY_UUID, response_handler
                 )
             except Exception as err:
                 _LOGGER.error("Failed to start notifications for device info: %s", err)
@@ -765,7 +774,7 @@ class iPIXELAPI:
                     
             finally:
                 await self._bluetooth._client.stop_notify(
-                    "0000fa03-0000-1000-8000-00805f9b34fb"
+                    NOTIFY_UUID
                 )
             
             _LOGGER.info("Device info retrieved: %s", self._device_info)
