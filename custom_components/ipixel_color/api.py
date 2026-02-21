@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import Any, TYPE_CHECKING
+from bleak.exc import BleakError
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -745,8 +746,8 @@ class iPIXELAPI:
                 await self._bluetooth._client.stop_notify(
                     NOTIFY_UUID
                 )
-            except Exception as err:
-                _LOGGER.warning("Failed to stop existing notifications: %s", err)
+            except (KeyError, BleakError):
+                pass
 
             try:
                 # Enable notifications temporarily
