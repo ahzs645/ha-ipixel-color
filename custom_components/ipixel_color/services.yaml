@@ -3,6 +3,8 @@ display_text:
   description: Display text on the iPIXEL device with custom effects and colors
   fields:
     device_id:
+      name: Device
+      description: Target iPIXEL device to display text on
       required: true
       selector:
         device:
