@@ -2,7 +2,7 @@
 
 from . import DOMAIN
 from .api import iPIXELAPI
-from .schedule_manager import iPIXELScheduleManager, ScheduleItem
+from .schedule import iPIXELScheduleManager, ScheduleItem
 from homeassistant.const import ATTR_DEVICE_ID
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
