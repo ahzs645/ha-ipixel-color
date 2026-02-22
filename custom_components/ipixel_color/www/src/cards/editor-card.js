@@ -15,15 +15,18 @@ const PALETTE_COLORS = [
   '#A0FF00', '#FF80C0', '#808080', '#C0C0C0'
 ];
 
-// Resolution options for different LED matrices
-const RESOLUTION_OPTIONS = [
+// Common resolution presets (quick-select, not a hard limit)
+const RESOLUTION_PRESETS = [
   { value: '16x16', label: '16×16' },
   { value: '32x8', label: '32×8' },
   { value: '32x16', label: '32×16' },
   { value: '32x32', label: '32×32' },
   { value: '64x16', label: '64×16' },
+  { value: '64x20', label: '64×20' },
+  { value: '64x64', label: '64×64' },
   { value: '96x16', label: '96×16' },
   { value: '128x16', label: '128×16' },
+  { value: '192x16', label: '192×16' },
 ];
 
 // Background color for LED backplate
@@ -79,10 +82,11 @@ export class iPIXELEditorCard extends iPIXELCardBase {
     const isOn = this.isOn();
     const [deviceWidth, deviceHeight] = this.getResolution();
 
-    // Build resolution options
-    const resolutionOptions = RESOLUTION_OPTIONS.map(opt => {
-      const selected = opt.value === `${this._width}x${this._height}` ? 'selected' : '';
-      return `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+    // Build resolution preset buttons
+    const currentRes = `${this._width}x${this._height}`;
+    const presetButtons = RESOLUTION_PRESETS.map(opt => {
+      const active = opt.value === currentRes ? 'active' : '';
+      return `<button class="preset-btn ${active}" data-res="${opt.value}">${opt.label}</button>`;
     }).join('');
 
     // Build palette swatches
@@ -161,14 +165,54 @@ export class iPIXELEditorCard extends iPIXELCardBase {
           font-size: 16px;
         }
 
-        .resolution-select {
-          padding: 6px 8px;
+        .resolution-inputs {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .resolution-inputs input {
+          width: 48px;
+          padding: 5px 6px;
           background: rgba(255,255,255,0.08);
           border: 1px solid var(--ipixel-border);
           border-radius: 6px;
           color: inherit;
           font-size: 0.85em;
+          text-align: center;
+        }
+
+        .resolution-inputs span {
+          opacity: 0.5;
+          font-size: 0.85em;
+        }
+
+        .resolution-presets {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          margin-bottom: 8px;
+        }
+
+        .preset-btn {
+          padding: 3px 8px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid var(--ipixel-border);
+          border-radius: 4px;
+          color: inherit;
+          font-size: 0.7em;
           cursor: pointer;
+          opacity: 0.7;
+        }
+
+        .preset-btn:hover {
+          opacity: 1;
+          background: rgba(255,255,255,0.12);
+        }
+
+        .preset-btn.active {
+          border-color: var(--ipixel-primary);
+          opacity: 1;
         }
 
         .send-btn:disabled {
@@ -200,9 +244,16 @@ export class iPIXELEditorCard extends iPIXELCardBase {
             <button class="icon-btn ${this._gridOn ? 'active' : ''}" id="grid-toggle" title="Toggle LED Grid">
               <span class="tool-icon">&#9638;</span>
             </button>
-            <select class="resolution-select" id="resolution-select" title="Canvas Size">
-              ${resolutionOptions}
-            </select>
+            <div class="resolution-inputs">
+              <input type="number" id="res-width" value="${this._width}" min="1" max="512" title="Width">
+              <span>×</span>
+              <input type="number" id="res-height" value="${this._height}" min="1" max="512" title="Height">
+            </div>
+          </div>
+
+          <!-- Resolution Presets -->
+          <div class="resolution-presets" id="res-presets">
+            ${presetButtons}
           </div>
 
           <!-- Color Palette -->
@@ -431,10 +482,28 @@ export class iPIXELEditorCard extends iPIXELCardBase {
       this.render();
     });
 
-    // Resolution change
-    this.shadowRoot.getElementById('resolution-select')?.addEventListener('change', (e) => {
-      const [w, h] = e.target.value.split('x').map(v => parseInt(v, 10));
-      this._resizeCanvas(w, h);
+    // Resolution change via custom inputs
+    const applyResInputs = () => {
+      const w = parseInt(this.shadowRoot.getElementById('res-width')?.value, 10);
+      const h = parseInt(this.shadowRoot.getElementById('res-height')?.value, 10);
+      if (w > 0 && h > 0 && (w !== this._width || h !== this._height)) {
+        this._resizeCanvas(w, h);
+      }
+    };
+    this.shadowRoot.getElementById('res-width')?.addEventListener('change', applyResInputs);
+    this.shadowRoot.getElementById('res-height')?.addEventListener('change', applyResInputs);
+
+    // Resolution preset buttons
+    this.shadowRoot.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [w, h] = btn.dataset.res.split('x').map(v => parseInt(v, 10));
+        this._resizeCanvas(w, h);
+        // Update the number inputs to match
+        const widthInput = this.shadowRoot.getElementById('res-width');
+        const heightInput = this.shadowRoot.getElementById('res-height');
+        if (widthInput) widthInput.value = w;
+        if (heightInput) heightInput.value = h;
+      });
     });
 
     // Clear button

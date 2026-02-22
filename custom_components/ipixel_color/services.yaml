@@ -68,23 +68,14 @@ display_text:
             - "VCR_OSD_MONO"
     matrix_height:
       name: Matrix Height
-      description: Override display height for text rendering (auto-detected if not set)
+      description: Override display height for text rendering in pixels (leave empty for auto-detect from device)
       required: false
       selector:
-        select:
-          options:
-            - label: "Auto (use device height)"
-              value: ""
-            - label: "8 pixels"
-              value: "8"
-            - label: "16 pixels"
-              value: "16"
-            - label: "20 pixels"
-              value: "20"
-            - label: "24 pixels"
-              value: "24"
-            - label: "32 pixels"
-              value: "32"
+        number:
+          min: 4
+          max: 512
+          mode: box
+          unit_of_measurement: "px"
 
 upload_gif:
   name: Upload GIF

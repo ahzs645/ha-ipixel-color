@@ -90,8 +90,8 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
   _getResolutionCached() {
     const [sensorWidth, sensorHeight] = this.getResolution();
 
-    // If sensors return valid non-default values, use them and cache
-    if (sensorWidth > 0 && sensorHeight > 0 && sensorWidth !== 64) {
+    // If sensors return valid values, use them and cache
+    if (sensorWidth > 0 && sensorHeight > 0) {
       this._cachedResolution = [sensorWidth, sensorHeight];
       // Also save to localStorage for persistence
       try {
