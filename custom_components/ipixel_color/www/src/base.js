@@ -3,12 +3,22 @@
  * Provides common functionality for entity management, service calls, etc.
  */
 
+import { isTestMode } from './state.js';
+
 export class iPIXELCardBase extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
     this._config = {};
     this._hass = null;
+
+    // Listen for test mode changes to re-render
+    this._handleTestModeChange = () => this.render();
+    window.addEventListener('ipixel-test-mode-change', this._handleTestModeChange);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('ipixel-test-mode-change', this._handleTestModeChange);
   }
 
   set hass(hass) {
@@ -17,9 +27,21 @@ export class iPIXELCardBase extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error('Please define an entity');
+    // Allow empty entity in test mode
+    if (!config.entity && !isTestMode()) {
+      // Store config anyway - test mode may be activated later
+      this._config = config;
+      return;
+    }
     this._config = config;
     this.render();
+  }
+
+  /**
+   * Check if card is in test mode (no entity or explicitly enabled)
+   */
+  isInTestMode() {
+    return isTestMode() || !this._config.entity || !this.getEntity();
   }
 
   getEntity() {
@@ -58,6 +80,10 @@ export class iPIXELCardBase extends HTMLElement {
 
   async callService(domain, service, data = {}) {
     if (!this._hass) return;
+    if (this.isInTestMode()) {
+      console.info(`iPIXEL [Test Mode]: ${domain}.${service}`, data);
+      return;
+    }
     try {
       await this._hass.callService(domain, service, data);
     } catch (err) {
@@ -76,6 +102,8 @@ export class iPIXELCardBase extends HTMLElement {
   }
 
   isOn() {
+    // In test mode, always report as "on" so preview works
+    if (this.isInTestMode()) return true;
     return this.getRelatedEntity('switch')?.state === 'on';
   }
 

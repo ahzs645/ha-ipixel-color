@@ -36,7 +36,8 @@ export class iPIXELPlaylistCard extends iPIXELCardBase {
   }
 
   render() {
-    if (!this._hass) return;
+    const testMode = this.isInTestMode();
+    if (!this._hass && !testMode) return;
 
     this.shadowRoot.innerHTML = `
       <style>${iPIXELCardStyles}

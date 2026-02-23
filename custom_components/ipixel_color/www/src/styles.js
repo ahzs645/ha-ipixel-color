@@ -201,5 +201,16 @@ export const iPIXELCardStyles = `
 
   @media (max-width: 400px) {
     .button-grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .button-grid-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Mobile-friendly touch targets */
+  @media (max-width: 600px) {
+    .btn { padding: 10px 16px; min-height: 40px; }
+    .icon-btn { width: 40px; height: 40px; }
+    .slider::-webkit-slider-thumb { width: 24px; height: 24px; }
+    .slider::-moz-range-thumb { width: 24px; height: 24px; }
+    .dropdown { padding: 10px 12px; }
+    .text-input { padding: 12px; }
   }
 `;

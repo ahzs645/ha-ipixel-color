@@ -125,7 +125,8 @@ export class iPIXELTextCard extends iPIXELCardBase {
   }
 
   render() {
-    if (!this._hass) return;
+    const testMode = this.isInTestMode();
+    if (!this._hass && !testMode) return;
 
     const isTextTab = this._activeTab === 'text';
     const isAmbientTab = this._activeTab === 'ambient';
@@ -516,7 +517,10 @@ Example:
           rainbowMode
         });
 
-        if (this._config.entity) {
+        // In test mode, just update the preview - don't call services
+        if (this.isInTestMode()) return;
+
+        if (this._config.entity && this._hass) {
           this._hass.callService('text', 'set_value', {
             entity_id: this._config.entity,
             value: text

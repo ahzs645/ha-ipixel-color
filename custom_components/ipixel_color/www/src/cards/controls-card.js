@@ -42,7 +42,8 @@ export class iPIXELControlsCard extends iPIXELCardBase {
   }
 
   render() {
-    if (!this._hass) return;
+    const testMode = this.isInTestMode();
+    if (!this._hass && !testMode) return;
     const isOn = this.isOn();
 
     // Get upside down state from entity if available

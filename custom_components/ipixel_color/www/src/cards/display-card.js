@@ -12,7 +12,7 @@ import {
   textToPixelsBdf, textToScrollPixelsBdf, loadBdfFont, isBdfFontLoaded, getHeightKey,
   LEDMatrixRenderer, EFFECTS, configureFonts,
 } from 'react-pixel-display/core';
-import { getDisplayState, updateDisplayState } from '../state.js';
+import { getDisplayState, updateDisplayState, isTestMode, setTestMode, detectMissingFeatures } from '../state.js';
 
 // Configure font resolution for HA environment
 const isHA = typeof window !== 'undefined' && (
@@ -75,6 +75,7 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
   }
 
   disconnectedCallback() {
+    super.disconnectedCallback();
     window.removeEventListener('ipixel-display-update', this._handleDisplayUpdate);
 
     // Don't destroy renderer - cache it for reconnection
@@ -262,21 +263,38 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
     }
   }
 
+  /**
+   * Get sample state for test mode demo display
+   */
+  _getTestModeState() {
+    const demos = [
+      { text: 'iPIXEL', effect: 'scroll_ltr', speed: 40, fgColor: '#ff6600', bgColor: '#000000', mode: 'text', font: 'VCR_OSD_MONO' },
+      { text: 'Hello!', effect: 'rainbow_cycle', speed: 50, fgColor: '#00ff88', bgColor: '#000000', mode: 'text', font: 'VCR_OSD_MONO' },
+      { text: 'TEST', effect: 'fixed', speed: 50, fgColor: '#03a9f4', bgColor: '#111111', mode: 'text', font: 'VCR_OSD_MONO' },
+      { text: '', effect: 'rainbow', speed: 60, fgColor: '#ffffff', bgColor: '#000000', mode: 'ambient', font: 'VCR_OSD_MONO' },
+    ];
+    // Rotate through demos based on time
+    const idx = Math.floor(Date.now() / 10000) % demos.length;
+    return demos[idx];
+  }
+
   render() {
-    if (!this._hass) return;
+    // Allow render in test mode even without hass
+    const testMode = this.isInTestMode();
+    if (!this._hass && !testMode) return;
 
     const [width, height] = this._getResolutionCached();
     const isOn = this.isOn();
     const name = this._config.name || this.getEntity()?.attributes?.friendly_name || 'iPIXEL Display';
 
-    // Get current state
+    // Get current state (use sample data in test mode if no shared state)
     const sharedState = getDisplayState();
     const textEntity = this.getEntity();
     const entityText = textEntity?.state || '';
     const modeEntity = this.getRelatedEntity('select', '_mode');
     const currentMode = modeEntity?.state || sharedState.mode || 'text';
 
-    const currentText = sharedState.text || entityText;
+    const currentText = sharedState.text || entityText || (testMode ? 'iPIXEL' : '');
     const currentEffect = sharedState.effect || 'fixed';
     const currentSpeed = sharedState.speed || 50;
     const fgColor = sharedState.fgColor || '#ff6600';
@@ -286,6 +304,38 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
     // Check if effect is ambient
     const effectInfo = EFFECTS[currentEffect];
     const isAmbient = effectInfo?.category === 'ambient';
+
+    // Detect missing features for the banner
+    const missingFeatures = detectMissingFeatures();
+    const testModeEnabled = isTestMode();
+
+    // Build test mode banner
+    let testModeBanner = '';
+    if (testMode) {
+      const featureWarnings = missingFeatures.length > 0
+        ? `<div class="test-mode-features">Missing: ${missingFeatures.join(', ')}</div>`
+        : '';
+      testModeBanner = `
+        <div class="test-mode-banner">
+          <div class="test-mode-header">
+            <span class="test-mode-label">Test Mode</span>
+            <button class="test-mode-toggle ${testModeEnabled ? 'active' : ''}" id="test-mode-toggle">
+              ${testModeEnabled ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div class="test-mode-desc">Preview display without a device</div>
+          ${featureWarnings}
+        </div>`;
+    } else {
+      // Show a small toggle to enter test mode
+      testModeBanner = `
+        <div class="test-mode-hint">
+          <button class="test-mode-hint-btn" id="test-mode-toggle" title="Enable test mode for preview without a device">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15Z"/></svg>
+            Test
+          </button>
+        </div>`;
+    }
 
     // Build effect options grouped by category
     const textEffects = Object.entries(EFFECTS)
@@ -315,13 +365,104 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
         .display-footer { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.75em; opacity: 0.6; }
         .mode-badge { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; text-transform: capitalize; }
         .effect-badge { background: rgba(100,149,237,0.2); padding: 2px 6px; border-radius: 3px; margin-left: 4px; }
+        .test-mode-banner {
+          background: linear-gradient(135deg, rgba(255,152,0,0.15), rgba(255,87,34,0.1));
+          border: 1px solid rgba(255,152,0,0.3);
+          border-radius: 8px;
+          padding: 10px 12px;
+          margin-bottom: 12px;
+        }
+        .test-mode-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 4px;
+        }
+        .test-mode-label {
+          font-size: 0.85em;
+          font-weight: 600;
+          color: #ff9800;
+        }
+        .test-mode-toggle {
+          padding: 3px 10px;
+          border: 1px solid rgba(255,152,0,0.4);
+          border-radius: 12px;
+          background: rgba(255,152,0,0.1);
+          color: #ff9800;
+          cursor: pointer;
+          font-size: 0.75em;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .test-mode-toggle.active {
+          background: #ff9800;
+          color: #000;
+        }
+        .test-mode-desc {
+          font-size: 0.75em;
+          opacity: 0.7;
+        }
+        .test-mode-features {
+          font-size: 0.7em;
+          opacity: 0.6;
+          margin-top: 4px;
+          font-style: italic;
+        }
+        .test-mode-hint {
+          display: flex;
+          justify-content: flex-end;
+          margin-bottom: 8px;
+        }
+        .test-mode-hint-btn {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 8px;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 10px;
+          background: rgba(255,255,255,0.05);
+          color: inherit;
+          cursor: pointer;
+          font-size: 0.7em;
+          opacity: 0.5;
+          transition: opacity 0.2s;
+        }
+        .test-mode-hint-btn:hover { opacity: 0.8; }
+        .test-mode-badge {
+          background: rgba(255,152,0,0.2);
+          color: #ff9800;
+          padding: 2px 6px;
+          border-radius: 3px;
+          margin-left: 4px;
+          font-size: 0.75em;
+        }
+        .demo-controls {
+          display: flex;
+          gap: 6px;
+          margin-top: 8px;
+          flex-wrap: wrap;
+        }
+        .demo-btn {
+          padding: 5px 10px;
+          border: 1px solid rgba(255,152,0,0.3);
+          border-radius: 6px;
+          background: rgba(255,152,0,0.08);
+          color: inherit;
+          cursor: pointer;
+          font-size: 0.75em;
+          transition: all 0.2s;
+        }
+        .demo-btn:hover { background: rgba(255,152,0,0.2); }
+        .demo-btn.active { background: rgba(255,152,0,0.25); border-color: #ff9800; }
       </style>
       <ha-card>
         <div class="card-content">
+          ${testModeBanner}
           <div class="card-header">
             <div class="card-title">
               <span class="status-dot ${isOn ? '' : 'off'}"></span>
               ${name}
+              ${testMode ? '<span class="test-mode-badge">Demo</span>' : ''}
             </div>
             <button class="icon-btn ${isOn ? 'active' : ''}" id="power-btn">
               <svg viewBox="0 0 24 24"><path d="M13,3H11V13H13V3M17.83,5.17L16.41,6.59C18.05,7.91 19,9.9 19,12A7,7 0 0,1 12,19A7,7 0 0,1 5,12C5,9.9 5.95,7.91 7.59,6.59L6.17,5.17C4.23,6.82 3,9.26 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12C21,9.26 19.77,6.82 17.83,5.17Z"/></svg>
@@ -337,28 +478,50 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
               </span>
             </div>
           </div>
+          ${testMode ? `
+          <div class="demo-controls">
+            <button class="demo-btn" data-demo="text">Text</button>
+            <button class="demo-btn" data-demo="scroll">Scroll</button>
+            <button class="demo-btn" data-demo="rainbow">Rainbow</button>
+            <button class="demo-btn" data-demo="clock">Clock</button>
+            <button class="demo-btn" data-demo="fire">Fire</button>
+            <button class="demo-btn" data-demo="stars">Stars</button>
+          </div>` : ''}
         </div>
       </ha-card>`;
 
     // Get display container
     this._displayContainer = this.shadowRoot.getElementById('display-screen');
 
+    // In test mode with no shared state text, show sample content
+    const displayState = (testMode && !sharedState.text && sharedState.effect === 'fixed')
+      ? this._getTestModeState()
+      : {
+          text: currentText,
+          effect: currentEffect,
+          speed: currentSpeed,
+          fgColor: fgColor,
+          bgColor: bgColor,
+          mode: currentMode,
+          font: currentFont
+        };
+
     // Update display with current state (renderer will be created/updated in _updateDisplay)
-    this._updateDisplay({
-      text: currentText,
-      effect: currentEffect,
-      speed: currentSpeed,
-      fgColor: fgColor,
-      bgColor: bgColor,
-      mode: currentMode,
-      font: currentFont
-    });
+    this._updateDisplay(displayState);
 
     this._attachPowerButton();
+    this._attachTestModeListeners();
   }
 
   _attachPowerButton() {
     this.shadowRoot.getElementById('power-btn')?.addEventListener('click', () => {
+      // In test mode, just toggle the display preview
+      if (this.isInTestMode()) {
+        this._testPowerState = !this._testPowerState;
+        this.render();
+        return;
+      }
+
       let switchId = this._switchEntityId;
       if (!switchId) {
         const sw = this.getRelatedEntity('switch');
@@ -368,10 +531,10 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
         }
       }
 
-      if (switchId && this._hass.states[switchId]) {
+      if (switchId && this._hass?.states[switchId]) {
         this._hass.callService('switch', 'toggle', { entity_id: switchId });
       } else {
-        const allSwitches = Object.keys(this._hass.states).filter(e => e.startsWith('switch.'));
+        const allSwitches = Object.keys(this._hass?.states || {}).filter(e => e.startsWith('switch.'));
         const baseName = this._config.entity?.replace(/^[^.]+\./, '').replace(/_?(text|display|gif_url)$/i, '') || '';
         const match = allSwitches.find(s => s.includes(baseName.substring(0, 10)));
         if (match) {
@@ -381,6 +544,36 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
           console.warn('iPIXEL: No switch found. Entity:', this._config.entity, 'Available:', allSwitches);
         }
       }
+    });
+  }
+
+  _attachTestModeListeners() {
+    // Test mode toggle button
+    this.shadowRoot.getElementById('test-mode-toggle')?.addEventListener('click', () => {
+      setTestMode(!isTestMode());
+    });
+
+    // Demo quick-select buttons
+    this.shadowRoot.querySelectorAll('[data-demo]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const demo = e.currentTarget.dataset.demo;
+        const demoStates = {
+          text: { text: 'iPIXEL', effect: 'fixed', speed: 50, fgColor: '#ff6600', bgColor: '#000000', mode: 'text', font: 'VCR_OSD_MONO' },
+          scroll: { text: 'Hello World!', effect: 'scroll_ltr', speed: 40, fgColor: '#00ff88', bgColor: '#000000', mode: 'text', font: 'VCR_OSD_MONO' },
+          rainbow: { text: '', effect: 'rainbow', speed: 60, fgColor: '#ffffff', bgColor: '#000000', mode: 'ambient', font: 'VCR_OSD_MONO' },
+          clock: { text: '', effect: 'fixed', speed: 50, fgColor: '#00ff88', bgColor: '#000000', mode: 'clock', font: 'VCR_OSD_MONO' },
+          fire: { text: '', effect: 'fire', speed: 50, fgColor: '#ffffff', bgColor: '#000000', mode: 'ambient', font: 'VCR_OSD_MONO' },
+          stars: { text: '', effect: 'stars', speed: 40, fgColor: '#ffffff', bgColor: '#000000', mode: 'ambient', font: 'VCR_OSD_MONO' },
+        };
+
+        const state = demoStates[demo];
+        if (state) {
+          updateDisplayState(state);
+          // Highlight active demo button
+          this.shadowRoot.querySelectorAll('[data-demo]').forEach(b => b.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+        }
+      });
     });
   }
 

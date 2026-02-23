@@ -4,6 +4,7 @@
  */
 
 export const IPIXEL_STORAGE_KEY = 'iPIXEL_DisplayState';
+export const IPIXEL_TEST_MODE_KEY = 'iPIXEL_TestMode';
 
 const DEFAULT_STATE = {
   text: '',
@@ -56,4 +57,42 @@ export function updateDisplayState(updates) {
     detail: window.iPIXELDisplayState
   }));
   return window.iPIXELDisplayState;
+}
+
+/**
+ * Test mode management
+ * Allows cards to function without a real device for demo/preview purposes
+ */
+export function isTestMode() {
+  if (window.iPIXELTestMode !== undefined) return window.iPIXELTestMode;
+  try {
+    return localStorage.getItem(IPIXEL_TEST_MODE_KEY) === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+export function setTestMode(enabled) {
+  window.iPIXELTestMode = enabled;
+  try {
+    localStorage.setItem(IPIXEL_TEST_MODE_KEY, String(enabled));
+  } catch (e) { }
+  window.dispatchEvent(new CustomEvent('ipixel-test-mode-change', { detail: { enabled } }));
+}
+
+/**
+ * Detect missing browser features relevant to iPIXEL cards
+ */
+export function detectMissingFeatures() {
+  const missing = [];
+  if (typeof navigator !== 'undefined' && !navigator.bluetooth) {
+    missing.push('WebBluetooth');
+  }
+  try {
+    const c = document.createElement('canvas');
+    if (!c.getContext('2d')) missing.push('Canvas');
+  } catch (e) {
+    missing.push('Canvas');
+  }
+  return missing;
 }

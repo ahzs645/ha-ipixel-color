@@ -26,6 +26,7 @@ export class iPIXELScheduleCard extends iPIXELCardBase {
   }
 
   disconnectedCallback() {
+    super.disconnectedCallback();
     if (this._checkInterval) {
       clearInterval(this._checkInterval);
     }
@@ -100,7 +101,8 @@ export class iPIXELScheduleCard extends iPIXELCardBase {
   }
 
   render() {
-    if (!this._hass) return;
+    const testMode = this.isInTestMode();
+    if (!this._hass && !testMode) return;
     const now = new Date();
     const nowPos = ((now.getHours() * 60 + now.getMinutes()) / 1440) * 100;
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;

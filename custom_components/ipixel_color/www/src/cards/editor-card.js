@@ -54,7 +54,11 @@ export class iPIXELEditorCard extends iPIXELCardBase {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error('Please define an entity');
+    // Allow empty entity in test mode
+    if (!config.entity && !this.isInTestMode()) {
+      this._config = config;
+      return;
+    }
     this._config = config;
     // Don't call render here - wait for hass
   }
@@ -65,7 +69,7 @@ export class iPIXELEditorCard extends iPIXELCardBase {
 
     // Only do full render on first hass set or config change
     if (!hadHass) {
-      // Get resolution from device
+      // Get resolution from device (or use defaults in test mode)
       const [w, h] = this.getResolution();
       this._width = w;
       this._height = h;
@@ -76,7 +80,8 @@ export class iPIXELEditorCard extends iPIXELCardBase {
   }
 
   render() {
-    if (!this._hass) return;
+    const testMode = this.isInTestMode();
+    if (!this._hass && !testMode) return;
 
     const entity = this.getEntity();
     const isOn = this.isOn();
@@ -277,7 +282,7 @@ export class iPIXELEditorCard extends iPIXELCardBase {
             <button class="btn btn-secondary" id="clear-btn">Clear</button>
             <button class="btn btn-secondary" id="import-btn">Import</button>
             <button class="btn btn-primary send-btn" id="send-btn" ${this._sending ? 'disabled' : ''}>
-              ${this._sending ? 'Sending...' : 'Send to Device'}
+              ${this._sending ? 'Sending...' : (testMode ? 'Preview Only' : 'Send to Device')}
             </button>
           </div>
 
