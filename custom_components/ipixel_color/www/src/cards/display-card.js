@@ -417,17 +417,19 @@ export class iPIXELDisplayCard extends iPIXELCardBase {
           display: flex;
           align-items: center;
           gap: 4px;
-          padding: 2px 8px;
-          border: 1px solid rgba(255,255,255,0.1);
+          padding: 6px 12px;
+          border: 1px solid rgba(255,152,0,0.3);
           border-radius: 10px;
-          background: rgba(255,255,255,0.05);
-          color: inherit;
+          background: rgba(255,152,0,0.08);
+          color: #ff9800;
           cursor: pointer;
-          font-size: 0.7em;
-          opacity: 0.5;
-          transition: opacity 0.2s;
+          font-size: 0.75em;
+          opacity: 0.85;
+          transition: opacity 0.2s, background 0.2s;
+          -webkit-tap-highlight-color: rgba(255,152,0,0.2);
         }
-        .test-mode-hint-btn:hover { opacity: 0.8; }
+        .test-mode-hint-btn:hover,
+        .test-mode-hint-btn:active { opacity: 1; background: rgba(255,152,0,0.15); }
         .test-mode-badge {
           background: rgba(255,152,0,0.2);
           color: #ff9800;
