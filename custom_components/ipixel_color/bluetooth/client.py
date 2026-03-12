@@ -244,6 +244,7 @@ class BluetoothClient:
             client=self._client,
             plan=plan,
             ack_mgr=self._ack_mgr,
+            ack_timeout=DEFAULT_ACK_TIMEOUT,
         )
 
     @property

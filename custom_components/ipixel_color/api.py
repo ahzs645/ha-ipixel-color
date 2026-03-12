@@ -790,7 +790,7 @@ class iPIXELAPI:
                 width,
                 height,
                 len(png_data),
-                len(plan)
+                len(plan.windows)
             )
             return True
 

@@ -1,6 +1,8 @@
 """Command building for iPIXEL Color devices."""
 from __future__ import annotations
+
 import logging
+import zlib
 
 from pypixelcolor.lib.transport.send_plan import SendPlan, Window
 
@@ -544,8 +546,8 @@ def make_mix_block_header(
 def _make_windows_from_payload(payload: bytes, screen_slot: int, command: bytes) -> list[Window]:
     """Helper function to split payload into windows for SendPlan."""
     # Calculate CRC32 of mix data
-    crc = zlib.crc32(data_payload) & 0xFFFFFFFF
-    payload_size = len(data_payload)
+    crc = zlib.crc32(payload) & 0xFFFFFFFF
+    payload_size = len(payload)
 
     #########################
     #      MULTI-FRAME      #
@@ -558,7 +560,7 @@ def _make_windows_from_payload(payload: bytes, screen_slot: int, command: bytes)
     
     while pos < payload_size:
         window_end = min(pos + window_size, payload_size)
-        chunk_payload = data_payload[pos:window_end]
+        chunk_payload = payload[pos:window_end]
         
         # Option: 0x00 for first frame, 0x02 for subsequent frames
         option = 0x00 if window_index == 0 else 0x02
@@ -619,8 +621,6 @@ def make_mix_data_plan(
     Raises:
         ValueError: If blocks list is empty or screen_slot is invalid
     """
-    import zlib
-
     if not blocks:
         raise ValueError("At least one block must be provided")
     if screen_slot < 1 or screen_slot > 255:
@@ -654,8 +654,6 @@ def make_mix_data_raw_plan(
     Returns:
         Command bytes for mixed data upload
     """
-    import zlib
-
     if not raw_mix_data:
         raise ValueError("Mix data cannot be empty")
     if screen_slot < 1 or screen_slot > 255:
