@@ -1054,6 +1054,63 @@ def make_delete_slots_command(slots: list[int]) -> bytes:
     )
 
 
+def make_sport_data_command(value_a: int, value_b: int, value_c: int) -> bytes:
+    """Build sport/fitness data display command.
+
+    Command format from APK reverse engineering:
+    [0x07, 0x00, 0x06, 0x00, a, b, c]
+
+    The exact semantics of a/b/c are not fully labeled in the APK,
+    but they likely represent step count, calories, or distance
+    split across three bytes.
+
+    Args:
+        value_a: First data byte (0-255)
+        value_b: Second data byte (0-255)
+        value_c: Third data byte (0-255)
+
+    Returns:
+        Command bytes for sport data display
+    """
+    return bytes([
+        0x07, 0x00, 0x06, 0x00,
+        value_a & 0xFF, value_b & 0xFF, value_c & 0xFF,
+    ])
+
+
+def make_dual_panel_command(
+    left_rgb: bytes,
+    right_rgb: bytes,
+    width: int,
+    height: int,
+) -> tuple[bytes, bytes]:
+    """Build dual-panel (Devil Eye) display commands.
+
+    The official app sends separate left/right RGB data for devices
+    with dual displays (like the Devil Eye models).
+
+    Args:
+        left_rgb: Raw RGB bytes for left panel [R,G,B,R,G,B,...]
+        right_rgb: Raw RGB bytes for right panel [R,G,B,R,G,B,...]
+        width: Panel width in pixels
+        height: Panel height in pixels
+
+    Returns:
+        Tuple of (left_command, right_command) bytes
+    """
+    expected_size = width * height * 3
+    if len(left_rgb) != expected_size:
+        raise ValueError(
+            f"Left RGB data must be {expected_size} bytes, got {len(left_rgb)}"
+        )
+    if len(right_rgb) != expected_size:
+        raise ValueError(
+            f"Right RGB data must be {expected_size} bytes, got {len(right_rgb)}"
+        )
+
+    return left_rgb, right_rgb
+
+
 def make_reserve_slot_command(slot: int) -> bytes:
     """Build command to reserve a slot before content save.
 

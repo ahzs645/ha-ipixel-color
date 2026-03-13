@@ -66,6 +66,10 @@ SERVICE_SET_WEEKDAY = "set_weekday"
 SERVICE_SET_CLOCK_MODE_FULL = "set_clock_mode_full"
 SERVICE_DELETE_SLOTS = "delete_slots"
 SERVICE_RESERVE_SLOT = "reserve_slot"
+SERVICE_SET_SPORT_DATA = "set_sport_data"
+SERVICE_DISPLAY_GALLERY_ASSET = "display_gallery_asset"
+SERVICE_DISPLAY_NATIVE_TEXT = "display_native_text"
+SERVICE_DISPLAY_BORDER = "display_border"
 
 def rgb_to_hex(rgb) -> str:
     """Convert RGB array [r, g, b] to hex string 'rrggbb'."""
@@ -956,6 +960,95 @@ async def handle_reserve_slot(call: ServiceCall) -> None:
     except Exception as err:
         _LOGGER.error("Error reserving slot: %s", err)
 
+async def handle_set_sport_data(call: ServiceCall) -> None:
+    """Handle set_sport_data service call."""
+    api = get_api(call)
+    value_a = call.data.get("value_a", 0)
+    value_b = call.data.get("value_b", 0)
+    value_c = call.data.get("value_c", 0)
+
+    try:
+        success = await api.set_sport_data(value_a, value_b, value_c)
+        if success:
+            _LOGGER.info("Sport data sent: %d, %d, %d", value_a, value_b, value_c)
+        else:
+            _LOGGER.error("Failed to send sport data")
+    except Exception as err:
+        _LOGGER.error("Error sending sport data: %s", err)
+
+async def handle_display_gallery_asset(call: ServiceCall) -> None:
+    """Handle display_gallery_asset service call."""
+    api = get_api(call)
+    url = call.data.get("url", "")
+    buffer_slot = call.data.get("buffer_slot", 1)
+
+    if not url:
+        _LOGGER.error("No URL provided for display_gallery_asset")
+        return
+
+    try:
+        success = await api.display_gallery_asset(url, buffer_slot)
+        if success:
+            _LOGGER.info("Gallery asset displayed from %s", url)
+        else:
+            _LOGGER.error("Failed to display gallery asset")
+    except Exception as err:
+        _LOGGER.error("Error displaying gallery asset: %s", err)
+
+async def handle_display_native_text(call: ServiceCall) -> None:
+    """Handle display_native_text service call."""
+    api = get_api(call)
+    text = call.data.get("text", "")
+    effect = call.data.get("effect", 1)
+    speed = call.data.get("speed", 50)
+    color_fg = call.data.get("color_fg", [255, 255, 255])
+    color_bg = call.data.get("color_bg", [0, 0, 0])
+    h_align = call.data.get("h_align", 0)
+    v_align = call.data.get("v_align", 0)
+    font_size = int(call.data.get("font_size", 16))
+    buffer_slot = call.data.get("buffer_slot", 1)
+
+    if not text:
+        _LOGGER.warning("No text provided for display_native_text")
+        return
+
+    try:
+        fg = tuple(color_fg) if isinstance(color_fg, (list, tuple)) else (255, 255, 255)
+        bg = tuple(color_bg) if isinstance(color_bg, (list, tuple)) else (0, 0, 0)
+
+        success = await api.display_native_text(
+            text=text,
+            effect=effect,
+            speed=speed,
+            fg_color=fg,
+            bg_color=bg,
+            h_align=h_align,
+            v_align=v_align,
+            font_size=font_size,
+            buffer_slot=buffer_slot,
+        )
+        if success:
+            _LOGGER.info("Native text displayed: '%s'", text)
+        else:
+            _LOGGER.error("Failed to display native text")
+    except Exception as err:
+        _LOGGER.error("Error displaying native text: %s", err)
+
+async def handle_display_border(call: ServiceCall) -> None:
+    """Handle display_border service call."""
+    api = get_api(call)
+    style = call.data.get("style", 1)
+    buffer_slot = call.data.get("buffer_slot", 1)
+
+    try:
+        success = await api.display_border_animation(style, buffer_slot)
+        if success:
+            _LOGGER.info("Border animation style %d displayed", style)
+        else:
+            _LOGGER.error("Failed to display border animation")
+    except Exception as err:
+        _LOGGER.error("Error displaying border animation: %s", err)
+
 
 @callback
 def async_setup_services(hass: HomeAssistant) -> None:
@@ -1059,4 +1152,12 @@ def async_setup_services(hass: HomeAssistant) -> None:
         hass.services.async_register(DOMAIN, SERVICE_DELETE_SLOTS, handle_delete_slots)
     if not hass.services.has_service(DOMAIN, SERVICE_RESERVE_SLOT):
         hass.services.async_register(DOMAIN, SERVICE_RESERVE_SLOT, handle_reserve_slot)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_SPORT_DATA):
+        hass.services.async_register(DOMAIN, SERVICE_SET_SPORT_DATA, handle_set_sport_data)
+    if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_GALLERY_ASSET):
+        hass.services.async_register(DOMAIN, SERVICE_DISPLAY_GALLERY_ASSET, handle_display_gallery_asset)
+    if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_NATIVE_TEXT):
+        hass.services.async_register(DOMAIN, SERVICE_DISPLAY_NATIVE_TEXT, handle_display_native_text)
+    if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_BORDER):
+        hass.services.async_register(DOMAIN, SERVICE_DISPLAY_BORDER, handle_display_border)
 

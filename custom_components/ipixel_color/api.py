@@ -55,6 +55,8 @@ from .device.commands import (
     make_clock_mode_full_command,
     make_delete_slots_command,
     make_reserve_slot_command,
+    make_sport_data_command,
+    make_dual_panel_command,
 )
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_plan
@@ -1385,6 +1387,210 @@ class iPIXELAPI:
             return False
         except Exception as err:
             _LOGGER.error("Error reserving slot: %s", err)
+            return False
+
+    async def set_sport_data(self, value_a: int, value_b: int, value_c: int) -> bool:
+        """Send sport/fitness data to display.
+
+        Args:
+            value_a: First data byte (0-255)
+            value_b: Second data byte (0-255)
+            value_c: Third data byte (0-255)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_sport_data_command(value_a, value_b, value_c)
+            result = await self._bluetooth.send_command("set_sport_data", payload)
+
+            if result.success:
+                _LOGGER.info("Sport data sent: %d, %d, %d", value_a, value_b, value_c)
+            else:
+                _LOGGER.error("Failed to send sport data")
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error sending sport data: %s", err)
+            return False
+
+    async def display_gallery_asset(self, url: str, buffer_slot: int = 1) -> bool:
+        """Fetch a vendor gallery asset, de-obfuscate it, and display on device.
+
+        Args:
+            url: Vendor gallery asset URL (obfuscated)
+            buffer_slot: Storage slot on device (1-255)
+
+        Returns:
+            True if asset was displayed successfully
+        """
+        try:
+            from .device.gallery import fetch_gallery_asset
+
+            asset_bytes = await fetch_gallery_asset(url)
+            _LOGGER.info("Fetched gallery asset: %d bytes", len(asset_bytes))
+
+            # Determine if GIF or image based on magic bytes
+            is_gif = asset_bytes[:3] == b"GIF"
+
+            if is_gif:
+                from .device.image import make_image_plan
+                plan = make_image_plan(asset_bytes, buffer_slot, is_gif=True)
+            else:
+                from .device.image import make_image_plan
+                plan = make_image_plan(asset_bytes, buffer_slot, is_gif=False)
+
+            result = await self._bluetooth.send_plan(plan)
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error displaying gallery asset: %s", err)
+            return False
+
+    async def display_native_text(
+        self,
+        text: str,
+        effect: int = 1,
+        speed: int = 50,
+        fg_color: tuple[int, int, int] = (255, 255, 255),
+        bg_color: tuple[int, int, int] = (0, 0, 0),
+        h_align: int = 0,
+        v_align: int = 0,
+        font_size: int = 16,
+        buffer_slot: int = 1,
+    ) -> bool:
+        """Display text using the native device text protocol.
+
+        This sends structured binary text data that the device renders
+        natively, enabling device-side scrolling and effects.
+
+        Args:
+            text: Text string to display
+            effect: Text animation effect (0-7)
+            speed: Animation speed (0-100)
+            fg_color: Foreground RGB color tuple
+            bg_color: Background RGB color tuple
+            h_align: Horizontal alignment (0=left, 1=center, 2=right)
+            v_align: Vertical alignment (0=top, 1=center, 2=bottom)
+            font_size: Font size for character rendering
+            buffer_slot: Storage slot on device (1-255)
+
+        Returns:
+            True if text was sent successfully
+        """
+        try:
+            from .device.text_protocol import (
+                TextStyle,
+                build_native_text_payload,
+            )
+            from .device.commands import _make_windows_from_payload
+
+            style = TextStyle(
+                h_align=h_align,
+                v_align=v_align,
+                effect=effect,
+                speed=speed,
+                fg_color=fg_color,
+                fg_enabled=True,
+                bg_color=bg_color,
+                bg_enabled=bg_color != (0, 0, 0),
+            )
+
+            payload = build_native_text_payload(text, style, font_size, fg_color)
+            _LOGGER.debug("Native text payload: %d bytes for '%s'", len(payload), text)
+
+            # Send as type 4 (text) using the windowed protocol
+            from pypixelcolor.lib.transport.send_plan import SendPlan
+            windows = _make_windows_from_payload(
+                payload, buffer_slot, bytes([0x04, 0x00])
+            )
+            plan = SendPlan("native_text", windows)
+            result = await self._bluetooth.send_plan(plan)
+
+            if result.success:
+                _LOGGER.info("Native text displayed: '%s'", text)
+            else:
+                _LOGGER.error("Failed to display native text")
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error displaying native text: %s", err)
+            return False
+
+    async def display_border_animation(
+        self,
+        style: int = 1,
+        buffer_slot: int = 1,
+    ) -> bool:
+        """Display a border animation overlay on the device.
+
+        Uses the pre-built border animation PNGs extracted from the
+        official app, matched to the device's display dimensions.
+
+        Args:
+            style: Border animation style (1-24)
+            buffer_slot: Storage slot on device (1-255)
+
+        Returns:
+            True if border was sent successfully
+        """
+        try:
+            from pathlib import Path
+            from .device.device_config import (
+                get_border_filename,
+                supports_border_animations,
+            )
+
+            # Get device dimensions
+            info = await self.get_device_info()
+            width = info.get("width", 64)
+            height = info.get("height", 16)
+
+            if not supports_border_animations(width, height):
+                _LOGGER.error(
+                    "No border animations available for %dx%d displays",
+                    width, height,
+                )
+                return False
+
+            filename = get_border_filename(width, height, style)
+            border_path = Path(__file__).parent / "assets" / "borders" / filename
+
+            if not border_path.exists():
+                _LOGGER.error("Border file not found: %s", border_path)
+                return False
+
+            image_bytes = border_path.read_bytes()
+            return await self.display_image_url_bytes(image_bytes, buffer_slot)
+
+        except Exception as err:
+            _LOGGER.error("Error displaying border animation: %s", err)
+            return False
+
+    async def display_image_url_bytes(
+        self,
+        image_bytes: bytes,
+        buffer_slot: int = 1,
+    ) -> bool:
+        """Display image from raw bytes (internal helper).
+
+        Args:
+            image_bytes: Raw image file bytes
+            buffer_slot: Storage slot on device
+
+        Returns:
+            True if sent successfully
+        """
+        try:
+            from .device.image import make_image_plan
+
+            is_gif = image_bytes[:3] == b"GIF"
+            plan = make_image_plan(image_bytes, buffer_slot, is_gif=is_gif)
+            result = await self._bluetooth.send_plan(plan)
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error displaying image bytes: %s", err)
             return False
 
     async def display_image_url(

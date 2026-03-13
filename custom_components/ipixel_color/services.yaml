@@ -1266,3 +1266,204 @@ reserve_slot:
           min: 1
           max: 255
           mode: box
+
+set_sport_data:
+  name: Set Sport Data
+  description: Display sport/fitness data on the device (step count, calories, etc.)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    value_a:
+      name: Value A
+      description: First data value (0-255)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+    value_b:
+      name: Value B
+      description: Second data value (0-255)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+    value_c:
+      name: Value C
+      description: Third data value (0-255)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+
+display_gallery_asset:
+  name: Display Gallery Asset
+  description: Fetch and display a vendor gallery asset (de-obfuscates the encoded content from iPIXEL cloud)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    url:
+      name: Asset URL
+      description: Vendor gallery asset URL (obfuscated format)
+      required: true
+      selector:
+        text:
+    buffer_slot:
+      name: Buffer Slot
+      description: Storage slot on device (1-255)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box
+
+display_native_text:
+  name: Display Native Text
+  description: Display text using the device's native text protocol (enables device-side scrolling and effects, matching the official app behavior)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    text:
+      name: Text
+      description: Text to display
+      required: true
+      example: "Hello World"
+      selector:
+        text:
+    effect:
+      name: Effect
+      description: "Text animation: 0=Static, 1=Scroll Left, 2=Scroll Right, 3=Scroll Up, 4=Scroll Down, 5=Flash, 6=Snow, 7=Laser"
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 7
+          mode: box
+    speed:
+      name: Speed
+      description: Animation speed (0-100)
+      required: false
+      default: 50
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+    color_fg:
+      name: Text Color
+      description: Foreground text color
+      required: false
+      default: [255, 255, 255]
+      selector:
+        color_rgb:
+    color_bg:
+      name: Background Color
+      description: Background color
+      required: false
+      default: [0, 0, 0]
+      selector:
+        color_rgb:
+    h_align:
+      name: Horizontal Alignment
+      description: "0=Left, 1=Center, 2=Right"
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 2
+          mode: box
+    v_align:
+      name: Vertical Alignment
+      description: "0=Top, 1=Center, 2=Bottom"
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 2
+          mode: box
+    font_size:
+      name: Font Size
+      description: Font size for character rendering (matches device text sizes)
+      required: false
+      default: 16
+      selector:
+        select:
+          options:
+            - label: "16px (Small)"
+              value: "16"
+            - label: "24px (Medium)"
+              value: "24"
+            - label: "32px (Large)"
+              value: "32"
+            - label: "64px (Extra Large)"
+              value: "64"
+    buffer_slot:
+      name: Buffer Slot
+      description: Storage slot on device (1-255)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box
+
+display_border:
+  name: Display Border Animation
+  description: Display a decorative border animation overlay from the 24 built-in styles (extracted from the official iPIXEL app)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    style:
+      name: Border Style
+      description: Border animation style (1-24)
+      required: true
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 24
+          mode: box
+    buffer_slot:
+      name: Buffer Slot
+      description: Storage slot on device (1-255)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box

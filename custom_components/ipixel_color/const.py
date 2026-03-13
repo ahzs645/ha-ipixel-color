@@ -107,3 +107,13 @@ ELEMENT_TYPES = [
     ELEMENT_IMAGE,
     ELEMENT_PIXELS,
 ]
+
+# Wi-Fi socket transport constants (from APK reverse engineering)
+WIFI_DEFAULT_HOST = "192.168.4.1"
+WIFI_DEFAULT_PORT = 80
+WIFI_WRITE_CHUNK_SIZE = 12288  # 12KB chunks
+WIFI_SOCKET_TIMEOUT = 5.0  # seconds
+WIFI_MAX_DEVICE_SLOTS = 100
+
+# BLE MTU negotiation (from APK)
+BLE_REQUESTED_MTU = 512
