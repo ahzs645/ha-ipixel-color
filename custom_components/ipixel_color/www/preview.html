@@ -595,20 +595,23 @@
         document.getElementById('ble-controls-5').style.display = 'flex';
         document.getElementById('ble-controls-6').style.display = 'flex';
 
-        // Auto-detect and set device dimensions from device name
+        // Auto-detect and set device dimensions (from name or device info query)
         const dimensions = BLE.getDeviceDimensions();
         if (dimensions) {
           document.getElementById('preview-width').value = dimensions.width;
           document.getElementById('preview-height').value = dimensions.height;
           updateResolution();
           logService('ble', 'auto_dimensions', dimensions);
+        } else {
+          logService('ble', 'dimensions', { status: 'unknown — using defaults' });
         }
 
-        // Show notify status
+        // Show notify status and dimensions
         const notifyStatus = BLE.hasNotify() ? ' (notify: ON)' : ' (notify: OFF)';
-        document.getElementById('ble-device-name').textContent = deviceName + notifyStatus;
+        const dimStr = dimensions ? ` [${dimensions.width}x${dimensions.height}]` : '';
+        document.getElementById('ble-device-name').textContent = deviceName + notifyStatus + dimStr;
 
-        logService('ble', 'connect', { device: deviceName, hasNotify: BLE.hasNotify() });
+        logService('ble', 'connect', { device: deviceName, hasNotify: BLE.hasNotify(), dimensions });
       } catch (e) {
         logService('ble', 'error', { message: e.message });
       }

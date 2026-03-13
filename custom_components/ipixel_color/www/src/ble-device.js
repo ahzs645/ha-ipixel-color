@@ -12,6 +12,23 @@ const NOTIFY_UUID = '0000fa03-0000-1000-8000-00805f9b34fb';    // Notify charact
 // Keep old name as alias for internal references
 const CHAR_UUID = WRITE_UUID;
 
+// Device type byte → LED type mapping (from pypixelcolor DEVICE_TYPE_MAP)
+const DEVICE_TYPE_MAP = {
+  128: 0,  129: 2,  130: 4,  131: 3,  132: 1,  133: 5,
+  134: 6,  135: 7,  136: 8,  137: 9,  138: 10, 139: 11,
+  140: 12, 141: 13, 142: 14, 143: 15, 144: 16, 145: 17,
+  146: 18, 147: 19,
+};
+
+// LED type → (width, height) mapping (from pypixelcolor LED_SIZE_MAP)
+const LED_SIZE_MAP = {
+  0: [64, 64],  1: [96, 16],   2: [32, 32],  3: [64, 16],
+  4: [32, 16],  5: [64, 20],   6: [128, 32], 7: [144, 16],
+  8: [192, 16], 9: [48, 24],  10: [64, 32], 11: [96, 32],
+  12: [128, 32], 13: [96, 32], 14: [160, 32], 15: [192, 32],
+  16: [256, 32], 17: [320, 32], 18: [384, 32], 19: [448, 32],
+};
+
 // Connection state
 let device = null;
 let server = null;
@@ -22,8 +39,10 @@ let isConnected = false;
 // Notification/ACK state
 let _notifyListeners = [];   // External listeners for raw notifications
 let _pendingAck = null;      // { resolve, reject, timer } for awaiting ACK
+let _pendingDeviceInfo = null; // { resolve, timer } for awaiting device info response
 let _lastNotification = null; // Last received notification data
 let _notifyLog = [];         // Recent notifications for debugging (max 50)
+let _queriedDimensions = null; // Dimensions queried from device info
 
 // BLE operation lock to prevent concurrent GATT operations
 let bleLock = Promise.resolve();
@@ -112,8 +131,27 @@ function _handleNotification(event) {
       _pendingAck = null;
     }
   } else {
-    // Non-ACK notification (device info response, etc.)
+    // Non-ACK notification — could be device info response
     console.log(`iPIXEL BLE: Notification (${data.length}B): ${hex}`);
+
+    // Device info response: parse device type from byte[4]
+    if (data.length >= 5 && _pendingDeviceInfo) {
+      const deviceTypeByte = data[4];
+      const ledType = DEVICE_TYPE_MAP[deviceTypeByte];
+      const dims = ledType !== undefined ? LED_SIZE_MAP[ledType] : undefined;
+
+      console.log(`iPIXEL BLE: Device type byte=${deviceTypeByte}, ledType=${ledType}, dims=${dims}`);
+
+      clearTimeout(_pendingDeviceInfo.timer);
+      _pendingDeviceInfo.resolve({
+        deviceTypeByte,
+        ledType: ledType !== undefined ? ledType : null,
+        width: dims ? dims[0] : null,
+        height: dims ? dims[1] : null,
+        raw: data,
+      });
+      _pendingDeviceInfo = null;
+    }
   }
 
   // Emit to external listeners
@@ -217,22 +255,72 @@ export function getDeviceName() {
 }
 
 /**
- * Get device dimensions from device name (e.g., "LED_BLE_96x16" -> {width: 96, height: 16})
+ * Get device dimensions from device name or queried device info.
+ * First tries parsing from name (e.g., "LED_BLE_96x16"), then falls back
+ * to dimensions queried via queryDeviceInfo().
  * @returns {{width: number, height: number}|null}
  */
 export function getDeviceDimensions() {
+  // Try parsing from device name first
   const name = device?.name;
-  if (!name) return null;
-
-  // Parse dimensions from name like "LED_BLE_96x16" or "LED_BLE_64x16"
-  const match = name.match(/(\d+)x(\d+)/i);
-  if (match) {
-    return {
-      width: parseInt(match[1], 10),
-      height: parseInt(match[2], 10)
-    };
+  if (name) {
+    const match = name.match(/(\d+)x(\d+)/i);
+    if (match) {
+      return {
+        width: parseInt(match[1], 10),
+        height: parseInt(match[2], 10)
+      };
+    }
   }
+
+  // Fall back to queried dimensions
+  if (_queriedDimensions) {
+    return { ..._queriedDimensions };
+  }
+
   return null;
+}
+
+/**
+ * Query device info by sending time-sync and parsing the response.
+ * The device responds with its LED type, which maps to display dimensions.
+ * @param {number} timeout - Response timeout in ms (default 5000)
+ * @returns {Promise<{deviceTypeByte: number, ledType: number|null, width: number|null, height: number|null, raw: Uint8Array}|null>}
+ */
+export async function queryDeviceInfo(timeout = 5000) {
+  if (!notifyChar) {
+    console.warn('iPIXEL BLE: Cannot query device info — no notify characteristic');
+    return null;
+  }
+
+  // Set up promise to catch the device info response
+  const infoPromise = new Promise((resolve) => {
+    if (_pendingDeviceInfo) {
+      clearTimeout(_pendingDeviceInfo.timer);
+      _pendingDeviceInfo.resolve(null);
+    }
+    const timer = setTimeout(() => {
+      _pendingDeviceInfo = null;
+      resolve(null);
+    }, timeout);
+    _pendingDeviceInfo = { resolve, timer };
+  });
+
+  // Send time-sync command (this triggers the device info response)
+  const now = new Date();
+  await sendCommand([
+    0x08, 0x00, 0x01, 0x80,
+    now.getHours(), now.getMinutes(), now.getSeconds(), 0x00,
+  ]);
+
+  const info = await infoPromise;
+
+  if (info && info.width && info.height) {
+    _queriedDimensions = { width: info.width, height: info.height };
+    console.log(`iPIXEL BLE: Device dimensions queried: ${info.width}x${info.height}`);
+  }
+
+  return info;
 }
 
 /**
@@ -302,6 +390,7 @@ export async function connectDevice() {
     }
 
     isConnected = true;
+    _queriedDimensions = null;
 
     // Handle disconnection
     device.addEventListener('gattserverdisconnected', () => {
@@ -309,10 +398,28 @@ export async function connectDevice() {
       isConnected = false;
       notifyChar = null;
       _pendingAck = null;
+      _pendingDeviceInfo = null;
+      _queriedDimensions = null;
       emit('disconnect', { device: device.name });
     });
 
-    emit('connect', { device: device.name, hasNotify: notifyChar !== null });
+    // Auto-query device info if name doesn't contain dimensions
+    let deviceInfo = null;
+    if (notifyChar && !device.name?.match(/(\d+)x(\d+)/i)) {
+      console.log('iPIXEL BLE: Name has no dimensions, querying device info...');
+      try {
+        deviceInfo = await queryDeviceInfo();
+      } catch (e) {
+        console.warn('iPIXEL BLE: Device info query failed:', e.message);
+      }
+    }
+
+    emit('connect', {
+      device: device.name,
+      hasNotify: notifyChar !== null,
+      dimensions: getDeviceDimensions(),
+      deviceInfo,
+    });
     return device.name;
   } catch (error) {
     console.error('iPIXEL BLE: Connection failed:', error);
