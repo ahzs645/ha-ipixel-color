@@ -895,34 +895,36 @@ export async function setClockMode(style = 1, format24 = true, showDate = false)
 }
 
 /**
- * Set rhythm level mode (music visualization)
+ * Enter rhythm/music visualizer mode on the device.
+ * Must be called before sending level data.
+ * @param {number} style - Visualizer style (0-4)
+ * @param {number} speed - Animation speed (0-7)
+ */
+export async function enterRhythmMode(style = 0, speed = 4) {
+  // Opcode 0x00, 0x02 = RHYTHM_MODE
+  await sendCommand([
+    0x06, 0x00, 0x00, 0x02,
+    Math.max(0, Math.min(7, speed)),
+    Math.max(0, Math.min(4, style)),
+  ]);
+}
+
+/**
+ * Send rhythm level data (11 frequency band levels).
+ * The device should already be in rhythm mode (call enterRhythmMode first).
  * @param {number} style - Style (0-4)
  * @param {number[]} levels - Array of 11 level values (0-15 each)
  */
 export async function setRhythmLevelMode(style = 0, levels = []) {
-  // Default levels if not provided
   const l = levels.length === 11 ? levels : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-  // Command structure for rhythm level
+  // Opcode 0x01, 0x02 = RHYTHM_LEVELS
   const data = [
-    0x11, 0x00, 0x08, 0x01,  // Header
+    0x10, 0x00, 0x01, 0x02,
     Math.max(0, Math.min(4, style)),
     ...l.map(v => Math.max(0, Math.min(15, v)))
   ];
   await sendCommand(data);
-}
-
-/**
- * Set rhythm animation mode
- * @param {number} style - Style (0-1)
- * @param {number} frame - Frame (0-7)
- */
-export async function setRhythmAnimationMode(style = 0, frame = 0) {
-  await sendCommand([
-    0x06, 0x00, 0x09, 0x01,
-    Math.max(0, Math.min(1, style)),
-    Math.max(0, Math.min(7, frame))
-  ]);
 }
 
 /**
@@ -1345,6 +1347,33 @@ function buildPayloadChannelPackets(dataType, content, slot, mode = 0) {
 }
 
 /**
+ * Send a logical payload chunk over BLE and wait for device ACK.
+ * The APK waits for per-chunk ACKs — blasting without waiting causes CRC errors.
+ */
+async function sendLargeDataAndWaitAck(data, timeout = 8000) {
+  // Set up ACK listener BEFORE sending
+  const ackPromise = notifyChar ? new Promise((resolve) => {
+    if (_pendingAck) {
+      clearTimeout(_pendingAck.timer);
+      _pendingAck.resolve(null);
+    }
+    const timer = setTimeout(() => {
+      _pendingAck = null;
+      resolve(null); // timeout
+    }, timeout);
+    _pendingAck = { resolve, reject: () => {}, timer };
+  }) : Promise.resolve(null);
+
+  await sendLargeData(data);
+
+  const ack = await ackPromise;
+  if (ack && ack.status === 0x03) {
+    throw new Error(`Device rejected chunk (CRC/transfer error)`);
+  }
+  return ack;
+}
+
+/**
  * Save raw RGB image data to a device slot.
  * @param {number} slot  Slot number (1-255)
  * @param {string[]} pixels  Hex color strings (#RRGGBB)
@@ -1374,8 +1403,7 @@ export async function saveImageToSlot(slot, pixels, width, height, onProgress) {
   const packets = buildPayloadChannelPackets(2, rgb, slot); // type 2 = IMAGE
   for (let i = 0; i < packets.length; i++) {
     onProgress?.('upload', { chunk: i + 1, total: packets.length });
-    await sendLargeData(packets[i]);
-    if (i < packets.length - 1) await new Promise(r => setTimeout(r, 50));
+    await sendLargeDataAndWaitAck(packets[i]);
   }
   onProgress?.('done', { slot });
 }
@@ -1396,8 +1424,7 @@ export async function saveGifToSlot(slot, gifBytes, onProgress) {
   const packets = buildPayloadChannelPackets(3, gifBytes, slot); // type 3 = GIF
   for (let i = 0; i < packets.length; i++) {
     onProgress?.('upload', { chunk: i + 1, total: packets.length, bytes: packets[i].length });
-    await sendLargeData(packets[i]);
-    if (i < packets.length - 1) await new Promise(r => setTimeout(r, 50));
+    await sendLargeDataAndWaitAck(packets[i]);
   }
   onProgress?.('done', { slot, size: gifBytes.length });
 }

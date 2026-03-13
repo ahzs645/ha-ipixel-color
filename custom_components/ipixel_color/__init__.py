@@ -60,8 +60,12 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     card_url = f"/{DOMAIN}/ipixel-display-card.js"
 
     # Register static path for serving the card
+    gallery_path = Path(__file__).parent / "assets" / "gallery"
+    gallery_url = f"/{DOMAIN}/gallery"
+
     await hass.http.async_register_static_paths([
-        StaticPathConfig(card_url, str(www_path / "ipixel-display-card.js"), cache_headers=False)
+        StaticPathConfig(card_url, str(www_path / "ipixel-display-card.js"), cache_headers=False),
+        StaticPathConfig(gallery_url, str(gallery_path), cache_headers=True),
     ])
 
     # Add the card as a Lovelace resource

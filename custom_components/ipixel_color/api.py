@@ -1449,6 +1449,41 @@ class iPIXELAPI:
             _LOGGER.error("Error displaying gallery asset: %s", err)
             return False
 
+    async def display_local_gallery(
+        self, size: str, filename: str, buffer_slot: int = 1
+    ) -> bool:
+        """Display a locally bundled gallery animation on the device.
+
+        Args:
+            size: Display size key (e.g., "64x64", "128x32")
+            filename: GIF filename within the size directory
+            buffer_slot: Storage slot on device (1-255)
+
+        Returns:
+            True if asset was displayed successfully
+        """
+        try:
+            from pathlib import Path
+
+            gallery_path = (
+                Path(__file__).parent / "assets" / "gallery" / size / filename
+            )
+            if not gallery_path.exists():
+                _LOGGER.error("Gallery asset not found: %s", gallery_path)
+                return False
+
+            asset_bytes = gallery_path.read_bytes()
+            _LOGGER.info(
+                "Loading local gallery asset: %s/%s (%d bytes)",
+                size, filename, len(asset_bytes),
+            )
+
+            return await self.display_image_url_bytes(asset_bytes, buffer_slot)
+
+        except Exception as err:
+            _LOGGER.error("Error displaying local gallery asset: %s", err)
+            return False
+
     async def display_native_text(
         self,
         text: str,

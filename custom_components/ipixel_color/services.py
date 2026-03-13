@@ -72,6 +72,7 @@ SERVICE_DISPLAY_NATIVE_TEXT = "display_native_text"
 SERVICE_DISPLAY_BORDER = "display_border"
 SERVICE_QUERY_DEVICE_TIME = "query_device_time"
 SERVICE_QUERY_DEVICE_DATETIME = "query_device_datetime"
+SERVICE_DISPLAY_LOCAL_GALLERY = "display_local_gallery"
 
 def rgb_to_hex(rgb) -> str:
     """Convert RGB array [r, g, b] to hex string 'rrggbb'."""
@@ -997,6 +998,26 @@ async def handle_display_gallery_asset(call: ServiceCall) -> None:
     except Exception as err:
         _LOGGER.error("Error displaying gallery asset: %s", err)
 
+async def handle_display_local_gallery(call: ServiceCall) -> None:
+    """Handle display_local_gallery service call."""
+    api = get_api(call)
+    size = call.data.get("size", "")
+    filename = call.data.get("filename", "")
+    buffer_slot = call.data.get("buffer_slot", 1)
+
+    if not size or not filename:
+        _LOGGER.error("Missing size or filename for display_local_gallery")
+        return
+
+    try:
+        success = await api.display_local_gallery(size, filename, buffer_slot)
+        if success:
+            _LOGGER.info("Local gallery asset displayed: %s/%s", size, filename)
+        else:
+            _LOGGER.error("Failed to display local gallery asset")
+    except Exception as err:
+        _LOGGER.error("Error displaying local gallery asset: %s", err)
+
 async def handle_display_native_text(call: ServiceCall) -> None:
     """Handle display_native_text service call."""
     api = get_api(call)
@@ -1184,6 +1205,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
         hass.services.async_register(DOMAIN, SERVICE_SET_SPORT_DATA, handle_set_sport_data)
     if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_GALLERY_ASSET):
         hass.services.async_register(DOMAIN, SERVICE_DISPLAY_GALLERY_ASSET, handle_display_gallery_asset)
+    if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_LOCAL_GALLERY):
+        hass.services.async_register(DOMAIN, SERVICE_DISPLAY_LOCAL_GALLERY, handle_display_local_gallery)
     if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_NATIVE_TEXT):
         hass.services.async_register(DOMAIN, SERVICE_DISPLAY_NATIVE_TEXT, handle_display_native_text)
     if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_BORDER):

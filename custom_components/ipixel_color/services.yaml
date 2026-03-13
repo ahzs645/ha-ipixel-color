@@ -1337,6 +1337,40 @@ display_gallery_asset:
           max: 255
           mode: box
 
+display_local_gallery:
+  name: Display Local Gallery Animation
+  description: Display a bundled gallery animation on the device (extracted from iPIXEL app assets)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    size:
+      name: Display Size
+      description: "Display size key (e.g., 64x64, 128x32)"
+      required: true
+      selector:
+        text:
+    filename:
+      name: Filename
+      description: GIF filename within the size directory
+      required: true
+      selector:
+        text:
+    buffer_slot:
+      name: Buffer Slot
+      description: Storage slot on device (1-255)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box
+
 display_native_text:
   name: Display Native Text
   description: Display text using the device's native text protocol (enables device-side scrolling and effects, matching the official app behavior)

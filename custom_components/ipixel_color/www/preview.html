@@ -393,6 +393,11 @@
       <div class="card-label">Editor Card</div>
       <ipixel-editor-card id="editor-card"></ipixel-editor-card>
     </div>
+
+    <div class="card-wrapper">
+      <div class="card-label">Gallery Card</div>
+      <ipixel-gallery-card id="gallery-card"></ipixel-gallery-card>
+    </div>
   </div>
 
   <div class="controls-section">
@@ -572,6 +577,28 @@
           }
         }
 
+        // Gallery preview — works without BLE
+        if (domain === 'ipixel_color' && service === 'display_local_gallery') {
+          try {
+            const galleryBase = `${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)}gallery`;
+            const url = `${galleryBase}/${data.size}/${data.filename}`;
+            logService('gallery', 'loading', { url });
+            playGifOnPreview(url);
+
+            // Also upload to device if BLE connected
+            if (BLE.isDeviceConnected()) {
+              const resp = await fetch(url);
+              const gifBytes = new Uint8Array(await resp.arrayBuffer());
+              const slot = data.buffer_slot || 1;
+              await BLE.saveGifToSlot(slot, gifBytes, (stage, detail) => {
+                logService('ble', 'gallery_' + stage, detail);
+              });
+            }
+          } catch (e) {
+            logService('gallery', 'error', { message: e.message });
+          }
+        }
+
         return Promise.resolve();
       },
       callWS: (msg) => {
@@ -612,7 +639,7 @@
 
     // Update all cards
     function updateCards() {
-      document.querySelectorAll('ipixel-display-card, ipixel-text-card, ipixel-controls-card, ipixel-playlist-card, ipixel-schedule-card, ipixel-editor-card').forEach(card => {
+      document.querySelectorAll('ipixel-display-card, ipixel-text-card, ipixel-controls-card, ipixel-playlist-card, ipixel-schedule-card, ipixel-editor-card, ipixel-gallery-card').forEach(card => {
         if (card.hass !== undefined) {
           card.hass = { ...mockHass };
         }
@@ -734,12 +761,67 @@
       logService('ble', 'set_rainbow_mode', { mode });
     };
 
+    // Rhythm demo state
+    let _rhythmDemoInterval = null;
+    let _rhythmDemoLevels = new Array(11).fill(0);
+
     window.bleSetRhythmDemo = async function() {
       const style = parseInt(document.getElementById('ble-rhythm-style').value);
-      // Send a demo rhythm with random levels
-      const levels = Array.from({length: 11}, () => Math.floor(Math.random() * 16));
-      await BLE.setRhythmLevelMode(style, levels);
-      logService('ble', 'set_rhythm_level', { style, levels });
+
+      // If already running, stop it
+      if (_rhythmDemoInterval) {
+        clearInterval(_rhythmDemoInterval);
+        _rhythmDemoInterval = null;
+        // Send zeros to clear
+        await BLE.setRhythmLevelMode(style, new Array(11).fill(0));
+        logService('ble', 'rhythm_demo_stop', {});
+        return;
+      }
+
+      // Enter rhythm mode
+      await BLE.enterRhythmMode(style, 4);
+      await new Promise(r => setTimeout(r, 200));
+      logService('ble', 'rhythm_demo_start', { style });
+
+      // Simulate music: bass-heavy with random peaks and smooth decay
+      const targets = new Array(11).fill(0);
+      let beat = 0;
+
+      _rhythmDemoInterval = setInterval(async () => {
+        beat++;
+
+        // Every ~8 ticks, simulate a beat (boost bass bands)
+        if (beat % 8 === 0) {
+          targets[0] = 12 + Math.floor(Math.random() * 4); // sub bass
+          targets[1] = 10 + Math.floor(Math.random() * 5); // bass
+          targets[2] = 8 + Math.floor(Math.random() * 5);
+        }
+
+        // Random mid/high energy
+        for (let i = 3; i < 11; i++) {
+          if (Math.random() < 0.3) {
+            targets[i] = Math.floor(Math.random() * 12) + 3;
+          }
+        }
+
+        // Smooth towards targets with decay
+        for (let i = 0; i < 11; i++) {
+          if (_rhythmDemoLevels[i] < targets[i]) {
+            _rhythmDemoLevels[i] = Math.min(15, _rhythmDemoLevels[i] + 3);
+          } else {
+            _rhythmDemoLevels[i] = Math.max(0, _rhythmDemoLevels[i] - 1);
+          }
+          // Decay targets too
+          targets[i] = Math.max(0, targets[i] - 1);
+        }
+
+        try {
+          await BLE.setRhythmLevelMode(style, [..._rhythmDemoLevels]);
+        } catch (e) {
+          clearInterval(_rhythmDemoInterval);
+          _rhythmDemoInterval = null;
+        }
+      }, 80); // ~12.5 fps
     };
 
     // ── Frame capture & slot save ──────────────────────────────────────────
@@ -748,6 +830,25 @@
      * Capture N frames from the current display renderer.
      * Returns an array of Uint8Array (flat RGB bytes per frame).
      */
+    /**
+     * Wait for at least one animation frame + delay, ensuring the renderer
+     * has had a chance to update its buffer before we read it.
+     */
+    function waitForRender(delayMs) {
+      return new Promise(resolve => {
+        const start = performance.now();
+        function tick() {
+          if (performance.now() - start >= delayMs) {
+            // One more rAF to guarantee the renderer painted
+            requestAnimationFrame(() => resolve());
+          } else {
+            requestAnimationFrame(tick);
+          }
+        }
+        requestAnimationFrame(tick);
+      });
+    }
+
     async function captureEffectFrames(numFrames, frameDelayMs) {
       const displayCard = document.getElementById('display-card');
       if (!displayCard || !displayCard._renderer) throw new Error('No renderer available');
@@ -756,10 +857,12 @@
       const width = renderer.width;
       const height = renderer.height;
       const frames = [];
+      let uniqueCount = 0;
+      let lastHash = '';
 
       for (let i = 0; i < numFrames; i++) {
-        // Let the effect advance
-        await new Promise(r => setTimeout(r, frameDelayMs));
+        // Wait using rAF so we capture after the renderer updates
+        await waitForRender(frameDelayMs);
 
         // Read current pixels from renderer
         const pixels = getRendererPixels(renderer);
@@ -773,10 +876,24 @@
             rgb[j * 3 + 2] = parseInt(m[3], 16);
           }
         }
+
+        // Quick hash to count unique frames (sample 20 pixels)
+        let hash = '';
+        for (let s = 0; s < 60; s += 3) {
+          const idx = Math.floor(s / 3 * width * height / 20) * 3;
+          hash += rgb[idx].toString(16) + rgb[idx+1].toString(16) + rgb[idx+2].toString(16);
+        }
+        if (hash !== lastHash) { uniqueCount++; lastHash = hash; }
+
         frames.push(rgb);
-        logService('capture', 'frame', { frame: i + 1, total: numFrames });
+        if ((i + 1) % 10 === 0 || i === numFrames - 1) {
+          logService('capture', 'progress', {
+            frame: i + 1, total: numFrames, uniqueFrames: uniqueCount
+          });
+        }
       }
 
+      logService('capture', 'done', { total: numFrames, unique: uniqueCount });
       return { frames, width, height };
     }
 
@@ -818,6 +935,91 @@
 
     window.captureEffectFrames = captureEffectFrames;
     window.saveEffectToSlot = saveEffectToSlot;
+
+    // ── Play gallery GIF on display card preview ────────────────────────
+
+    let _gifAnimationId = null;
+
+    function playGifOnPreview(gifUrl) {
+      const displayCard = document.getElementById('display-card');
+      if (!displayCard || !displayCard._renderer) {
+        logService('gallery', 'error', { message: 'No display renderer' });
+        return;
+      }
+
+      // Stop any existing effect/animation on the renderer
+      const renderer = displayCard._renderer;
+      renderer.stop();
+
+      // Cancel previous GIF playback
+      if (_gifAnimationId) cancelAnimationFrame(_gifAnimationId);
+
+      // Use an offscreen canvas to decode GIF frames via the browser
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const w = renderer.width;
+        const h = renderer.height;
+
+        // Draw the GIF image scaled to LED dimensions and extract pixels
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = w;
+        offCanvas.height = h;
+        const ctx = offCanvas.getContext('2d');
+
+        // For animated GIFs, use the image directly on the renderer's container
+        // by drawing it repeatedly. The browser decodes GIF frames natively.
+        // We'll read pixels from the canvas at each animation tick.
+        let lastFrameTime = 0;
+        const frameInterval = 100; // ~10fps read rate
+
+        function drawFrame(timestamp) {
+          if (timestamp - lastFrameTime >= frameInterval) {
+            lastFrameTime = timestamp;
+
+            // Draw current GIF frame to offscreen canvas (browser advances frames)
+            ctx.imageSmoothingEnabled = false;
+            ctx.clearRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+
+            // Extract pixel data
+            const imageData = ctx.getImageData(0, 0, w, h).data;
+            const pixels = [];
+            for (let i = 0; i < w * h; i++) {
+              const r = imageData[i * 4];
+              const g = imageData[i * 4 + 1];
+              const b = imageData[i * 4 + 2];
+              const a = imageData[i * 4 + 3];
+              if (a < 128) {
+                pixels.push('#000000');
+              } else {
+                pixels.push('#' + r.toString(16).padStart(2, '0') +
+                                  g.toString(16).padStart(2, '0') +
+                                  b.toString(16).padStart(2, '0'));
+              }
+            }
+
+            // Feed pixels to renderer
+            renderer.setData(pixels);
+            renderer.setEffect('fixed', 50);
+            renderer.renderStatic();
+          }
+
+          _gifAnimationId = requestAnimationFrame(drawFrame);
+        }
+
+        _gifAnimationId = requestAnimationFrame(drawFrame);
+        logService('gallery', 'playing', { width: w, height: h, src: gifUrl });
+      };
+
+      img.onerror = () => {
+        logService('gallery', 'error', { message: 'Failed to load GIF', url: gifUrl });
+      };
+
+      img.src = gifUrl;
+    }
+
+    window.playGifOnPreview = playGifOnPreview;
 
     // Update brightness display and auto-send on change
     document.getElementById('ble-brightness').addEventListener('input', (e) => {
@@ -1460,13 +1662,14 @@
         const playlistCard = document.getElementById('playlist-card');
         const scheduleCard = document.getElementById('schedule-card');
         const editorCard = document.getElementById('editor-card');
+        const galleryCard = document.getElementById('gallery-card');
 
         const config = {
           entity: 'text.ipixel_preview_text_display',
           name: 'iPIXEL Preview'
         };
 
-        [displayCard, textCard, controlsCard, playlistCard, scheduleCard, editorCard].forEach(card => {
+        [displayCard, textCard, controlsCard, playlistCard, scheduleCard, editorCard, galleryCard].forEach(card => {
           if (card) {
             card.setConfig(config);
             card.hass = mockHass;
