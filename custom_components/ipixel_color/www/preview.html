@@ -1313,44 +1313,46 @@
 
     // =========================================================================
 
-    // Import and initialize cards
-    import('./src/index.js').then(() => {
-      console.log('iPIXEL Cards loaded');
+    // Load the built bundle (IIFE) which registers all custom elements.
+    // We can't import ./src/index.js directly because it uses bare specifiers
+    // like 'react-pixel-display/core' that browsers can't resolve without a bundler.
+    // Run `npm run build` to rebuild if you change source files.
+    const bundleScript = document.createElement('script');
+    bundleScript.src = './ipixel-display-card.js';
+    bundleScript.onload = () => {
+      console.log('iPIXEL Cards bundle loaded');
 
-      // Configure cards
-      const displayCard = document.getElementById('display-card');
-      const textCard = document.getElementById('text-card');
-      const controlsCard = document.getElementById('controls-card');
-      const playlistCard = document.getElementById('playlist-card');
-      const scheduleCard = document.getElementById('schedule-card');
-      const editorCard = document.getElementById('editor-card');
+      // Wait a tick for custom elements to register
+      requestAnimationFrame(() => {
+        const displayCard = document.getElementById('display-card');
+        const textCard = document.getElementById('text-card');
+        const controlsCard = document.getElementById('controls-card');
+        const playlistCard = document.getElementById('playlist-card');
+        const scheduleCard = document.getElementById('schedule-card');
+        const editorCard = document.getElementById('editor-card');
 
-      // Set config
-      const config = {
-        entity: 'text.ipixel_preview_text_display',
-        name: 'iPIXEL Preview'
-      };
+        const config = {
+          entity: 'text.ipixel_preview_text_display',
+          name: 'iPIXEL Preview'
+        };
 
-      displayCard.setConfig(config);
-      textCard.setConfig(config);
-      controlsCard.setConfig(config);
-      playlistCard.setConfig(config);
-      scheduleCard.setConfig(config);
-      editorCard.setConfig(config);
+        [displayCard, textCard, controlsCard, playlistCard, scheduleCard, editorCard].forEach(card => {
+          if (card) {
+            card.setConfig(config);
+            card.hass = mockHass;
+          }
+        });
 
-      // Set hass
-      displayCard.hass = mockHass;
-      textCard.hass = mockHass;
-      controlsCard.hass = mockHass;
-      playlistCard.hass = mockHass;
-      scheduleCard.hass = mockHass;
-      editorCard.hass = mockHass;
-
-      console.log('Cards initialized');
-    }).catch(err => {
-      console.error('Failed to load cards:', err);
-      document.body.innerHTML += `<div style="color:red;padding:20px;">Error loading cards: ${err.message}</div>`;
-    });
+        console.log('Cards initialized');
+      });
+    };
+    bundleScript.onerror = (err) => {
+      console.error('Failed to load cards bundle:', err);
+      document.body.innerHTML += `<div style="color:red;padding:20px;">
+        Error loading cards bundle. Run <code>npm run build</code> in the www/ directory first.
+      </div>`;
+    };
+    document.head.appendChild(bundleScript);
   </script>
 </body>
 </html>
