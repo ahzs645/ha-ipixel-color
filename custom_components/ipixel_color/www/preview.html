@@ -518,6 +518,48 @@
             } else if (service === 'set_rainbow_mode') {
               await BLE.setRainbowMode(data.mode);
               logService('ble', 'set_rainbow_mode', data);
+            } else if (service === 'set_screen') {
+              await BLE.selectScreen(data.screen);
+              logService('ble', 'select_screen', data);
+            } else if (service === 'delete_screen') {
+              await BLE.deleteScreen(data.slot);
+              logService('ble', 'delete_screen', data);
+            } else if (service === 'set_brightness') {
+              await BLE.setBrightness(data.level);
+              logService('ble', 'set_brightness', data);
+            } else if (service === 'clear_pixels') {
+              await BLE.enterDiyMode();
+              logService('ble', 'clear_pixels', data);
+            } else if (service === 'set_clock_mode') {
+              await BLE.setClockMode(data.style, data.format_24h, data.show_date);
+              logService('ble', 'set_clock_mode', data);
+            } else if (service === 'sync_time') {
+              await BLE.syncTime();
+              logService('ble', 'sync_time', data);
+            } else if (service === 'set_orientation') {
+              await BLE.setOrientation(data.orientation);
+              logService('ble', 'set_orientation', data);
+            } else if (service === 'set_upside_down') {
+              await BLE.setUpsideDown(data.enabled ? 1 : 0);
+              logService('ble', 'set_upside_down', data);
+            } else if (service === 'set_diy_mode') {
+              await BLE.switchToDiyFunMode(parseInt(data.mode));
+              logService('ble', 'set_diy_mode', data);
+            } else if (service === 'set_animation_mode') {
+              await BLE.setAnimationMode(data.mode);
+              logService('ble', 'set_animation_mode', data);
+            } else if (service === 'send_raw_command') {
+              const bytes = data.hex_data.split(/\s+/).map(h => parseInt(h, 16));
+              await BLE.sendCommand(bytes);
+              logService('ble', 'send_raw_command', data);
+            } else if (service === 'set_font_size') {
+              await BLE.sendCommand([0x05, 0x00, 0x0C, 0x01, data.size & 0xFF]);
+              logService('ble', 'set_font_size', data);
+            } else if (service === 'set_font_offset') {
+              await BLE.sendCommand([0x06, 0x00, 0x0D, 0x01, data.x & 0xFF, data.y & 0xFF]);
+              logService('ble', 'set_font_offset', data);
+            } else if (service === 'save_to_slot') {
+              await saveEffectToSlot(data.slot, data.type, data.frames, data.delay);
             }
           } catch (e) {
             logService('ble', 'error', { message: e.message });
@@ -574,8 +616,10 @@
     // Import device modules
     import * as BLE from './src/ble-device.js';
     import * as WIFI from './src/wifi-device.js';
+    import { encodeGif } from './src/gif-encoder.js';
     window.BLE = BLE; // Expose for debugging
     window.WIFI = WIFI;
+    window.encodeGif = encodeGif;
 
     // BLE connection functions
     window.connectBleDevice = async function() {
@@ -691,6 +735,83 @@
       await BLE.setRhythmLevelMode(style, levels);
       logService('ble', 'set_rhythm_level', { style, levels });
     };
+
+    // ── Frame capture & slot save ──────────────────────────────────────────
+
+    /**
+     * Capture N frames from the current display renderer.
+     * Returns an array of Uint8Array (flat RGB bytes per frame).
+     */
+    async function captureEffectFrames(numFrames, frameDelayMs) {
+      const displayCard = document.getElementById('display-card');
+      if (!displayCard || !displayCard._renderer) throw new Error('No renderer available');
+
+      const renderer = displayCard._renderer;
+      const width = renderer.width;
+      const height = renderer.height;
+      const frames = [];
+
+      for (let i = 0; i < numFrames; i++) {
+        // Let the effect advance
+        await new Promise(r => setTimeout(r, frameDelayMs));
+
+        // Read current pixels from renderer
+        const pixels = getRendererPixels(renderer);
+        const rgb = new Uint8Array(width * height * 3);
+        for (let j = 0; j < width * height; j++) {
+          const c = pixels[j] || '#000000';
+          const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(c);
+          if (m) {
+            rgb[j * 3]     = parseInt(m[1], 16);
+            rgb[j * 3 + 1] = parseInt(m[2], 16);
+            rgb[j * 3 + 2] = parseInt(m[3], 16);
+          }
+        }
+        frames.push(rgb);
+        logService('capture', 'frame', { frame: i + 1, total: numFrames });
+      }
+
+      return { frames, width, height };
+    }
+
+    /**
+     * Capture the current effect, encode as GIF (or static image), and save to a device slot.
+     */
+    async function saveEffectToSlot(slot, type = 'gif', numFrames = 30, delayMs = 100) {
+      if (!BLE.isDeviceConnected()) throw new Error('BLE not connected');
+
+      const progress = (stage, detail) => logService('ble', 'save_slot_' + stage, detail);
+
+      if (type === 'image') {
+        // Static image: capture 1 frame, save as RGB (type 2)
+        const { frames, width, height } = await captureEffectFrames(1, 0);
+        const pixels = [];
+        const frame = frames[0];
+        for (let i = 0; i < frame.length; i += 3) {
+          const r = frame[i].toString(16).padStart(2, '0');
+          const g = frame[i + 1].toString(16).padStart(2, '0');
+          const b = frame[i + 2].toString(16).padStart(2, '0');
+          pixels.push(`#${r}${g}${b}`);
+        }
+        await BLE.saveImageToSlot(slot, pixels, width, height, progress);
+      } else {
+        // Animated GIF: capture N frames, encode, save as GIF (type 3)
+        logService('ble', 'save_slot_capturing', { frames: numFrames, delay: delayMs });
+        const { frames, width, height } = await captureEffectFrames(numFrames, delayMs);
+
+        logService('ble', 'save_slot_encoding', { frames: frames.length, width, height });
+        const gifDelay = Math.round(delayMs / 10); // GIF delay is centiseconds
+        const gifBytes = encodeGif(frames, width, height, gifDelay, 0);
+        logService('ble', 'save_slot_encoded', { gifSize: gifBytes.length });
+
+        await BLE.saveGifToSlot(slot, gifBytes, progress);
+      }
+
+      logService('ble', 'save_slot_complete', { slot, type });
+    }
+
+    window.captureEffectFrames = captureEffectFrames;
+    window.saveEffectToSlot = saveEffectToSlot;
 
     // Update brightness display and auto-send on change
     document.getElementById('ble-brightness').addEventListener('input', (e) => {

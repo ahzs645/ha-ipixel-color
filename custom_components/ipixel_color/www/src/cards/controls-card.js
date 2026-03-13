@@ -126,6 +126,10 @@ export class iPIXELControlsCard extends iPIXELCardBase {
           background: var(--primary-color, #03a9f4);
           border-color: var(--primary-color, #03a9f4);
         }
+        .screen-btn.saved {
+          background: rgba(76,175,80,0.2);
+          border-color: rgba(76,175,80,0.4);
+        }
         .screen-btn.delete {
           background: rgba(244,67,54,0.2);
           border-color: rgba(244,67,54,0.3);
@@ -224,8 +228,29 @@ export class iPIXELControlsCard extends iPIXELCardBase {
           <div class="subsection">
             <div class="subsection-title">Select Screen (1-9)</div>
             <div class="screen-grid" style="margin-bottom: 12px;">
-              ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="screen-btn" data-screen="${n}">${n}</button>`).join('')}
+              ${[1,2,3,4,5,6,7,8,9].map(n => {
+                const saved = this._getSavedSlot(n);
+                return `<button class="screen-btn${saved ? ' saved' : ''}" data-screen="${n}" title="${saved ? saved.name : 'Empty'}">${n}${saved ? '*' : ''}</button>`;
+              }).join('')}
             </div>
+            <div class="subsection-title">Save Effect to Slot</div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
+              <select class="dropdown" id="save-slot" style="width: 70px;">
+                ${[1,2,3,4,5,6,7,8,9].map(n => `<option value="${n}">Slot ${n}</option>`).join('')}
+              </select>
+              <select class="dropdown" id="save-type" style="flex: 1;">
+                <option value="gif">Animation (GIF)</option>
+                <option value="image">Static Image</option>
+              </select>
+              <button class="btn btn-primary" id="save-to-slot-btn">Save</button>
+            </div>
+            <div id="save-gif-options" style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
+              <label style="font-size: 0.75em; opacity: 0.6; white-space: nowrap;">Frames</label>
+              <input type="number" class="text-input" id="save-frames" value="30" min="5" max="120" style="width: 60px;">
+              <label style="font-size: 0.75em; opacity: 0.6; white-space: nowrap;">Delay ms</label>
+              <input type="number" class="text-input" id="save-delay" value="100" min="20" max="500" step="10" style="width: 60px;">
+            </div>
+            <div id="save-progress" style="display: none; font-size: 0.8em; color: var(--primary-color, #03a9f4); margin-bottom: 12px;"></div>
             <div class="subsection-title">Delete Screen</div>
             <div class="screen-grid">
               ${[1,2,3,4,5,6,7,8,9,10].map(n => `<button class="screen-btn delete" data-delete="${n}">×${n}</button>`).join('')}
@@ -396,8 +421,51 @@ export class iPIXELControlsCard extends iPIXELCardBase {
         const slot = parseInt(e.currentTarget.dataset.delete);
         if (confirm(`Delete screen slot ${slot}?`)) {
           this.callService('ipixel_color', 'delete_screen', { slot });
+          this._removeSavedSlot(slot);
+          this.render();
         }
       });
+    });
+
+    // Save type toggle
+    this.shadowRoot.getElementById('save-type')?.addEventListener('change', (e) => {
+      const gifOpts = this.shadowRoot.getElementById('save-gif-options');
+      if (gifOpts) gifOpts.style.display = e.target.value === 'gif' ? 'flex' : 'none';
+    });
+
+    // Save to slot
+    this.shadowRoot.getElementById('save-to-slot-btn')?.addEventListener('click', async () => {
+      const slot = parseInt(this.shadowRoot.getElementById('save-slot')?.value || '1');
+      const type = this.shadowRoot.getElementById('save-type')?.value || 'gif';
+      const frames = parseInt(this.shadowRoot.getElementById('save-frames')?.value || '30');
+      const delay = parseInt(this.shadowRoot.getElementById('save-delay')?.value || '100');
+      const progress = this.shadowRoot.getElementById('save-progress');
+      const btn = this.shadowRoot.getElementById('save-to-slot-btn');
+
+      if (progress) { progress.style.display = 'block'; progress.textContent = 'Starting...'; }
+      if (btn) btn.disabled = true;
+
+      try {
+        await this.callService('ipixel_color', 'save_to_slot', {
+          slot, type, frames, delay,
+        });
+
+        // Track in local storage
+        const state = window.iPIXELDisplayState || {};
+        this._setSavedSlot(slot, {
+          name: state.text || state.effect || type,
+          type,
+          frames: type === 'gif' ? frames : 1,
+          savedAt: new Date().toISOString(),
+        });
+
+        if (progress) progress.textContent = 'Saved!';
+        setTimeout(() => this.render(), 1500);
+      } catch (err) {
+        if (progress) progress.textContent = 'Error: ' + err.message;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     });
 
     // Font settings
@@ -468,6 +536,23 @@ export class iPIXELControlsCard extends iPIXELCardBase {
     const y = parseInt(this.shadowRoot.getElementById('font-offset-y')?.value || '0');
     updateDisplayState({ fontOffsetX: x, fontOffsetY: y });
     this.callService('ipixel_color', 'set_font_offset', { x, y });
+  }
+
+  // Slot tracking via localStorage
+  _getSavedSlots() {
+    try { return JSON.parse(localStorage.getItem('iPIXEL_SavedSlots') || '{}'); }
+    catch { return {}; }
+  }
+  _getSavedSlot(n) { return this._getSavedSlots()[String(n)] || null; }
+  _setSavedSlot(n, info) {
+    const slots = this._getSavedSlots();
+    slots[String(n)] = info;
+    localStorage.setItem('iPIXEL_SavedSlots', JSON.stringify(slots));
+  }
+  _removeSavedSlot(n) {
+    const slots = this._getSavedSlots();
+    delete slots[String(n)];
+    localStorage.setItem('iPIXEL_SavedSlots', JSON.stringify(slots));
   }
 
   static getConfigElement() { return document.createElement('ipixel-simple-editor'); }

@@ -1241,6 +1241,138 @@ export async function deleteSlots(slots) {
   await sendCommand(cmd);
 }
 
+// =========================================================================
+// Slot save protocol (payloadChannel)
+// =========================================================================
+
+// CRC32 lookup table
+const _crcT = new Uint32Array(256);
+for (let i = 0; i < 256; i++) {
+  let c = i;
+  for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+  _crcT[i] = c;
+}
+function crc32(data) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) crc = _crcT[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+/**
+ * Build payloadChannel packets for saving content to a device slot.
+ *
+ * Packet layout (15-byte header + chunk data):
+ *   [0:2]  packet length (LE16)
+ *   [2:4]  data type (LE16) — 2=image, 3=gif, 4=text
+ *   [4]    option — 0=first chunk, 2=continuation
+ *   [5:9]  total content length (LE32)
+ *   [9:13] CRC32 of entire content (LE32)
+ *   [13]   mode/storage flag (0 = normal save)
+ *   [14]   slot index
+ *   [15:]  content chunk bytes
+ */
+function buildPayloadChannelPackets(dataType, content, slot, mode = 0) {
+  const LOGICAL_CHUNK = 12288;
+  const contentBytes = content instanceof Uint8Array ? content : new Uint8Array(content);
+  const totalLen = contentBytes.length;
+  const contentCrc = crc32(contentBytes);
+  const packets = [];
+  const numChunks = Math.max(1, Math.ceil(totalLen / LOGICAL_CHUNK));
+
+  for (let i = 0; i < numChunks; i++) {
+    const start = i * LOGICAL_CHUNK;
+    const end = Math.min(start + LOGICAL_CHUNK, totalLen);
+    const chunkData = contentBytes.slice(start, end);
+    const pktLen = 15 + chunkData.length;
+
+    const pkt = new Uint8Array(pktLen);
+    // Packet length (LE16)
+    pkt[0] = pktLen & 0xFF;
+    pkt[1] = (pktLen >> 8) & 0xFF;
+    // Data type (LE16)
+    pkt[2] = dataType & 0xFF;
+    pkt[3] = (dataType >> 8) & 0xFF;
+    // Option
+    pkt[4] = i === 0 ? 0 : 2;
+    // Total content length (LE32)
+    pkt[5] = totalLen & 0xFF;
+    pkt[6] = (totalLen >> 8) & 0xFF;
+    pkt[7] = (totalLen >> 16) & 0xFF;
+    pkt[8] = (totalLen >> 24) & 0xFF;
+    // CRC32 (LE32)
+    pkt[9] = contentCrc & 0xFF;
+    pkt[10] = (contentCrc >> 8) & 0xFF;
+    pkt[11] = (contentCrc >> 16) & 0xFF;
+    pkt[12] = (contentCrc >> 24) & 0xFF;
+    // Mode + slot
+    pkt[13] = mode & 0xFF;
+    pkt[14] = slot & 0xFF;
+    // Content chunk
+    pkt.set(chunkData, 15);
+
+    packets.push(pkt);
+  }
+  return packets;
+}
+
+/**
+ * Save raw RGB image data to a device slot.
+ * @param {number} slot  Slot number (1-255)
+ * @param {string[]} pixels  Hex color strings (#RRGGBB)
+ * @param {number} width
+ * @param {number} height
+ * @param {function} [onProgress]  Callback(stage, detail)
+ */
+export async function saveImageToSlot(slot, pixels, width, height, onProgress) {
+  if (!isDeviceConnected()) throw new Error('Not connected');
+
+  onProgress?.('reserve', { slot });
+  await reserveSlot(slot);
+  await new Promise(r => setTimeout(r, 150));
+
+  // Build raw RGB bytes
+  const rgb = new Uint8Array(width * height * 3);
+  for (let i = 0; i < width * height; i++) {
+    const c = pixels[i] || '#000000';
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(c);
+    if (m) {
+      rgb[i * 3]     = parseInt(m[1], 16);
+      rgb[i * 3 + 1] = parseInt(m[2], 16);
+      rgb[i * 3 + 2] = parseInt(m[3], 16);
+    }
+  }
+
+  const packets = buildPayloadChannelPackets(2, rgb, slot); // type 2 = IMAGE
+  for (let i = 0; i < packets.length; i++) {
+    onProgress?.('upload', { chunk: i + 1, total: packets.length });
+    await sendLargeData(packets[i]);
+    if (i < packets.length - 1) await new Promise(r => setTimeout(r, 50));
+  }
+  onProgress?.('done', { slot });
+}
+
+/**
+ * Save GIF binary to a device slot.
+ * @param {number} slot  Slot number (1-255)
+ * @param {Uint8Array} gifBytes  Complete GIF file bytes
+ * @param {function} [onProgress]  Callback(stage, detail)
+ */
+export async function saveGifToSlot(slot, gifBytes, onProgress) {
+  if (!isDeviceConnected()) throw new Error('Not connected');
+
+  onProgress?.('reserve', { slot });
+  await reserveSlot(slot);
+  await new Promise(r => setTimeout(r, 150));
+
+  const packets = buildPayloadChannelPackets(3, gifBytes, slot); // type 3 = GIF
+  for (let i = 0; i < packets.length; i++) {
+    onProgress?.('upload', { chunk: i + 1, total: packets.length, bytes: packets[i].length });
+    await sendLargeData(packets[i]);
+    if (i < packets.length - 1) await new Promise(r => setTimeout(r, 50));
+  }
+  onProgress?.('done', { slot, size: gifBytes.length });
+}
+
 /**
  * Query device time/status (sends current time, device responds with LED type)
  * @returns {Promise<Object|null>} ACK response or null

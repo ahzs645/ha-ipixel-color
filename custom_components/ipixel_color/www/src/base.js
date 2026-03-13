@@ -82,7 +82,6 @@ export class iPIXELCardBase extends HTMLElement {
     if (!this._hass) return;
     if (this.isInTestMode()) {
       console.info(`iPIXEL [Test Mode]: ${domain}.${service}`, data);
-      return;
     }
     try {
       await this._hass.callService(domain, service, data);
