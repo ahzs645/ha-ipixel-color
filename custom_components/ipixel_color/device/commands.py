@@ -1,6 +1,12 @@
 """Command building for iPIXEL Color devices."""
 from __future__ import annotations
 
+import logging
+import zlib
+
+from pypixelcolor.lib.transport.send_plan import SendPlan, Window
+
+_LOGGER = logging.getLogger(__name__)
 
 def make_power_command(on: bool) -> bytes:
     """Build power control command.
@@ -537,12 +543,68 @@ def make_mix_block_header(
 
     return bytes(header)
 
+def _make_windows_from_payload(payload: bytes, screen_slot: int, command: bytes) -> list[Window]:
+    """Helper function to split payload into windows for SendPlan."""
+    # Calculate CRC32 of mix data
+    crc = zlib.crc32(payload) & 0xFFFFFFFF
+    payload_size = len(payload)
 
-def make_mix_data_command(
+    #########################
+    #      MULTI-FRAME      #
+    #########################
+
+    windows = []
+    window_size = 12 * 1024
+    pos = 0
+    window_index = 0
+    
+    while pos < payload_size:
+        window_end = min(pos + window_size, payload_size)
+        chunk_payload = payload[pos:window_end]
+        
+        # Option: 0x00 for first frame, 0x02 for subsequent frames
+        option = 0x00 if window_index == 0 else 0x02
+        
+        # Construct header for this frame
+        # [00 01 Option] [Payload Size (4)] [CRC (4)] [00 SaveSlot]
+        
+        frame_header = bytearray()
+        frame_header += command  # Command (e.g., [0x04 0x00] for mix data)
+        frame_header += bytes([
+            option  # Option
+        ])
+        
+        # Payload Size (Total) - 4 bytes little endian
+        frame_header += payload_size.to_bytes(4, byteorder="little")
+        
+        # CRC - 4 bytes little endian
+        frame_header += crc.to_bytes(4, byteorder="little")
+        
+        # Tail - 2 bytes
+        frame_header += bytes([0x02])                   # Reserved
+        frame_header += bytes([int(screen_slot) & 0xFF])  # save_slot
+        
+        # Combine header and chunk
+        frame_content = frame_header + chunk_payload
+        
+        # Calculate frame length prefix
+        # Total size = len(frame_content) + 2 (for the prefix itself)
+        frame_len = len(frame_content) + 2
+        prefix = frame_len.to_bytes(2, byteorder="little")
+        
+        message = prefix + frame_content
+        windows.append(Window(data=message, requires_ack=True))
+        
+        window_index += 1
+        pos = window_end
+
+    return windows
+
+def make_mix_data_plan(
     blocks: list[tuple[bytes, bytes]],
     screen_slot: int = 1
-) -> bytes:
-    """Build command to send mixed data (PNG + GIF + TEXT combined).
+) -> SendPlan:
+    """Build plan to send mixed data (PNG + GIF + TEXT combined).
 
     Command format from ipixel-ctrl (opcode 0x0004):
     [length, opcode, 0x00, data_size(4), crc32(4), 0x02, screen_slot, mix_data...]
@@ -554,43 +616,32 @@ def make_mix_data_command(
         screen_slot: Storage slot on device (1-255)
 
     Returns:
-        Command bytes for mixed data upload
+        SendPlan for mixed data upload
 
     Raises:
         ValueError: If blocks list is empty or screen_slot is invalid
     """
-    import zlib
-
     if not blocks:
         raise ValueError("At least one block must be provided")
     if screen_slot < 1 or screen_slot > 255:
         raise ValueError("Screen slot must be 1-255")
 
     # Build mixed data payload from all blocks
-    mix_data = bytearray()
+    data_payload = bytearray()
     for header, data in blocks:
-        mix_data.extend(header)
-        mix_data.extend(data)
+        data_payload.extend(header)
+        data_payload.extend(data)
 
-    # Calculate CRC32 of mix data
-    crc32 = zlib.crc32(mix_data) & 0xFFFFFFFF
+    # Make windows
+    windows = _make_windows_from_payload(bytes(data_payload), screen_slot, bytes([0x04, 0x00]))
 
-    # Build command payload
-    payload = bytearray()
-    payload.append(0x00)  # Unknown fixed byte
-    payload.extend(len(mix_data).to_bytes(4, 'little'))  # Data size
-    payload.extend(crc32.to_bytes(4, 'little'))          # CRC32
-    payload.append(0x02)  # Unknown fixed byte (0x02 for mix data)
-    payload.append(screen_slot)                          # Screen slot
-    payload.extend(mix_data)                             # Mixed data blocks
+    _LOGGER.info(f"Split mix data into {len(windows)} frames")
+    return SendPlan("send_mix_data", windows)
 
-    return make_command_payload(0x0004, bytes(payload))
-
-
-def make_mix_data_raw_command(
+def make_mix_data_raw_plan(
     raw_mix_data: bytes,
     screen_slot: int = 1
-) -> bytes:
+) -> SendPlan:
     """Build command to send pre-built mixed data.
 
     This is for advanced users who want to send raw mixed data blocks
@@ -603,27 +654,16 @@ def make_mix_data_raw_command(
     Returns:
         Command bytes for mixed data upload
     """
-    import zlib
-
     if not raw_mix_data:
         raise ValueError("Mix data cannot be empty")
     if screen_slot < 1 or screen_slot > 255:
         raise ValueError("Screen slot must be 1-255")
 
-    # Calculate CRC32
-    crc32 = zlib.crc32(raw_mix_data) & 0xFFFFFFFF
+    # Make windows
+    windows = _make_windows_from_payload(bytes(raw_mix_data), screen_slot, bytes([0x04, 0x00]))
 
-    # Build command payload
-    payload = bytearray()
-    payload.append(0x00)  # Unknown fixed byte
-    payload.extend(len(raw_mix_data).to_bytes(4, 'little'))  # Data size
-    payload.extend(crc32.to_bytes(4, 'little'))              # CRC32
-    payload.append(0x02)  # Unknown fixed byte
-    payload.append(screen_slot)                              # Screen slot
-    payload.extend(raw_mix_data)                             # Mixed data
-
-    return make_command_payload(0x0004, bytes(payload))
-
+    _LOGGER.info(f"Split raw mix data into {len(windows)} frames")
+    return SendPlan("send_raw_mix_data", windows)
 
 # =============================================================================
 # Batch Pixel Commands (from go-ipxl)

@@ -58,17 +58,6 @@ SERVICE_DRAW_SOLID_COLOR = "draw_solid_color"
 # Visual rendering service (from UnexpectedMatrixPixels)
 SERVICE_DRAW_VISUALS = "draw_visuals"
 
-# Effect name to animation number mapping
-EFFECT_MAP = {
-    "fixed": 0,
-    "scroll_ltr": 1,
-    "scroll_rtl": 2,
-    "blink": 3,
-    "breeze": 4,
-    "snow": 5,
-    "laser": 6,
-}
-
 def rgb_to_hex(rgb) -> str:
     """Convert RGB array [r, g, b] to hex string 'rrggbb'."""
     if isinstance(rgb, (list, tuple)) and len(rgb) >= 3:
@@ -124,12 +113,12 @@ async def handle_display_text(call: ServiceCall) -> None:
     api = get_api(call)
 
     text = call.data.get("text", "")
-    effect = call.data.get("effect", "scroll_ltr")
+    effect = call.data.get("effect", 0)
     speed = call.data.get("speed", 50)
     color_fg = call.data.get("color_fg", [255, 255, 255])
     color_bg = call.data.get("color_bg", [0, 0, 0])
     font = call.data.get("font", "CUSONG")
-    matrix_height_str = call.data.get("matrix_height", "")
+    matrix_height_str = call.data.get("matrix_height", None)
 
     _LOGGER.debug("Received display_text service call: text=%r, effect=%r, speed=%d, color_fg=%r, color_bg=%r, font=%r, matrix_height=%r",
                   text, effect, speed, color_fg, color_bg, font, matrix_height_str)
@@ -140,7 +129,7 @@ async def handle_display_text(call: ServiceCall) -> None:
 
     try:
         # Convert effect name to animation number
-        animation = EFFECT_MAP.get(effect, 0)
+        animation = int(effect)
 
         # Convert RGB arrays to hex strings
         fg_hex = rgb_to_hex(color_fg)
@@ -160,7 +149,7 @@ async def handle_display_text(call: ServiceCall) -> None:
         )
 
         if success:
-            _LOGGER.info("Text displayed: '%s' (effect=%s, speed=%d, font=%s)", text, effect, speed, font)
+            _LOGGER.info("Text displayed: '%s' (effect=%d, speed=%d, font=%s)", text, effect, speed, font)
         else:
             _LOGGER.error("Failed to display text: '%s'", text)
     except Exception as err:
@@ -177,7 +166,7 @@ async def handle_upload_gif(call: ServiceCall) -> None:
         return
 
     try:
-        success = await api.display_gif_url(gif_url, buffer_slot)
+        success = await api.display_image_url(gif_url, buffer_slot)
         if success:
             _LOGGER.info("GIF uploaded successfully from %s", gif_url)
         else:
@@ -399,8 +388,8 @@ async def handle_draw_visuals(call: ServiceCall) -> None:
 
         # Get device info for dimensions
         device_info = await api.get_device_info()
-        width = device_info.get("width", 64)
-        height = device_info.get("height", 16)
+        width = device_info.get("width" or 64)
+        height = device_info.get("height" or 16)
 
         # Get HTTP session for image loading
         session = async_get_clientsession(hass)

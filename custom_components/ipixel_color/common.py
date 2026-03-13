@@ -322,6 +322,9 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         if rainbow_mode is None:
             rainbow_mode = 0  # Default to no rainbow
 
+        # Font size - reuse existing font size entity if available, otherwise default to auto-sizing
+        font_size = await _get_entity_setting(hass, device_name, "number", "font_size", float, api._address)
+
         # Connect if needed
         if not api.is_connected:
             _LOGGER.debug("Reconnecting to device for text mode update")
@@ -339,7 +342,8 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
             font=font,
             animation=animation,
             speed=speed,
-            rainbow_mode=rainbow_mode
+            rainbow_mode=rainbow_mode,
+            matrix_height=int(font_size) if font_size else None
         )
 
         if success:
@@ -386,7 +390,7 @@ async def _update_gif_mode(hass: HomeAssistant, device_name: str, api) -> bool:
             await api.connect()
 
         # Send GIF to display
-        success = await api.display_gif_url(gif_url)
+        success = await api.display_image_url(gif_url)
 
         if success:
             _LOGGER.info("GIF mode update successful: %s", gif_url)

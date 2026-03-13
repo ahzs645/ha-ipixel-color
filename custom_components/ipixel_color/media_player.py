@@ -151,7 +151,7 @@ class iPIXELMediaPlayer(MediaPlayerEntity, RestoreEntity):
             await self._api.connect()
 
         # Display the GIF
-        success = await self._api.display_gif_url(media_id)
+        success = await self._api.display_image_url(media_id)
 
         if success:
             self._state = MediaPlayerState.PLAYING

@@ -571,7 +571,7 @@ class iPIXELScheduleManager:
                     speed=item.rhythm_speed
                 )
             elif item.mode == "gif" and item.gif_url:
-                await self._api.display_gif_url(item.gif_url)
+                await self._api.display_image_url(item.gif_url)
             elif item.mode in ("text", "textimage"):
                 # Use the common update function with item's text
                 await update_ipixel_display(

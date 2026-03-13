@@ -21,6 +21,8 @@ from .schedule import iPIXELScheduleManager, ScheduleItem
 from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
+# Set pypixelcolor logging to current level for detailed command info
+logging.getLogger("pypixelcolor").setLevel(_LOGGER.getEffectiveLevel())
 
 # Platforms supported by this integration
 PLATFORMS: list[Platform] = [
@@ -41,6 +43,7 @@ FRONTEND_REGISTERED = False
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Bring! services."""
+
 
     async_setup_services(hass)
     return True
@@ -86,15 +89,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Test connection
     try:
-        if not await api.connect():
-            raise ConfigEntryNotReady(f"Failed to connect to iPIXEL device at {address}")
-
+        await api.connect()
         _LOGGER.info("Successfully connected to iPIXEL device %s", address)
-
-        # Get device info for sensors
-        await api.get_device_info()
-
-        await api.set_power(True)  # Ensure device is on at startup
 
     except iPIXELTimeoutError as err:
         _LOGGER.error("Connection timeout to iPIXEL device %s: %s", address, err)

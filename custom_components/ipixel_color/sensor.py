@@ -119,6 +119,7 @@ class iPIXELSensor(SensorEntity):
                 return
                 
             device_info = await self._api.get_device_info()
+
             if device_info:
                 self._attr_native_value = device_info.get(self.entity_description.key)
                 self._available = True

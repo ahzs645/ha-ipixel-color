@@ -20,17 +20,12 @@ display_text:
       name: Effect
       description: Display effect for the text
       required: false
-      default: "scroll_ltr"
+      default: 0
       selector:
-        select:
-          options:
-            - "fixed"
-            - "scroll_rtl"
-            - "scroll_ltr"
-            - "blink"
-            - "breeze"
-            - "snow"
-            - "laser"
+        number:
+          min: 0
+          max: 7
+          mode: box
     speed:
       name: Speed
       description: Animation speed (1-100)

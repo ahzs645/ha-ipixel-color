@@ -103,7 +103,7 @@ data:
   url: "https://example.com/image.png"
 
 # Display GIF animation
-service: ipixel_color.display_gif_url
+service: ipixel_color.display_image_url
 data:
   url: "https://example.com/animation.gif"
 ```
