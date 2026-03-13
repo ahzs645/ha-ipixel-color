@@ -1042,3 +1042,227 @@ draw_visuals:
           min: 1
           max: 30
           mode: slider
+
+# New features from APK reverse engineering
+
+set_countdown_timer:
+  name: Set Countdown Timer
+  description: Start a countdown timer on the iPIXEL display
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    hours:
+      name: Hours
+      description: Hours for countdown (0-23)
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 23
+          mode: box
+    minutes:
+      name: Minutes
+      description: Minutes for countdown (0-59)
+      required: false
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+    seconds:
+      name: Seconds
+      description: Seconds for countdown (0-59)
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+
+set_scoreboard:
+  name: Set Scoreboard
+  description: Display a scoreboard with two scores (e.g., for sports games)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    score_a:
+      name: Score A
+      description: Score for team A (0-999)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 999
+          mode: box
+    score_b:
+      name: Score B
+      description: Score for team B (0-999)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 999
+          mode: box
+
+set_stopwatch:
+  name: Set Stopwatch
+  description: Control the stopwatch/chronograph mode on the display
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    mode:
+      name: Mode
+      description: "Stopwatch control: 0=Stop, 1=Start, 2=Reset"
+      required: true
+      default: 1
+      selector:
+        select:
+          options:
+            - label: "Stop"
+              value: "0"
+            - label: "Start"
+              value: "1"
+            - label: "Reset"
+              value: "2"
+
+exit_mode:
+  name: Exit Mode
+  description: Exit the current device mode and return to default/idle state
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+
+set_weekday:
+  name: Set Weekday
+  description: Set the current day of week on the device (for clock display)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    weekday:
+      name: Weekday
+      description: Day of week (1=Monday through 7=Sunday)
+      required: true
+      selector:
+        select:
+          options:
+            - label: "Monday"
+              value: "1"
+            - label: "Tuesday"
+              value: "2"
+            - label: "Wednesday"
+              value: "3"
+            - label: "Thursday"
+              value: "4"
+            - label: "Friday"
+              value: "5"
+            - label: "Saturday"
+              value: "6"
+            - label: "Sunday"
+              value: "7"
+
+set_clock_mode_full:
+  name: Set Clock Mode (Full)
+  description: Set clock display mode using the exact APK-derived command format with date fields. Uses today's date automatically.
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    style:
+      name: Clock Style
+      description: Clock visual style (0-8)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 8
+          mode: box
+    show_date:
+      name: Show Date
+      description: Display date alongside the time
+      required: false
+      default: true
+      selector:
+        boolean:
+    format_24:
+      name: 24-Hour Format
+      description: Use 24-hour time format
+      required: false
+      default: true
+      selector:
+        boolean:
+
+delete_slots:
+  name: Delete Slots
+  description: Delete multiple stored slots at once (more efficient than deleting one by one)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    slots:
+      name: Slots
+      description: Comma-separated list of slot numbers to delete (1-255)
+      required: true
+      example: "1,2,3"
+      selector:
+        text:
+
+reserve_slot:
+  name: Reserve Slot
+  description: Reserve a device slot before uploading content to it. Required for the proper save-to-device protocol.
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    slot:
+      name: Slot Number
+      description: Slot number to reserve (1-255)
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box

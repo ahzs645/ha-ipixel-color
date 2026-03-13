@@ -46,6 +46,15 @@ from .device.commands import (
     split_rgb_into_chunks,
     image_to_rgb_bytes,
     RAW_RGB_CHUNK_SIZE,
+    # New commands from APK reverse engineering
+    make_countdown_timer_command,
+    make_scoreboard_command,
+    make_stopwatch_command,
+    make_exit_mode_command,
+    make_set_weekday_command,
+    make_clock_mode_full_command,
+    make_delete_slots_command,
+    make_reserve_slot_command,
 )
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_plan
@@ -1148,6 +1157,234 @@ class iPIXELAPI:
             return False
         except Exception as err:
             _LOGGER.error("Error sending raw command: %s", err)
+            return False
+
+    # =========================================================================
+    # New features from APK reverse engineering
+    # =========================================================================
+
+    async def set_countdown_timer(self, hours: int, minutes: int, seconds: int) -> bool:
+        """Set countdown timer on device.
+
+        Args:
+            hours: Hours (0-23)
+            minutes: Minutes (0-59)
+            seconds: Seconds (0-59)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_countdown_timer_command(hours, minutes, seconds)
+            result = await self._bluetooth.send_command("set_countdown_timer", payload)
+
+            if result.success:
+                _LOGGER.info("Countdown timer set: %02d:%02d:%02d", hours, minutes, seconds)
+            else:
+                _LOGGER.error("Failed to set countdown timer")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid countdown timer parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting countdown timer: %s", err)
+            return False
+
+    async def set_scoreboard(self, score_a: int, score_b: int) -> bool:
+        """Display scoreboard with two scores.
+
+        Args:
+            score_a: Score for team A (0-999)
+            score_b: Score for team B (0-999)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_scoreboard_command(score_a, score_b)
+            result = await self._bluetooth.send_command("set_scoreboard", payload)
+
+            if result.success:
+                _LOGGER.info("Scoreboard set: %d - %d", score_a, score_b)
+            else:
+                _LOGGER.error("Failed to set scoreboard")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid scoreboard parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting scoreboard: %s", err)
+            return False
+
+    async def set_stopwatch(self, mode: int) -> bool:
+        """Control stopwatch/chronograph mode.
+
+        Args:
+            mode: 0=stop, 1=start, 2=reset
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_stopwatch_command(mode)
+            result = await self._bluetooth.send_command("set_stopwatch", payload)
+
+            mode_names = {0: "stopped", 1: "started", 2: "reset"}
+            if result.success:
+                _LOGGER.info("Stopwatch %s", mode_names.get(mode, str(mode)))
+            else:
+                _LOGGER.error("Failed to control stopwatch")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid stopwatch mode: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error controlling stopwatch: %s", err)
+            return False
+
+    async def exit_mode(self) -> bool:
+        """Exit current device mode and return to default/idle state.
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_exit_mode_command()
+            result = await self._bluetooth.send_command("exit_mode", payload)
+
+            if result.success:
+                _LOGGER.info("Exited current device mode")
+            else:
+                _LOGGER.error("Failed to exit mode")
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error exiting mode: %s", err)
+            return False
+
+    async def set_weekday(self, weekday: int) -> bool:
+        """Set current weekday on device.
+
+        Args:
+            weekday: Day of week (1=Monday through 7=Sunday)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_set_weekday_command(weekday)
+            result = await self._bluetooth.send_command("set_weekday", payload)
+
+            day_names = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
+            if result.success:
+                _LOGGER.info("Weekday set to %s", day_names.get(weekday, str(weekday)))
+            else:
+                _LOGGER.error("Failed to set weekday")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid weekday: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting weekday: %s", err)
+            return False
+
+    async def set_clock_mode_full(
+        self,
+        mode: int = 1,
+        show_date: bool = True,
+        format_24: bool = True,
+    ) -> bool:
+        """Set clock mode using the full APK-derived command with date fields.
+
+        This sends the exact command format recovered from the official app,
+        including year/month/day/weekday fields.
+
+        Args:
+            mode: Clock style (0-8)
+            show_date: Show date alongside time
+            format_24: Use 24-hour format
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_clock_mode_full_command(mode, show_date, format_24)
+            result = await self._bluetooth.send_command("set_clock_mode_full", payload)
+
+            if result.success:
+                _LOGGER.info("Clock mode set: style=%d, date=%s, 24h=%s", mode, show_date, format_24)
+            else:
+                _LOGGER.error("Failed to set clock mode")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid clock mode parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting clock mode: %s", err)
+            return False
+
+    async def delete_slots(self, slots: list[int]) -> bool:
+        """Delete multiple slots at once.
+
+        More efficient than calling delete_slot repeatedly.
+
+        Args:
+            slots: List of slot numbers to delete (1-255)
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_delete_slots_command(slots)
+            result = await self._bluetooth.send_command("delete_slots", payload)
+
+            if result.success:
+                _LOGGER.info("Deleted slots: %s", slots)
+            else:
+                _LOGGER.error("Failed to delete slots")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid slot values: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error deleting slots: %s", err)
+            return False
+
+    async def reserve_slot(self, slot: int) -> bool:
+        """Reserve a slot before saving content to it.
+
+        This should be called before uploading content to a device slot.
+        The device responds with an ACK confirming the reservation.
+
+        Args:
+            slot: Slot number to reserve (1-255)
+
+        Returns:
+            True if slot was reserved successfully
+        """
+        try:
+            payload = make_reserve_slot_command(slot)
+            result = await self._bluetooth.send_command(
+                "reserve_slot", payload, requires_ack=True
+            )
+
+            if result.success:
+                _LOGGER.info("Slot %d reserved", slot)
+            else:
+                _LOGGER.error("Failed to reserve slot %d", slot)
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid slot value: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error reserving slot: %s", err)
             return False
 
     async def display_image_url(

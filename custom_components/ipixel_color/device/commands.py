@@ -871,6 +871,212 @@ def split_rgb_into_chunks(rgb_data: bytes, chunk_size: int = RAW_RGB_CHUNK_SIZE)
     return chunks
 
 
+def make_countdown_timer_command(hours: int, minutes: int, seconds: int) -> bytes:
+    """Build countdown timer command.
+
+    Command format from APK reverse engineering:
+    [0x07, 0x00, 0x0D, 0x80, hh, mm, ss]
+
+    Args:
+        hours: Hours (0-23)
+        minutes: Minutes (0-59)
+        seconds: Seconds (0-59)
+
+    Returns:
+        Command bytes for countdown timer
+    """
+    if hours < 0 or hours > 23:
+        raise ValueError("Hours must be 0-23")
+    if minutes < 0 or minutes > 59:
+        raise ValueError("Minutes must be 0-59")
+    if seconds < 0 or seconds > 59:
+        raise ValueError("Seconds must be 0-59")
+
+    return bytes([0x07, 0x00, 0x0D, 0x80, hours, minutes, seconds])
+
+
+def make_scoreboard_command(score_a: int, score_b: int) -> bytes:
+    """Build scoreboard display command.
+
+    Command format from APK reverse engineering:
+    [0x08, 0x00, 0x0A, 0x80, a_hi, a_lo, b_hi, b_lo]
+
+    Args:
+        score_a: Score for team A (0-999)
+        score_b: Score for team B (0-999)
+
+    Returns:
+        Command bytes for scoreboard display
+    """
+    if score_a < 0 or score_a > 999:
+        raise ValueError("Score A must be 0-999")
+    if score_b < 0 or score_b > 999:
+        raise ValueError("Score B must be 0-999")
+
+    return bytes([
+        0x08, 0x00, 0x0A, 0x80,
+        (score_a >> 8) & 0xFF, score_a & 0xFF,
+        (score_b >> 8) & 0xFF, score_b & 0xFF,
+    ])
+
+
+def make_stopwatch_command(mode: int) -> bytes:
+    """Build stopwatch/chronograph command.
+
+    Command format from APK reverse engineering:
+    [0x05, 0x00, 0x09, 0x80, mode]
+
+    Args:
+        mode: Stopwatch mode (0=stop, 1=start, 2=reset)
+
+    Returns:
+        Command bytes for stopwatch control
+    """
+    if mode < 0 or mode > 2:
+        raise ValueError("Stopwatch mode must be 0-2")
+
+    return bytes([0x05, 0x00, 0x09, 0x80, mode])
+
+
+def make_exit_mode_command() -> bytes:
+    """Build exit/leave current device mode command.
+
+    Command format from APK reverse engineering:
+    [0x04, 0x00, 0x01, 0x01]
+
+    Returns device to its default/idle state.
+
+    Returns:
+        Command bytes for exiting current mode
+    """
+    return bytes([0x04, 0x00, 0x01, 0x01])
+
+
+def make_set_weekday_command(weekday: int) -> bytes:
+    """Build set weekday command.
+
+    Command format from APK reverse engineering:
+    [0x05, 0x00, 0x12, 0x80, weekday]
+
+    Args:
+        weekday: Day of week (1=Monday through 7=Sunday, ISO 8601)
+
+    Returns:
+        Command bytes for setting weekday
+    """
+    if weekday < 1 or weekday > 7:
+        raise ValueError("Weekday must be 1-7 (Monday=1, Sunday=7)")
+
+    return bytes([0x05, 0x00, 0x12, 0x80, weekday])
+
+
+def make_clock_mode_full_command(
+    mode: int,
+    show_date: bool = True,
+    format_24: bool = True,
+    year: int | None = None,
+    month: int | None = None,
+    day: int | None = None,
+    weekday: int | None = None,
+) -> bytes:
+    """Build clock mode command with full date fields.
+
+    Command format from APK reverse engineering:
+    [0x0B, 0x00, 0x06, 0x01, mode, flagA, flagB, yy, mm, dd, weekday]
+
+    Where flagA controls date display and flagB controls 24h format.
+
+    Args:
+        mode: Clock style (0-8)
+        show_date: Show date alongside time (flagA: True=0x00, False=0x01)
+        format_24: Use 24-hour format (flagB: True=0x01, False=0x00)
+        year: Year (e.g. 2026). Defaults to current year.
+        month: Month (1-12). Defaults to current month.
+        day: Day (1-31). Defaults to current day.
+        weekday: Day of week (1=Mon..7=Sun). Defaults to current.
+
+    Returns:
+        Command bytes for clock mode with date
+    """
+    import datetime as dt
+
+    if mode < 0 or mode > 8:
+        raise ValueError("Clock mode must be 0-8")
+
+    now = dt.date.today()
+    if year is None:
+        year = now.year
+    if month is None:
+        month = now.month
+    if day is None:
+        day = now.day
+    if weekday is None:
+        weekday = now.isoweekday()
+
+    flag_a = 0x00 if show_date else 0x01
+    flag_b = 0x01 if format_24 else 0x00
+    yy = year - 2000
+
+    return bytes([
+        0x0B, 0x00, 0x06, 0x01,
+        mode, flag_a, flag_b,
+        yy, month, day, weekday,
+    ])
+
+
+def make_delete_slots_command(slots: list[int]) -> bytes:
+    """Build command to delete multiple slots at once.
+
+    Command format from APK reverse engineering:
+    [len_lo, len_hi, 0x02, 0x01, count_lo, count_hi, slot1, slot2, ...]
+
+    Args:
+        slots: List of slot numbers to delete (1-255)
+
+    Returns:
+        Command bytes for multi-slot delete
+    """
+    if not slots:
+        raise ValueError("At least one slot must be specified")
+    for slot in slots:
+        if slot < 1 or slot > 255:
+            raise ValueError("Slot values must be 1-255")
+
+    slot_bytes = bytes(slots)
+    total_len = 6 + len(slot_bytes)
+    count = len(slots)
+
+    return (
+        total_len.to_bytes(2, 'little')
+        + bytes([0x02, 0x01])
+        + count.to_bytes(2, 'little')
+        + slot_bytes
+    )
+
+
+def make_reserve_slot_command(slot: int) -> bytes:
+    """Build command to reserve a slot before content save.
+
+    Command format from APK reverse engineering:
+    [0x07, 0x00, 0x08, 0x80, 0x01, 0x00, slot]
+
+    Expected ACK: [0x05, 0x00, 0x08, 0x80, 0x01]
+
+    This must be sent before uploading content to a device slot.
+    The device responds with an ACK confirming the slot is reserved.
+
+    Args:
+        slot: Slot number to reserve (1-255)
+
+    Returns:
+        Command bytes for slot reservation
+    """
+    if slot < 1 or slot > 255:
+        raise ValueError("Slot must be 1-255")
+
+    return bytes([0x07, 0x00, 0x08, 0x80, 0x01, 0x00, slot])
+
+
 def image_to_rgb_bytes(
     image_bytes: bytes,
     width: int,

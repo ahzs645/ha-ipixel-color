@@ -57,6 +57,15 @@ SERVICE_DISPLAY_IMAGE_RAW_RGB_URL = "display_image_raw_rgb_url"
 SERVICE_DRAW_SOLID_COLOR = "draw_solid_color"
 # Visual rendering service (from UnexpectedMatrixPixels)
 SERVICE_DRAW_VISUALS = "draw_visuals"
+# New features from APK reverse engineering
+SERVICE_SET_COUNTDOWN_TIMER = "set_countdown_timer"
+SERVICE_SET_SCOREBOARD = "set_scoreboard"
+SERVICE_SET_STOPWATCH = "set_stopwatch"
+SERVICE_EXIT_MODE = "exit_mode"
+SERVICE_SET_WEEKDAY = "set_weekday"
+SERVICE_SET_CLOCK_MODE_FULL = "set_clock_mode_full"
+SERVICE_DELETE_SLOTS = "delete_slots"
+SERVICE_RESERVE_SLOT = "reserve_slot"
 
 def rgb_to_hex(rgb) -> str:
     """Convert RGB array [r, g, b] to hex string 'rrggbb'."""
@@ -823,6 +832,131 @@ async def handle_send_mix_data(call: ServiceCall) -> None:
         _LOGGER.error("Error sending mixed data: %s", err)
 
 
+# New features from APK reverse engineering
+
+async def handle_set_countdown_timer(call: ServiceCall) -> None:
+    """Handle set_countdown_timer service call."""
+    api = get_api(call)
+    hours = call.data.get("hours", 0)
+    minutes = call.data.get("minutes", 0)
+    seconds = call.data.get("seconds", 0)
+
+    try:
+        success = await api.set_countdown_timer(hours, minutes, seconds)
+        if success:
+            _LOGGER.info("Countdown timer set: %02d:%02d:%02d", hours, minutes, seconds)
+        else:
+            _LOGGER.error("Failed to set countdown timer")
+    except Exception as err:
+        _LOGGER.error("Error setting countdown timer: %s", err)
+
+async def handle_set_scoreboard(call: ServiceCall) -> None:
+    """Handle set_scoreboard service call."""
+    api = get_api(call)
+    score_a = call.data.get("score_a", 0)
+    score_b = call.data.get("score_b", 0)
+
+    try:
+        success = await api.set_scoreboard(score_a, score_b)
+        if success:
+            _LOGGER.info("Scoreboard set: %d - %d", score_a, score_b)
+        else:
+            _LOGGER.error("Failed to set scoreboard")
+    except Exception as err:
+        _LOGGER.error("Error setting scoreboard: %s", err)
+
+async def handle_set_stopwatch(call: ServiceCall) -> None:
+    """Handle set_stopwatch service call."""
+    api = get_api(call)
+    mode = int(call.data.get("mode", 1))
+
+    try:
+        success = await api.set_stopwatch(mode)
+        mode_names = {0: "stopped", 1: "started", 2: "reset"}
+        if success:
+            _LOGGER.info("Stopwatch %s", mode_names.get(mode, str(mode)))
+        else:
+            _LOGGER.error("Failed to control stopwatch")
+    except Exception as err:
+        _LOGGER.error("Error controlling stopwatch: %s", err)
+
+async def handle_exit_mode(call: ServiceCall) -> None:
+    """Handle exit_mode service call."""
+    api = get_api(call)
+
+    try:
+        success = await api.exit_mode()
+        if success:
+            _LOGGER.info("Exited current device mode")
+        else:
+            _LOGGER.error("Failed to exit mode")
+    except Exception as err:
+        _LOGGER.error("Error exiting mode: %s", err)
+
+async def handle_set_weekday(call: ServiceCall) -> None:
+    """Handle set_weekday service call."""
+    api = get_api(call)
+    weekday = int(call.data.get("weekday", 1))
+
+    try:
+        success = await api.set_weekday(weekday)
+        if success:
+            _LOGGER.info("Weekday set to %d", weekday)
+        else:
+            _LOGGER.error("Failed to set weekday")
+    except Exception as err:
+        _LOGGER.error("Error setting weekday: %s", err)
+
+async def handle_set_clock_mode_full(call: ServiceCall) -> None:
+    """Handle set_clock_mode_full service call."""
+    api = get_api(call)
+    mode = call.data.get("style", 1)
+    show_date = call.data.get("show_date", True)
+    format_24 = call.data.get("format_24", True)
+
+    try:
+        success = await api.set_clock_mode_full(mode, show_date, format_24)
+        if success:
+            _LOGGER.info("Clock mode (full) set: style=%d, date=%s, 24h=%s", mode, show_date, format_24)
+        else:
+            _LOGGER.error("Failed to set clock mode (full)")
+    except Exception as err:
+        _LOGGER.error("Error setting clock mode (full): %s", err)
+
+async def handle_delete_slots(call: ServiceCall) -> None:
+    """Handle delete_slots service call."""
+    api = get_api(call)
+    slots_str = call.data.get("slots", "")
+
+    if not slots_str:
+        _LOGGER.error("No slots specified for delete_slots")
+        return
+
+    try:
+        slots = [int(s.strip()) for s in slots_str.split(",") if s.strip()]
+        success = await api.delete_slots(slots)
+        if success:
+            _LOGGER.info("Deleted slots: %s", slots)
+        else:
+            _LOGGER.error("Failed to delete slots")
+    except Exception as err:
+        _LOGGER.error("Error deleting slots: %s", err)
+
+async def handle_reserve_slot(call: ServiceCall) -> None:
+    """Handle reserve_slot service call."""
+    api = get_api(call)
+    slot = call.data.get("slot", 1)
+
+    try:
+        success = await api.reserve_slot(slot)
+        if success:
+            _LOGGER.info("Slot %d reserved", slot)
+        else:
+            _LOGGER.error("Failed to reserve slot %d", slot)
+    except Exception as err:
+        _LOGGER.error("Error reserving slot: %s", err)
+
+
 @callback
 def async_setup_services(hass: HomeAssistant) -> None:
     """Register iPIXEL services."""
@@ -908,4 +1042,21 @@ def async_setup_services(hass: HomeAssistant) -> None:
     # Visual rendering service (from UnexpectedMatrixPixels)
     if not hass.services.has_service(DOMAIN, SERVICE_DRAW_VISUALS):
         hass.services.async_register(DOMAIN, SERVICE_DRAW_VISUALS, handle_draw_visuals)
+    # New features from APK reverse engineering
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_COUNTDOWN_TIMER):
+        hass.services.async_register(DOMAIN, SERVICE_SET_COUNTDOWN_TIMER, handle_set_countdown_timer)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_SCOREBOARD):
+        hass.services.async_register(DOMAIN, SERVICE_SET_SCOREBOARD, handle_set_scoreboard)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_STOPWATCH):
+        hass.services.async_register(DOMAIN, SERVICE_SET_STOPWATCH, handle_set_stopwatch)
+    if not hass.services.has_service(DOMAIN, SERVICE_EXIT_MODE):
+        hass.services.async_register(DOMAIN, SERVICE_EXIT_MODE, handle_exit_mode)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_WEEKDAY):
+        hass.services.async_register(DOMAIN, SERVICE_SET_WEEKDAY, handle_set_weekday)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_CLOCK_MODE_FULL):
+        hass.services.async_register(DOMAIN, SERVICE_SET_CLOCK_MODE_FULL, handle_set_clock_mode_full)
+    if not hass.services.has_service(DOMAIN, SERVICE_DELETE_SLOTS):
+        hass.services.async_register(DOMAIN, SERVICE_DELETE_SLOTS, handle_delete_slots)
+    if not hass.services.has_service(DOMAIN, SERVICE_RESERVE_SLOT):
+        hass.services.async_register(DOMAIN, SERVICE_RESERVE_SLOT, handle_reserve_slot)
 
