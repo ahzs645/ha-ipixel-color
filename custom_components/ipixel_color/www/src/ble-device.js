@@ -4,15 +4,26 @@
  * Based on iPixel-Control by nicehunter
  */
 
-// BLE UUIDs for iPIXEL devices
-const SERVICE_UUID = '000000fa-0000-1000-8000-00805f9b34fb';
-const CHAR_UUID = '0000fa02-0000-1000-8000-00805f9b34fb';
+// BLE UUIDs for iPIXEL devices (from APK reverse engineering)
+const SERVICE_UUID = '000000fa-0000-1000-8000-00805f9b34fb';   // GATT service 0x00FA
+const WRITE_UUID = '0000fa02-0000-1000-8000-00805f9b34fb';     // Write characteristic 0xFA02
+const NOTIFY_UUID = '0000fa03-0000-1000-8000-00805f9b34fb';    // Notify characteristic 0xFA03
+
+// Keep old name as alias for internal references
+const CHAR_UUID = WRITE_UUID;
 
 // Connection state
 let device = null;
 let server = null;
-let characteristic = null;
+let characteristic = null;   // Write characteristic (0xFA02)
+let notifyChar = null;       // Notify characteristic (0xFA03)
 let isConnected = false;
+
+// Notification/ACK state
+let _notifyListeners = [];   // External listeners for raw notifications
+let _pendingAck = null;      // { resolve, reject, timer } for awaiting ACK
+let _lastNotification = null; // Last received notification data
+let _notifyLog = [];         // Recent notifications for debugging (max 50)
 
 // BLE operation lock to prevent concurrent GATT operations
 let bleLock = Promise.resolve();
@@ -54,14 +65,134 @@ async function withBleLock(fn) {
 export function resetBleLock() {
   bleLock = Promise.resolve();
   lockCount = 0;
+  _pendingAck = null;
   console.log('iPIXEL BLE: Lock reset');
+}
+
+// =========================================================================
+// Notification / ACK handling (characteristic 0xFA03)
+// =========================================================================
+
+/**
+ * Internal notification handler — called by the BLE stack when FA03 fires.
+ *
+ * ACK format (5 bytes): [0x05, 0x00, opcode_lo, opcode_hi, status]
+ *   status 0x00 = chunk/window ACK
+ *   status 0x01 = transfer complete
+ *   status 0x03 = CRC / transfer error
+ *
+ * Device info responses are longer (variable length) and are emitted as
+ * 'notify' events for consumers to parse.
+ */
+function _handleNotification(event) {
+  const data = new Uint8Array(event.target.value.buffer);
+
+  // Keep a debug log (ring buffer, max 50)
+  const hex = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+  _notifyLog.push({ time: Date.now(), hex, len: data.length });
+  if (_notifyLog.length > 50) _notifyLog.shift();
+
+  _lastNotification = data;
+
+  // Parse ACK
+  if (data.length >= 5 && data[0] === 0x05) {
+    const opcode = (data[3] << 8) | data[2];
+    const status = data[4];
+    const statusName =
+      status === 0x00 ? 'chunk-ack' :
+      status === 0x01 ? 'complete' :
+      status === 0x03 ? 'error' : `unknown(0x${status.toString(16)})`;
+
+    console.log(`iPIXEL BLE: ACK opcode=0x${opcode.toString(16).padStart(4, '0')} status=${statusName}`);
+
+    // Resolve pending ACK promise
+    if (_pendingAck) {
+      clearTimeout(_pendingAck.timer);
+      _pendingAck.resolve({ opcode, status, statusName, raw: data });
+      _pendingAck = null;
+    }
+  } else {
+    // Non-ACK notification (device info response, etc.)
+    console.log(`iPIXEL BLE: Notification (${data.length}B): ${hex}`);
+  }
+
+  // Emit to external listeners
+  emit('notify', { data, hex });
+}
+
+/**
+ * Send a command and wait for an ACK response on FA03.
+ * Falls back to fire-and-forget if notifications aren't available.
+ *
+ * @param {Uint8Array|number[]} data - Command bytes
+ * @param {number} timeout - ACK timeout in ms (default 3000)
+ * @returns {Promise<{opcode: number, status: number, statusName: string, raw: Uint8Array}|null>}
+ */
+export async function sendCommandWithAck(data, timeout = 3000) {
+  const ackPromise = notifyChar ? new Promise((resolve, reject) => {
+    // Cancel any previous pending ACK
+    if (_pendingAck) {
+      clearTimeout(_pendingAck.timer);
+      _pendingAck.resolve(null);
+    }
+    const timer = setTimeout(() => {
+      _pendingAck = null;
+      resolve(null); // Timeout → return null, don't reject
+    }, timeout);
+    _pendingAck = { resolve, reject, timer };
+  }) : Promise.resolve(null);
+
+  // Send the command
+  await sendCommand(data);
+
+  // Wait for ACK
+  return ackPromise;
+}
+
+/**
+ * Check if notify characteristic is connected
+ */
+export function hasNotify() {
+  return notifyChar !== null;
+}
+
+/**
+ * Get the last N notification entries (for debugging)
+ * @param {number} count - Number of entries (default 10)
+ */
+export function getNotifyLog(count = 10) {
+  return _notifyLog.slice(-count);
+}
+
+/**
+ * Get last notification data
+ */
+export function getLastNotification() {
+  return _lastNotification;
+}
+
+/**
+ * Register a listener for raw notification data.
+ * Listener receives (Uint8Array) on every FA03 notification.
+ * @param {Function} callback
+ */
+export function onNotify(callback) {
+  _notifyListeners.push(callback);
+}
+
+/**
+ * Remove a notification listener
+ */
+export function offNotify(callback) {
+  _notifyListeners = _notifyListeners.filter(cb => cb !== callback);
 }
 
 // Event callbacks
 const listeners = {
   connect: [],
   disconnect: [],
-  error: []
+  error: [],
+  notify: []
 };
 
 /**
@@ -152,10 +283,23 @@ export async function connectDevice() {
     server = await device.gatt.connect();
     console.log('iPIXEL BLE: Connected to GATT server');
 
-    // Get service and characteristic
+    // Get service and characteristics
     const service = await server.getPrimaryService(SERVICE_UUID);
-    characteristic = await service.getCharacteristic(CHAR_UUID);
-    console.log('iPIXEL BLE: Got characteristic');
+
+    // Write characteristic (0xFA02)
+    characteristic = await service.getCharacteristic(WRITE_UUID);
+    console.log('iPIXEL BLE: Got write characteristic (FA02)');
+
+    // Notify characteristic (0xFA03) — for ACK responses and device info
+    try {
+      notifyChar = await service.getCharacteristic(NOTIFY_UUID);
+      await notifyChar.startNotifications();
+      notifyChar.addEventListener('characteristicvaluechanged', _handleNotification);
+      console.log('iPIXEL BLE: Notifications enabled on FA03');
+    } catch (e) {
+      console.warn('iPIXEL BLE: Could not enable notifications on FA03:', e.message);
+      notifyChar = null;
+    }
 
     isConnected = true;
 
@@ -163,10 +307,12 @@ export async function connectDevice() {
     device.addEventListener('gattserverdisconnected', () => {
       console.log('iPIXEL BLE: Device disconnected');
       isConnected = false;
+      notifyChar = null;
+      _pendingAck = null;
       emit('disconnect', { device: device.name });
     });
 
-    emit('connect', { device: device.name });
+    emit('connect', { device: device.name, hasNotify: notifyChar !== null });
     return device.name;
   } catch (error) {
     console.error('iPIXEL BLE: Connection failed:', error);
@@ -179,6 +325,16 @@ export async function connectDevice() {
  * Disconnect from device
  */
 export async function disconnectDevice() {
+  // Stop notifications before disconnecting
+  if (notifyChar) {
+    try {
+      notifyChar.removeEventListener('characteristicvaluechanged', _handleNotification);
+      await notifyChar.stopNotifications();
+    } catch (e) {
+      // ignore
+    }
+    notifyChar = null;
+  }
   if (device?.gatt?.connected) {
     await device.gatt.disconnect();
   }
@@ -186,6 +342,7 @@ export async function disconnectDevice() {
   device = null;
   server = null;
   characteristic = null;
+  _pendingAck = null;
 }
 
 /**
@@ -904,6 +1061,108 @@ export async function testCameraProtocol() {
   console.log('iPIXEL BLE: Camera test complete');
 }
 
+// =========================================================================
+// New APK features (countdown, scoreboard, stopwatch, etc.)
+// =========================================================================
+
+/**
+ * Start a countdown timer on the device
+ * @param {number} hours - Hours (0-23)
+ * @param {number} minutes - Minutes (0-59)
+ * @param {number} seconds - Seconds (0-59)
+ */
+export async function setCountdownTimer(hours, minutes, seconds) {
+  await sendCommand([0x07, 0x00, 0x0D, 0x80, hours & 0xFF, minutes & 0xFF, seconds & 0xFF]);
+}
+
+/**
+ * Display scoreboard on device
+ * @param {number} scoreA - Score for team A (0-999)
+ * @param {number} scoreB - Score for team B (0-999)
+ */
+export async function setScoreboard(scoreA, scoreB) {
+  await sendCommand([
+    0x08, 0x00, 0x0A, 0x80,
+    (scoreA >> 8) & 0xFF, scoreA & 0xFF,
+    (scoreB >> 8) & 0xFF, scoreB & 0xFF,
+  ]);
+}
+
+/**
+ * Control stopwatch/chronograph
+ * @param {number} mode - 0=stop, 1=start, 2=reset
+ */
+export async function setStopwatch(mode) {
+  await sendCommand([0x05, 0x00, 0x09, 0x80, mode & 0xFF]);
+}
+
+/**
+ * Exit the current device mode (return to idle/default)
+ */
+export async function exitMode() {
+  await sendCommand([0x04, 0x00, 0x01, 0x01]);
+}
+
+/**
+ * Set the device's weekday
+ * @param {number} weekday - 1=Monday through 7=Sunday (ISO 8601)
+ */
+export async function setWeekday(weekday) {
+  await sendCommand([0x05, 0x00, 0x12, 0x80, weekday & 0xFF]);
+}
+
+/**
+ * Reserve a slot before uploading content
+ * @param {number} slot - Slot number (1-255)
+ */
+export async function reserveSlot(slot) {
+  return sendCommandWithAck([0x07, 0x00, 0x08, 0x80, 0x01, 0x00, slot & 0xFF]);
+}
+
+/**
+ * Delete multiple slots at once
+ * @param {number[]} slots - Array of slot numbers (1-255)
+ */
+export async function deleteSlots(slots) {
+  const totalLen = 6 + slots.length;
+  const cmd = [
+    totalLen & 0xFF, (totalLen >> 8) & 0xFF,
+    0x02, 0x01,
+    slots.length & 0xFF, (slots.length >> 8) & 0xFF,
+    ...slots.map(s => s & 0xFF),
+  ];
+  await sendCommand(cmd);
+}
+
+/**
+ * Query device time/status (sends current time, device responds with LED type)
+ * @returns {Promise<Object|null>} ACK response or null
+ */
+export async function queryDeviceTime() {
+  const now = new Date();
+  return sendCommandWithAck([
+    0x08, 0x00, 0x01, 0x80,
+    now.getHours(), now.getMinutes(), now.getSeconds(), 0x00,
+  ]);
+}
+
+/**
+ * Query device with full date/time (getLedTypeMecha)
+ * @returns {Promise<Object|null>} ACK response or null
+ */
+export async function queryDeviceDateTime() {
+  const now = new Date();
+  const yy = now.getFullYear() - 2000;
+  const mm = now.getMonth() + 1;
+  const dd = now.getDate();
+  const wd = now.getDay() || 7;
+  return sendCommandWithAck([
+    0x0B, 0x00, 0x01, 0x80,
+    yy, mm, dd, wd,
+    now.getHours(), now.getMinutes(), now.getSeconds(),
+  ]);
+}
+
 // Animation streaming state
 let animationRunning = false;
 let animationFrameId = null;
@@ -1039,6 +1298,9 @@ export function getConnectionState() {
   return {
     isConnected,
     deviceName: device?.name || null,
-    hasCharacteristic: characteristic !== null
+    hasCharacteristic: characteristic !== null,
+    hasNotify: notifyChar !== null,
+    notifyLogCount: _notifyLog.length,
+    lastNotification: _lastNotification ? Array.from(_lastNotification).map(b => b.toString(16).padStart(2, '0')).join(' ') : null,
   };
 }

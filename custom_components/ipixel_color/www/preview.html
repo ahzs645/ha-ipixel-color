@@ -287,6 +287,80 @@
         Requires Chrome or Edge. Click "Connect Device" and select your LED_BLE_* device.
       </p>
     </div>
+
+    <div class="controls-section" id="wifi-section" style="margin-top: 20px; text-align: left;">
+      <h3>Real Device Connection (WiFi)</h3>
+      <div class="control-row">
+        <label>Status:</label>
+        <span id="wifi-status" style="color: #f44; font-weight: bold;">Disconnected</span>
+      </div>
+      <div class="control-row">
+        <label>Bridge:</label>
+        <input type="text" id="wifi-ws-url" value="ws://localhost:9001" style="flex:1; padding:8px 12px; border:1px solid #333; border-radius:6px; background:#222; color:#fff; font-size:0.9em;">
+      </div>
+      <div class="control-row">
+        <label>Size:</label>
+        <input type="number" id="wifi-width" value="64" min="8" max="256" style="width:60px; padding:8px; border:1px solid #333; border-radius:6px; background:#222; color:#fff;">
+        <span style="color:#666;">x</span>
+        <input type="number" id="wifi-height" value="16" min="8" max="64" style="width:60px; padding:8px; border:1px solid #333; border-radius:6px; background:#222; color:#fff;">
+      </div>
+      <div class="control-row">
+        <button id="wifi-connect-btn" onclick="connectWifiDevice()">Connect WiFi</button>
+        <button id="wifi-disconnect-btn" onclick="disconnectWifiDevice()" style="display:none;">Disconnect</button>
+      </div>
+      <div class="control-row" id="wifi-controls" style="display:none;">
+        <button onclick="wifiPowerOn()">Power On</button>
+        <button onclick="wifiPowerOff()">Power Off</button>
+        <button onclick="wifiSendPreview()">Send Preview</button>
+      </div>
+      <div class="control-row" id="wifi-controls-2" style="display:none;">
+        <button onclick="wifiTestPattern()" style="background:#f80;">Test Pattern</button>
+        <button onclick="wifiSyncTime()" style="background:#08f;">Sync Time</button>
+        <button onclick="wifiClearDisplay()" style="background:#888;">Clear</button>
+      </div>
+      <div class="control-row" id="wifi-controls-3" style="display:none;">
+        <label>Brightness:</label>
+        <input type="range" id="wifi-brightness" min="1" max="100" value="50" style="flex:1;">
+        <span id="wifi-brightness-value">50</span>
+        <button onclick="wifiSetBrightness()">Set</button>
+      </div>
+      <div class="control-row" id="wifi-controls-4" style="display:none;">
+        <label>Clock:</label>
+        <select id="wifi-clock-style">
+          <option value="1">Style 1</option>
+          <option value="2">Style 2</option>
+          <option value="3">Style 3</option>
+          <option value="4">Style 4</option>
+          <option value="5">Style 5</option>
+          <option value="6">Style 6</option>
+          <option value="7">Style 7</option>
+          <option value="8">Style 8</option>
+        </select>
+        <button onclick="wifiSetClockMode()">Show Clock</button>
+      </div>
+      <div class="control-row" id="wifi-controls-5" style="display:none;">
+        <button onclick="wifiCountdown()" style="background:#a50;">Countdown 1m</button>
+        <button onclick="wifiScoreboard()" style="background:#05a;">Score 0-0</button>
+        <button onclick="wifiStopwatch()" style="background:#0a5;">Stopwatch Start</button>
+        <button onclick="wifiExitMode()" style="background:#555;">Exit Mode</button>
+      </div>
+      <div class="control-row" id="wifi-controls-stream" style="display:none;">
+        <button id="wifi-stream-btn" onclick="wifiToggleStream()" style="background:#0aa; min-width: 140px;">Stream to Device</button>
+        <label style="margin-left: 8px;">FPS:</label>
+        <select id="wifi-stream-fps">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="8">8</option>
+          <option value="10">10 (Fast)</option>
+          <option value="15">15 (WiFi)</option>
+        </select>
+        <span id="wifi-stream-status" style="margin-left: 8px; color: #888;"></span>
+      </div>
+      <p style="font-size: 0.75em; color: #666; margin-top: 8px;">
+        Requires <code>python tools/wifi_bridge.py</code> running locally.
+        Connect your laptop to the iPIXEL WiFi AP first.
+      </p>
+    </div>
   </div>
 
   <div class="preview-container">
@@ -497,9 +571,11 @@
       });
     }
 
-    // Import BLE device module
+    // Import device modules
     import * as BLE from './src/ble-device.js';
+    import * as WIFI from './src/wifi-device.js';
     window.BLE = BLE; // Expose for debugging
+    window.WIFI = WIFI;
 
     // BLE connection functions
     window.connectBleDevice = async function() {
@@ -528,7 +604,11 @@
           logService('ble', 'auto_dimensions', dimensions);
         }
 
-        logService('ble', 'connect', { device: deviceName });
+        // Show notify status
+        const notifyStatus = BLE.hasNotify() ? ' (notify: ON)' : ' (notify: OFF)';
+        document.getElementById('ble-device-name').textContent = deviceName + notifyStatus;
+
+        logService('ble', 'connect', { device: deviceName, hasNotify: BLE.hasNotify() });
       } catch (e) {
         logService('ble', 'error', { message: e.message });
       }
@@ -962,10 +1042,21 @@
       info.nonBlackPixels = nonBlack.length;
       info.sampleNonBlack = nonBlack.slice(0, 5);
 
+      // Include BLE connection + notify state
+      if (BLE.isDeviceConnected()) {
+        info.ble = BLE.getConnectionState();
+        info.bleNotifyLog = BLE.getNotifyLog(5);
+      }
+
       console.log('Renderer state:', info);
       logService('debug', 'renderer', info);
       return info;
     };
+
+    // Log BLE notifications/ACKs
+    BLE.addEventListener('notify', (evt) => {
+      logService('ble', 'notify', { hex: evt.hex, length: evt.data.length });
+    });
 
     // Handle BLE disconnect events
     BLE.addEventListener('disconnect', () => {
@@ -996,6 +1087,231 @@
         <p style="color: #f88;">WebBluetooth is not available. Use Chrome or Edge on a supported platform.</p>
       `;
     }
+
+    // =========================================================================
+    // WiFi device connection functions
+    // =========================================================================
+
+    function showWifiControls(show) {
+      const ids = ['wifi-controls', 'wifi-controls-2', 'wifi-controls-3',
+                   'wifi-controls-4', 'wifi-controls-5', 'wifi-controls-stream'];
+      ids.forEach(id => {
+        document.getElementById(id).style.display = show ? 'flex' : 'none';
+      });
+    }
+
+    window.connectWifiDevice = async function() {
+      const wsUrl = document.getElementById('wifi-ws-url').value;
+      const width = parseInt(document.getElementById('wifi-width').value) || 64;
+      const height = parseInt(document.getElementById('wifi-height').value) || 16;
+
+      document.getElementById('wifi-status').textContent = 'Connecting...';
+      document.getElementById('wifi-status').style.color = '#ff0';
+
+      try {
+        await WIFI.connect(wsUrl, { width, height });
+        document.getElementById('wifi-status').textContent = 'Connected';
+        document.getElementById('wifi-status').style.color = '#4f4';
+        document.getElementById('wifi-connect-btn').style.display = 'none';
+        document.getElementById('wifi-disconnect-btn').style.display = 'inline-block';
+        showWifiControls(true);
+
+        // Update preview resolution
+        document.getElementById('preview-width').value = width;
+        document.getElementById('preview-height').value = height;
+        updateResolution();
+
+        logService('wifi', 'connect', { bridge: wsUrl, width, height });
+      } catch (e) {
+        document.getElementById('wifi-status').textContent = 'Failed';
+        document.getElementById('wifi-status').style.color = '#f44';
+        logService('wifi', 'error', { message: e.message });
+      }
+    };
+
+    window.disconnectWifiDevice = async function() {
+      await WIFI.disconnect();
+      document.getElementById('wifi-status').textContent = 'Disconnected';
+      document.getElementById('wifi-status').style.color = '#f44';
+      document.getElementById('wifi-connect-btn').style.display = 'inline-block';
+      document.getElementById('wifi-disconnect-btn').style.display = 'none';
+      showWifiControls(false);
+      logService('wifi', 'disconnect', {});
+    };
+
+    // Handle WiFi disconnect events
+    WIFI.addEventListener('disconnect', () => {
+      document.getElementById('wifi-status').textContent = 'Disconnected';
+      document.getElementById('wifi-status').style.color = '#f44';
+      document.getElementById('wifi-connect-btn').style.display = 'inline-block';
+      document.getElementById('wifi-disconnect-btn').style.display = 'none';
+      showWifiControls(false);
+      if (WIFI.isAnimationRunning()) {
+        WIFI.stopAnimation();
+        updateWifiStreamButton(false);
+      }
+    });
+
+    window.wifiPowerOn = async function() {
+      await WIFI.powerOn();
+      logService('wifi', 'power_on', {});
+    };
+
+    window.wifiPowerOff = async function() {
+      await WIFI.powerOff();
+      logService('wifi', 'power_off', {});
+    };
+
+    window.wifiSetBrightness = async function() {
+      const value = parseInt(document.getElementById('wifi-brightness').value);
+      await WIFI.setBrightness(value);
+      logService('wifi', 'set_brightness', { value });
+    };
+
+    document.getElementById('wifi-brightness').addEventListener('input', (e) => {
+      document.getElementById('wifi-brightness-value').textContent = e.target.value;
+    });
+
+    document.getElementById('wifi-brightness').addEventListener('change', () => {
+      if (WIFI.isConnected()) wifiSetBrightness();
+    });
+
+    window.wifiSyncTime = async function() {
+      await WIFI.syncTime();
+      logService('wifi', 'sync_time', {});
+    };
+
+    window.wifiSetClockMode = async function() {
+      const style = parseInt(document.getElementById('wifi-clock-style').value);
+      await WIFI.setClockMode(style, true, false);
+      logService('wifi', 'set_clock_mode', { style });
+    };
+
+    window.wifiClearDisplay = async function() {
+      await WIFI.clearDisplay();
+      logService('wifi', 'clear_display', {});
+    };
+
+    window.wifiTestPattern = async function() {
+      await WIFI.testPattern();
+      logService('wifi', 'test_pattern', { message: 'Red gradient sent' });
+    };
+
+    window.wifiCountdown = async function() {
+      await WIFI.setCountdownTimer(0, 1, 0);
+      logService('wifi', 'countdown', { minutes: 1 });
+    };
+
+    window.wifiScoreboard = async function() {
+      await WIFI.setScoreboard(0, 0);
+      logService('wifi', 'scoreboard', { a: 0, b: 0 });
+    };
+
+    window.wifiStopwatch = async function() {
+      await WIFI.setStopwatch(1);
+      logService('wifi', 'stopwatch', { mode: 'start' });
+    };
+
+    window.wifiExitMode = async function() {
+      await WIFI.exitMode();
+      logService('wifi', 'exit_mode', {});
+    };
+
+    window.wifiSendPreview = async function() {
+      const displayCard = document.getElementById('display-card');
+      if (!displayCard || !displayCard._renderer) {
+        logService('wifi', 'error', { message: 'No renderer available' });
+        return;
+      }
+      const renderer = displayCard._renderer;
+      const pixels = getRendererPixels(renderer);
+      const width = renderer.width;
+      const height = renderer.height;
+
+      if (pixels.length === 0) {
+        logService('wifi', 'error', { message: 'No pixels to send' });
+        return;
+      }
+
+      logService('wifi', 'send_preview', { width, height, pixelCount: pixels.length });
+      try {
+        await WIFI.sendImageCamera(pixels, width, height);
+        logService('wifi', 'send_preview_complete', { message: 'Image sent via WiFi' });
+      } catch (e) {
+        logService('wifi', 'error', { message: e.message });
+      }
+    };
+
+    // WiFi stream button
+    function updateWifiStreamButton(isStreaming) {
+      const btn = document.getElementById('wifi-stream-btn');
+      const status = document.getElementById('wifi-stream-status');
+      if (isStreaming) {
+        btn.textContent = 'Stop Stream';
+        btn.style.background = '#a00';
+        status.textContent = 'Streaming...';
+        status.style.color = '#4f4';
+      } else {
+        btn.textContent = 'Stream to Device';
+        btn.style.background = '#0aa';
+        status.textContent = '';
+      }
+    }
+
+    window.wifiToggleStream = async function() {
+      if (!WIFI.isConnected()) {
+        logService('wifi', 'error', { message: 'Not connected' });
+        return;
+      }
+
+      if (WIFI.isAnimationRunning()) {
+        WIFI.stopAnimation();
+        updateWifiStreamButton(false);
+        logService('wifi', 'stream_stopped', {});
+        return;
+      }
+
+      const displayCard = document.getElementById('display-card');
+      if (!displayCard || !displayCard._renderer) {
+        logService('wifi', 'error', { message: 'No renderer' });
+        return;
+      }
+
+      const renderer = displayCard._renderer;
+      const width = renderer.width;
+      const height = renderer.height;
+      const fps = parseInt(document.getElementById('wifi-stream-fps').value) || 5;
+      const getFramePixels = () => getRendererPixels(renderer);
+
+      logService('wifi', 'stream_starting', { width, height, fps });
+      try {
+        updateWifiStreamButton(true);
+        await WIFI.streamAnimation(getFramePixels, width, height, fps);
+      } catch (e) {
+        logService('wifi', 'stream_error', { message: e.message });
+      }
+      updateWifiStreamButton(false);
+    };
+
+    // Forward iPIXEL service calls to WiFi device when connected
+    const _origCallService = mockHass.callService;
+    mockHass.callService = async (domain, service, data) => {
+      await _origCallService(domain, service, data);
+
+      if (domain === 'ipixel_color' && WIFI.isConnected()) {
+        try {
+          if (service === 'display_text') {
+            logService('wifi', 'forwarding_display_text', data);
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            await wifiSendPreview();
+          }
+        } catch (e) {
+          logService('wifi', 'error', { message: e.message });
+        }
+      }
+    };
+
+    // =========================================================================
 
     // Import and initialize cards
     import('./src/index.js').then(() => {
