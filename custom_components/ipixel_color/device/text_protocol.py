@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -147,12 +148,27 @@ def render_char_bitmap(char: str, font_size: int = 16) -> tuple[bytes, int, int]
         img = Image.new("1", (font_size * 2, font_size), 0)
         draw = ImageDraw.Draw(img)
 
-        try:
-            font = ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size
-            )
-        except (OSError, IOError):
-            font = ImageFont.load_default()
+        # Try bundled fonts first (extracted from iPIXEL APK), then system fallbacks
+        font = None
+        bundled_fonts_dir = Path(__file__).parent.parent / "assets" / "fonts"
+        font_candidates = [
+            bundled_fonts_dir / "PixeloidSans.ttf",
+            bundled_fonts_dir / "ARIAL.TTF",
+            bundled_fonts_dir / "GoogleSans-Medium.ttf",
+        ]
+        for font_path in font_candidates:
+            try:
+                font = ImageFont.truetype(str(font_path), font_size)
+                break
+            except (OSError, IOError):
+                continue
+        if font is None:
+            try:
+                font = ImageFont.truetype(
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size
+                )
+            except (OSError, IOError):
+                font = ImageFont.load_default()
 
         bbox = draw.textbbox((0, 0), char, font=font)
         char_width = bbox[2] - bbox[0]

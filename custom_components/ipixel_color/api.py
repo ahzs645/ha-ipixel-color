@@ -57,6 +57,8 @@ from .device.commands import (
     make_reserve_slot_command,
     make_sport_data_command,
     make_dual_panel_command,
+    make_query_device_time_command,
+    make_query_device_datetime_command,
 )
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_plan
@@ -1591,6 +1593,42 @@ class iPIXELAPI:
 
         except Exception as err:
             _LOGGER.error("Error displaying image bytes: %s", err)
+            return False
+
+    async def query_device_time(self) -> bool:
+        """Send time-sync status query to device (getLedType2).
+
+        Sends current time and queries device clock state.
+
+        Returns:
+            True if query was sent successfully
+        """
+        try:
+            import datetime as dt
+            now = dt.datetime.now()
+            payload = make_query_device_time_command(now.hour, now.minute, now.second)
+            result = await self._bluetooth.send_command("query_device_time", payload)
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error querying device time: %s", err)
+            return False
+
+    async def query_device_datetime(self) -> bool:
+        """Send full date/time sync query to device (getLedTypeMecha).
+
+        Sends current date and time for full synchronization.
+
+        Returns:
+            True if query was sent successfully
+        """
+        try:
+            payload = make_query_device_datetime_command()
+            result = await self._bluetooth.send_command("query_device_datetime", payload)
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error querying device datetime: %s", err)
             return False
 
     async def display_image_url(

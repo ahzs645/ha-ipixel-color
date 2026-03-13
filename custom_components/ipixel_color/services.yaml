@@ -1467,3 +1467,27 @@ display_border:
           min: 1
           max: 255
           mode: box
+
+query_device_time:
+  name: Query Device Time
+  description: Send current time to device and query its clock state (getLedType2 command)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+
+query_device_datetime:
+  name: Query Device Date/Time
+  description: Send full date and time to device for synchronization (getLedTypeMecha command, more thorough than sync_time)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color

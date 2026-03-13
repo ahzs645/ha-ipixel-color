@@ -70,6 +70,8 @@ SERVICE_SET_SPORT_DATA = "set_sport_data"
 SERVICE_DISPLAY_GALLERY_ASSET = "display_gallery_asset"
 SERVICE_DISPLAY_NATIVE_TEXT = "display_native_text"
 SERVICE_DISPLAY_BORDER = "display_border"
+SERVICE_QUERY_DEVICE_TIME = "query_device_time"
+SERVICE_QUERY_DEVICE_DATETIME = "query_device_datetime"
 
 def rgb_to_hex(rgb) -> str:
     """Convert RGB array [r, g, b] to hex string 'rrggbb'."""
@@ -1049,6 +1051,32 @@ async def handle_display_border(call: ServiceCall) -> None:
     except Exception as err:
         _LOGGER.error("Error displaying border animation: %s", err)
 
+async def handle_query_device_time(call: ServiceCall) -> None:
+    """Handle query_device_time service call."""
+    api = get_api(call)
+
+    try:
+        success = await api.query_device_time()
+        if success:
+            _LOGGER.info("Device time query sent")
+        else:
+            _LOGGER.error("Failed to query device time")
+    except Exception as err:
+        _LOGGER.error("Error querying device time: %s", err)
+
+async def handle_query_device_datetime(call: ServiceCall) -> None:
+    """Handle query_device_datetime service call."""
+    api = get_api(call)
+
+    try:
+        success = await api.query_device_datetime()
+        if success:
+            _LOGGER.info("Device datetime query sent")
+        else:
+            _LOGGER.error("Failed to query device datetime")
+    except Exception as err:
+        _LOGGER.error("Error querying device datetime: %s", err)
+
 
 @callback
 def async_setup_services(hass: HomeAssistant) -> None:
@@ -1160,4 +1188,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
         hass.services.async_register(DOMAIN, SERVICE_DISPLAY_NATIVE_TEXT, handle_display_native_text)
     if not hass.services.has_service(DOMAIN, SERVICE_DISPLAY_BORDER):
         hass.services.async_register(DOMAIN, SERVICE_DISPLAY_BORDER, handle_display_border)
+    if not hass.services.has_service(DOMAIN, SERVICE_QUERY_DEVICE_TIME):
+        hass.services.async_register(DOMAIN, SERVICE_QUERY_DEVICE_TIME, handle_query_device_time)
+    if not hass.services.has_service(DOMAIN, SERVICE_QUERY_DEVICE_DATETIME):
+        hass.services.async_register(DOMAIN, SERVICE_QUERY_DEVICE_DATETIME, handle_query_device_datetime)
 

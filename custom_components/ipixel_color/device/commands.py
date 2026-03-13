@@ -1134,6 +1134,86 @@ def make_reserve_slot_command(slot: int) -> bytes:
     return bytes([0x07, 0x00, 0x08, 0x80, 0x01, 0x00, slot])
 
 
+def make_query_device_time_command(
+    hour: int, minute: int, second: int, mode: int = 0
+) -> bytes:
+    """Build device time-sync status query command (getLedType2).
+
+    Command format from APK reverse engineering:
+    [0x08, 0x00, 0x01, 0x80, hh, mm, ss, mode]
+
+    Sends current time to device and queries its LED type / time-sync state.
+
+    Args:
+        hour: Current hour (0-23)
+        minute: Current minute (0-59)
+        second: Current second (0-59)
+        mode: Query mode (0 = default)
+
+    Returns:
+        Command bytes for time-sync status query
+    """
+    return bytes([
+        0x08, 0x00, 0x01, 0x80,
+        hour & 0xFF, minute & 0xFF, second & 0xFF, mode & 0xFF,
+    ])
+
+
+def make_query_device_datetime_command(
+    year: int | None = None,
+    month: int | None = None,
+    day: int | None = None,
+    weekday: int | None = None,
+    hour: int | None = None,
+    minute: int | None = None,
+    second: int | None = None,
+) -> bytes:
+    """Build device full date/time status query command (getLedTypeMecha).
+
+    Command format from APK reverse engineering:
+    [0x0B, 0x00, 0x01, 0x80, yy, mm, dd, weekday, hh, mm, ss]
+
+    Sends current date and time to device for full synchronization.
+
+    Args:
+        year: Year (e.g. 2026). Defaults to current.
+        month: Month (1-12). Defaults to current.
+        day: Day (1-31). Defaults to current.
+        weekday: Day of week (1=Mon..7=Sun). Defaults to current.
+        hour: Hour (0-23). Defaults to current.
+        minute: Minute (0-59). Defaults to current.
+        second: Second (0-59). Defaults to current.
+
+    Returns:
+        Command bytes for full date/time sync query
+    """
+    import datetime as dt
+
+    now = dt.datetime.now()
+    if year is None:
+        year = now.year
+    if month is None:
+        month = now.month
+    if day is None:
+        day = now.day
+    if weekday is None:
+        weekday = now.isoweekday()
+    if hour is None:
+        hour = now.hour
+    if minute is None:
+        minute = now.minute
+    if second is None:
+        second = now.second
+
+    yy = (year - 2000) & 0xFF
+
+    return bytes([
+        0x0B, 0x00, 0x01, 0x80,
+        yy, month & 0xFF, day & 0xFF, weekday & 0xFF,
+        hour & 0xFF, minute & 0xFF, second & 0xFF,
+    ])
+
+
 def image_to_rgb_bytes(
     image_bytes: bytes,
     width: int,

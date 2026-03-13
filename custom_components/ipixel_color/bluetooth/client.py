@@ -28,7 +28,7 @@ except ImportError:
     CommandResult = None
     DeviceInfo = None
 
-from ..const import WRITE_UUID, NOTIFY_UUID
+from ..const import WRITE_UUID, NOTIFY_UUID, BLE_REQUESTED_MTU
 from ..exceptions import iPIXELConnectionError
 from ..device.info import build_device_info_command, handle_device_info_response
 
@@ -153,6 +153,28 @@ class BluetoothClient:
             await self._client.start_notify(NOTIFY_UUID, self._ack_mgr.make_notify_handler())
         except Exception as e:
             _LOGGER.warning(f"Failed to enable notifications on {NOTIFY_UUID}: {e}")
+
+        # Request MTU 512 after notify succeeds (matches official app behavior)
+        try:
+            current_mtu = self._client.mtu_size
+            if current_mtu < BLE_REQUESTED_MTU:
+                _LOGGER.debug(
+                    "Current MTU is %d, requesting %d", current_mtu, BLE_REQUESTED_MTU
+                )
+                # bleak handles MTU negotiation via the OS Bluetooth stack;
+                # on most platforms request_mtu triggers a negotiation
+                if hasattr(self._client, 'request_mtu'):
+                    await self._client.request_mtu(BLE_REQUESTED_MTU)
+                    _LOGGER.info("MTU negotiated to %d", self._client.mtu_size)
+                else:
+                    _LOGGER.debug(
+                        "MTU negotiation not supported on this platform (MTU=%d)",
+                        current_mtu,
+                    )
+            else:
+                _LOGGER.debug("MTU already at %d, no negotiation needed", current_mtu)
+        except Exception as e:
+            _LOGGER.debug("MTU negotiation failed (non-fatal): %s", e)
 
         # Fetch device info immediately after connecting
         await self._fetch_device_info()
