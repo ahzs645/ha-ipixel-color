@@ -935,12 +935,41 @@ export async function setOrientation(orientation) {
 }
 
 /**
- * Select a saved screen slot to display
- * @param {number} slot - Screen slot (1-9)
+ * Select visible screen buffer (1-9).
+ * This switches between the 9 screen "pages" on the device.
+ * @param {number} screen - Screen buffer number (1-9)
  */
-export async function selectScreen(slot) {
-  const s = Math.max(1, Math.min(9, slot));
+export async function selectScreen(screen) {
+  const s = Math.max(1, Math.min(9, screen));
   await sendCommand([0x05, 0x00, 0x07, 0x80, s]);
+}
+
+/**
+ * Show/play a saved slot's content on the display.
+ * Same packet shape as reserveSlot — the device interprets by context:
+ * if the slot has saved content it displays it, otherwise it reserves it.
+ * @param {number} slot - Saved slot number (1-255)
+ */
+export async function showSlot(slot) {
+  const s = Math.max(1, Math.min(255, slot));
+  await sendCommandWithAck([0x07, 0x00, 0x08, 0x80, 0x01, 0x00, s]);
+}
+
+/**
+ * Program mode: auto-cycle through a list of saved slots.
+ * The device loops through the given slots continuously.
+ * @param {number[]} slots - Array of slot numbers to cycle (max 9)
+ */
+export async function programMode(slots) {
+  if (!slots.length || slots.length > 9) throw new Error('1-9 slots required');
+  const totalLen = 6 + slots.length;
+  const cmd = [
+    totalLen & 0xFF, (totalLen >> 8) & 0xFF,
+    0x08, 0x80,
+    slots.length & 0xFF, (slots.length >> 8) & 0xFF,
+    ...slots.map(s => Math.max(1, Math.min(255, s)) & 0xFF),
+  ];
+  await sendCommand(cmd);
 }
 
 /**

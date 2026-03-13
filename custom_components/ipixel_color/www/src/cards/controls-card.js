@@ -226,12 +226,21 @@ export class iPIXELControlsCard extends iPIXELCardBase {
 
           <div class="section-title">Screen Slots</div>
           <div class="subsection">
-            <div class="subsection-title">Select Screen (1-9)</div>
+            <div class="subsection-title">Show Saved Slot</div>
             <div class="screen-grid" style="margin-bottom: 12px;">
               ${[1,2,3,4,5,6,7,8,9].map(n => {
                 const saved = this._getSavedSlot(n);
-                return `<button class="screen-btn${saved ? ' saved' : ''}" data-screen="${n}" title="${saved ? saved.name : 'Empty'}">${n}${saved ? '*' : ''}</button>`;
+                return `<button class="screen-btn${saved ? ' saved' : ''}" data-show-slot="${n}" title="${saved ? saved.name : 'Empty'}">${n}${saved ? '*' : ''}</button>`;
               }).join('')}
+            </div>
+            <div class="subsection-title">Auto-Cycle Slots</div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
+              <input type="text" class="text-input" id="program-slots" placeholder="e.g. 1,2,3" style="flex: 1;" value="${this._programSlots || ''}">
+              <button class="btn btn-secondary" id="program-mode-btn">Cycle</button>
+            </div>
+            <div class="subsection-title">Select Screen Buffer (1-9)</div>
+            <div class="screen-grid" style="margin-bottom: 12px;">
+              ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="screen-btn" data-screen="${n}">${n}</button>`).join('')}
             </div>
             <div class="subsection-title">Save Effect to Slot</div>
             <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
@@ -404,12 +413,31 @@ export class iPIXELControlsCard extends iPIXELCardBase {
       }
     });
 
+    // Show saved slot
+    this.shadowRoot.querySelectorAll('[data-show-slot]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const slot = parseInt(e.currentTarget.dataset.showSlot);
+        this.callService('ipixel_color', 'show_slot', { slot });
+        this.shadowRoot.querySelectorAll('[data-show-slot]').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+      });
+    });
+
+    // Program mode (auto-cycle)
+    this.shadowRoot.getElementById('program-mode-btn')?.addEventListener('click', () => {
+      const input = this.shadowRoot.getElementById('program-slots')?.value || '';
+      const slots = input.split(/[,\s]+/).map(Number).filter(n => n >= 1 && n <= 255);
+      if (slots.length) {
+        this._programSlots = input;
+        this.callService('ipixel_color', 'program_mode', { slots });
+      }
+    });
+
     // Screen buffer selection
     this.shadowRoot.querySelectorAll('[data-screen]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const screen = parseInt(e.currentTarget.dataset.screen);
-        this.callService('ipixel_color', 'set_screen', { screen: screen });
-        // Update active state
+        this.callService('ipixel_color', 'set_screen', { screen });
         this.shadowRoot.querySelectorAll('[data-screen]').forEach(b => b.classList.remove('active'));
         e.currentTarget.classList.add('active');
       });

@@ -521,6 +521,12 @@
             } else if (service === 'set_screen') {
               await BLE.selectScreen(data.screen);
               logService('ble', 'select_screen', data);
+            } else if (service === 'show_slot') {
+              await BLE.showSlot(data.slot);
+              logService('ble', 'show_slot', data);
+            } else if (service === 'program_mode') {
+              await BLE.programMode(data.slots);
+              logService('ble', 'program_mode', data);
             } else if (service === 'delete_screen') {
               await BLE.deleteScreen(data.slot);
               logService('ble', 'delete_screen', data);
