@@ -927,6 +927,15 @@
         const gifBytes = encodeGif(frames, width, height, gifDelay, 0);
         logService('ble', 'save_slot_encoded', { gifSize: gifBytes.length });
 
+        // Debug: auto-download the GIF so we can inspect it
+        const blob = new Blob([gifBytes], { type: 'image/gif' });
+        const dlUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = dlUrl; a.download = `ipixel_slot${slot}_${frames.length}f.gif`;
+        a.click();
+        URL.revokeObjectURL(dlUrl);
+        logService('debug', 'gif_downloaded', { filename: a.download });
+
         await BLE.saveGifToSlot(slot, gifBytes, progress);
       }
 
@@ -938,88 +947,120 @@
 
     // ── Play gallery GIF on display card preview ────────────────────────
 
-    let _gifAnimationId = null;
+    /**
+     * Decode a GIF into individual frames using the browser.
+     * Uses ImageDecoder API (Chrome 94+) with <img> fallback for single frame.
+     */
+    async function decodeGifFrames(url, targetW, targetH) {
+      const MAX_FRAMES = 120;
+      const resp = await fetch(url);
+      const blob = await resp.blob();
 
-    function playGifOnPreview(gifUrl) {
+      // Try the ImageDecoder API (Chromium 94+) for proper multi-frame decoding
+      if (typeof ImageDecoder !== 'undefined') {
+        const decoder = new ImageDecoder({ data: await blob.arrayBuffer(), type: 'image/gif' });
+        await decoder.tracks.ready;
+        const track = decoder.tracks.selectedTrack;
+        const frameCount = Math.min(track.frameCount, MAX_FRAMES);
+
+        const frames = [];
+        const offCanvas = new OffscreenCanvas(targetW, targetH);
+        const ctx = offCanvas.getContext('2d', { willReadFrequently: true });
+        let avgDelay = 100;
+
+        for (let i = 0; i < frameCount; i++) {
+          const result = await decoder.decode({ frameIndex: i });
+          ctx.imageSmoothingEnabled = false;
+          ctx.clearRect(0, 0, targetW, targetH);
+          ctx.drawImage(result.image, 0, 0, targetW, targetH);
+
+          if (i === 0 && result.image.duration) {
+            avgDelay = result.image.duration / 1000; // microseconds → ms
+          }
+
+          const imageData = ctx.getImageData(0, 0, targetW, targetH).data;
+          const pixels = [];
+          for (let j = 0; j < targetW * targetH; j++) {
+            const r = imageData[j * 4], g = imageData[j * 4 + 1], b = imageData[j * 4 + 2], a = imageData[j * 4 + 3];
+            pixels.push(a < 128 ? '#000000' : '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0'));
+          }
+          frames.push(pixels);
+          result.image.close();
+        }
+        decoder.close();
+        return { frames, delay: Math.max(20, avgDelay) };
+      }
+
+      // Fallback: single-frame via <img> + canvas
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = targetW; c.height = targetH;
+          const ctx = c.getContext('2d');
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+          const d = ctx.getImageData(0, 0, targetW, targetH).data;
+          const pixels = [];
+          for (let j = 0; j < targetW * targetH; j++) {
+            const r = d[j*4], g = d[j*4+1], b = d[j*4+2], a = d[j*4+3];
+            pixels.push(a < 128 ? '#000000' : '#' + r.toString(16).padStart(2,'0') + g.toString(16).padStart(2,'0') + b.toString(16).padStart(2,'0'));
+          }
+          resolve({ frames: [pixels], delay: 100 });
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(blob);
+      });
+    }
+
+    async function playGifOnPreview(gifUrl) {
       const displayCard = document.getElementById('display-card');
+      console.log('playGifOnPreview:', { hasCard: !!displayCard, hasRenderer: !!displayCard?._renderer, url: gifUrl });
       if (!displayCard || !displayCard._renderer) {
-        logService('gallery', 'error', { message: 'No display renderer' });
+        console.warn('playGifOnPreview: No display renderer found');
         return;
       }
 
-      // Stop any existing effect/animation on the renderer
       const renderer = displayCard._renderer;
-      renderer.stop();
+      console.log('playGifOnPreview: renderer', { width: renderer.width, height: renderer.height, hasPlayFrames: !!renderer.playFrames });
 
-      // Cancel previous GIF playback
-      if (_gifAnimationId) cancelAnimationFrame(_gifAnimationId);
+      try {
+        const { frames, delay } = await decodeGifFrames(gifUrl, renderer.width, renderer.height);
+        console.log('playGifOnPreview: decoded', frames.length, 'frames, delay:', delay);
 
-      // Use an offscreen canvas to decode GIF frames via the browser
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const w = renderer.width;
-        const h = renderer.height;
+        renderer.stopFrames?.();
+        renderer.stop();
 
-        // Draw the GIF image scaled to LED dimensions and extract pixels
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = w;
-        offCanvas.height = h;
-        const ctx = offCanvas.getContext('2d');
-
-        // For animated GIFs, use the image directly on the renderer's container
-        // by drawing it repeatedly. The browser decodes GIF frames natively.
-        // We'll read pixels from the canvas at each animation tick.
-        let lastFrameTime = 0;
-        const frameInterval = 100; // ~10fps read rate
-
-        function drawFrame(timestamp) {
-          if (timestamp - lastFrameTime >= frameInterval) {
-            lastFrameTime = timestamp;
-
-            // Draw current GIF frame to offscreen canvas (browser advances frames)
-            ctx.imageSmoothingEnabled = false;
-            ctx.clearRect(0, 0, w, h);
-            ctx.drawImage(img, 0, 0, w, h);
-
-            // Extract pixel data
-            const imageData = ctx.getImageData(0, 0, w, h).data;
-            const pixels = [];
-            for (let i = 0; i < w * h; i++) {
-              const r = imageData[i * 4];
-              const g = imageData[i * 4 + 1];
-              const b = imageData[i * 4 + 2];
-              const a = imageData[i * 4 + 3];
-              if (a < 128) {
-                pixels.push('#000000');
-              } else {
-                pixels.push('#' + r.toString(16).padStart(2, '0') +
-                                  g.toString(16).padStart(2, '0') +
-                                  b.toString(16).padStart(2, '0'));
-              }
-            }
-
-            // Feed pixels to renderer
-            renderer.setData(pixels);
-            renderer.setEffect('fixed', 50);
-            renderer.renderStatic();
-          }
-
-          _gifAnimationId = requestAnimationFrame(drawFrame);
+        if (renderer.playFrames) {
+          renderer.playFrames(frames, delay);
+          console.log('playGifOnPreview: playFrames started');
+        } else {
+          console.warn('playGifOnPreview: no playFrames, showing first frame only');
+          renderer.setData(frames[0]);
+          renderer.setEffect('fixed', 50);
+          renderer.renderStatic();
         }
-
-        _gifAnimationId = requestAnimationFrame(drawFrame);
-        logService('gallery', 'playing', { width: w, height: h, src: gifUrl });
-      };
-
-      img.onerror = () => {
-        logService('gallery', 'error', { message: 'Failed to load GIF', url: gifUrl });
-      };
-
-      img.src = gifUrl;
+      } catch (e) {
+        console.error('playGifOnPreview error:', e);
+      }
     }
 
     window.playGifOnPreview = playGifOnPreview;
+
+    // Debug: test sending a vendor gallery GIF to slot
+    // Usage from console: testGalleryUpload('96x16', 'yk_anim_en_16x96_1.gif', 1)
+    window.testGalleryUpload = async function(size, filename, slot = 1) {
+      const galleryBase = `${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)}gallery`;
+      const url = `${galleryBase}/${size}/${filename}`;
+      console.log('Fetching:', url);
+      const resp = await fetch(url);
+      const gifBytes = new Uint8Array(await resp.arrayBuffer());
+      console.log('GIF size:', gifBytes.length, 'bytes');
+      console.log('GIF header:', Array.from(gifBytes.slice(0, 6)).map(b => String.fromCharCode(b)).join(''));
+      await BLE.saveGifToSlot(slot, gifBytes, (stage, detail) => {
+        console.log('Upload:', stage, detail);
+      });
+    };
 
     // Update brightness display and auto-send on change
     document.getElementById('ble-brightness').addEventListener('input', (e) => {

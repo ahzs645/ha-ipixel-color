@@ -206,8 +206,8 @@ export function encodeGif(frames, width, height, delay = 10, loops = 0) {
   const paletteSize = 1 << paletteBits;
   const w = new ByteWriter();
 
-  // ── Header ──
-  w.writeString('GIF89a');
+  // Use GIF87a — vendor iPIXEL GIFs use this and device firmware handles it
+  w.writeString('GIF87a');
 
   // ── Logical Screen Descriptor ──
   w.writeU16(width);
@@ -227,20 +227,14 @@ export function encodeGif(frames, width, height, delay = 10, loops = 0) {
     }
   }
 
-  // ── Netscape looping extension ──
-  if (frames.length > 1) {
-    w.writeByte(0x21); w.writeByte(0xFF); w.writeByte(0x0B);
-    w.writeString('NETSCAPE2.0');
-    w.writeByte(0x03); w.writeByte(0x01);
-    w.writeU16(loops);
-    w.writeByte(0x00);
-  }
+  // No Netscape extension — iPIXEL device loops GIFs natively
 
   // ── Frames ──
   for (const frame of frames) {
     // Graphic Control Extension
+    // flags=0x04: disposal method 1 (do not dispose), no transparency
     w.writeByte(0x21); w.writeByte(0xF9); w.writeByte(0x04);
-    w.writeByte(0x00); // no disposal, no transparency
+    w.writeByte(0x04); // disposal=1 (don't dispose), no transparency
     w.writeU16(delay);
     w.writeByte(0x00); w.writeByte(0x00);
 

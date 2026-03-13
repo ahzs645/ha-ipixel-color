@@ -1296,17 +1296,20 @@ function crc32(data) {
  *   [0:2]  packet length (LE16)
  *   [2:4]  data type (LE16) — 2=image, 3=gif, 4=text
  *   [4]    option — 0=first chunk, 2=continuation
- *   [5:9]  total content length (LE32)
- *   [9:13] CRC32 of entire content (LE32)
+ *   [5:9]  chunk content length (LE32)
+ *   [9:13] CRC32 of this chunk's content (LE32)
  *   [13]   mode/storage flag (0 = normal save)
  *   [14]   slot index
  *   [15:]  content chunk bytes
+ *
+ * The device stores CRC from the first chunk header and verifies after
+ * assembling all chunks. content_length = total across all chunks.
  */
 function buildPayloadChannelPackets(dataType, content, slot, mode = 0) {
   const LOGICAL_CHUNK = 12288;
   const contentBytes = content instanceof Uint8Array ? content : new Uint8Array(content);
   const totalLen = contentBytes.length;
-  const contentCrc = crc32(contentBytes);
+  const totalCrc = crc32(contentBytes);
   const packets = [];
   const numChunks = Math.max(1, Math.ceil(totalLen / LOGICAL_CHUNK));
 
@@ -1323,18 +1326,18 @@ function buildPayloadChannelPackets(dataType, content, slot, mode = 0) {
     // Data type (LE16)
     pkt[2] = dataType & 0xFF;
     pkt[3] = (dataType >> 8) & 0xFF;
-    // Option
+    // Option: 0=first, 2=continuation
     pkt[4] = i === 0 ? 0 : 2;
     // Total content length (LE32)
     pkt[5] = totalLen & 0xFF;
     pkt[6] = (totalLen >> 8) & 0xFF;
     pkt[7] = (totalLen >> 16) & 0xFF;
     pkt[8] = (totalLen >> 24) & 0xFF;
-    // CRC32 (LE32)
-    pkt[9] = contentCrc & 0xFF;
-    pkt[10] = (contentCrc >> 8) & 0xFF;
-    pkt[11] = (contentCrc >> 16) & 0xFF;
-    pkt[12] = (contentCrc >> 24) & 0xFF;
+    // CRC32 of entire content (LE32)
+    pkt[9] = totalCrc & 0xFF;
+    pkt[10] = (totalCrc >> 8) & 0xFF;
+    pkt[11] = (totalCrc >> 16) & 0xFF;
+    pkt[12] = (totalCrc >> 24) & 0xFF;
     // Mode + slot
     pkt[13] = mode & 0xFF;
     pkt[14] = slot & 0xFF;
@@ -1344,33 +1347,6 @@ function buildPayloadChannelPackets(dataType, content, slot, mode = 0) {
     packets.push(pkt);
   }
   return packets;
-}
-
-/**
- * Send a logical payload chunk over BLE and wait for device ACK.
- * The APK waits for per-chunk ACKs — blasting without waiting causes CRC errors.
- */
-async function sendLargeDataAndWaitAck(data, timeout = 8000) {
-  // Set up ACK listener BEFORE sending
-  const ackPromise = notifyChar ? new Promise((resolve) => {
-    if (_pendingAck) {
-      clearTimeout(_pendingAck.timer);
-      _pendingAck.resolve(null);
-    }
-    const timer = setTimeout(() => {
-      _pendingAck = null;
-      resolve(null); // timeout
-    }, timeout);
-    _pendingAck = { resolve, reject: () => {}, timer };
-  }) : Promise.resolve(null);
-
-  await sendLargeData(data);
-
-  const ack = await ackPromise;
-  if (ack && ack.status === 0x03) {
-    throw new Error(`Device rejected chunk (CRC/transfer error)`);
-  }
-  return ack;
 }
 
 /**
@@ -1403,7 +1379,9 @@ export async function saveImageToSlot(slot, pixels, width, height, onProgress) {
   const packets = buildPayloadChannelPackets(2, rgb, slot); // type 2 = IMAGE
   for (let i = 0; i < packets.length; i++) {
     onProgress?.('upload', { chunk: i + 1, total: packets.length });
-    await sendLargeDataAndWaitAck(packets[i]);
+    await sendLargeData(packets[i]);
+    // Small delay between logical chunks — don't wait for ACK (device expects rapid flow)
+    if (i < packets.length - 1) await new Promise(r => setTimeout(r, 50));
   }
   onProgress?.('done', { slot });
 }
@@ -1421,11 +1399,16 @@ export async function saveGifToSlot(slot, gifBytes, onProgress) {
   await reserveSlot(slot);
   await new Promise(r => setTimeout(r, 150));
 
-  const packets = buildPayloadChannelPackets(3, gifBytes, slot); // type 3 = GIF
+  const packets = buildPayloadChannelPackets(3, gifBytes, slot, 0x02); // type 3 = GIF, mode 0x02
   for (let i = 0; i < packets.length; i++) {
     onProgress?.('upload', { chunk: i + 1, total: packets.length, bytes: packets[i].length });
-    await sendLargeDataAndWaitAck(packets[i]);
+    await sendLargeData(packets[i]);
+    if (i < packets.length - 1) await new Promise(r => setTimeout(r, 50));
   }
+
+  // Show the slot after upload so the device displays it
+  await new Promise(r => setTimeout(r, 200));
+  await showSlot(slot);
   onProgress?.('done', { slot, size: gifBytes.length });
 }
 

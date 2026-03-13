@@ -5,6 +5,9 @@
 
 import { iPIXELCardBase } from '../base.js';
 import { iPIXELCardStyles } from '../styles.js';
+// Ensure playFrames is not tree-shaken - it's needed for GIF preview playback
+import { LEDMatrixRenderer } from 'react-pixel-display/core';
+const _keepPlayFrames = LEDMatrixRenderer.prototype.playFrames;
 
 // Detect environment: HA uses /ipixel_color/gallery, preview uses symlinked ./gallery
 const isHA = typeof window !== 'undefined' && (
@@ -126,15 +129,110 @@ export class iPIXELGalleryCard extends iPIXELCardBase {
     return [...userGifs, ...bundled];
   }
 
+  // ── GIF preview on display renderer ──
+
+  async _playGifOnPreview(url) {
+    // Find the display card's renderer
+    const displayCard = document.querySelector('ipixel-display-card');
+    const renderer = displayCard?._renderer;
+    if (!renderer) {
+      console.warn('iPIXEL Gallery: No display renderer found for preview');
+      return;
+    }
+
+    const MAX_FRAMES = 120; // Cap to keep decode fast
+    const w = renderer.width, h = renderer.height;
+    console.info('iPIXEL Gallery: Decoding GIF for preview', { url: url.slice(-40), w, h });
+
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const frames = [];
+      let avgDelay = 100;
+
+      // Decode GIF frames using ImageDecoder API (Chrome 94+)
+      if (typeof ImageDecoder !== 'undefined') {
+        const decoder = new ImageDecoder({ data: await blob.arrayBuffer(), type: 'image/gif' });
+        await decoder.tracks.ready;
+        const total = Math.min(decoder.tracks.selectedTrack.frameCount, MAX_FRAMES);
+        const offCanvas = new OffscreenCanvas(w, h);
+        const ctx = offCanvas.getContext('2d', { willReadFrequently: true });
+
+        for (let i = 0; i < total; i++) {
+          const result = await decoder.decode({ frameIndex: i });
+          ctx.imageSmoothingEnabled = false;
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(result.image, 0, 0, w, h);
+          if (i === 0 && result.image.duration) avgDelay = result.image.duration / 1000;
+          const d = ctx.getImageData(0, 0, w, h).data;
+          const pixels = [];
+          for (let p = 0; p < w * h; p++) {
+            const ri = d[p*4], gi = d[p*4+1], bi = d[p*4+2], ai = d[p*4+3];
+            pixels.push(ai < 128 ? '#000000' : '#' + ri.toString(16).padStart(2,'0') + gi.toString(16).padStart(2,'0') + bi.toString(16).padStart(2,'0'));
+          }
+          frames.push(pixels);
+          result.image.close();
+        }
+        decoder.close();
+      } else {
+        // Fallback: single frame via <img>
+        const img = new Image();
+        img.src = URL.createObjectURL(blob);
+        await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, w, h);
+        const d = ctx.getImageData(0, 0, w, h).data;
+        const pixels = [];
+        for (let p = 0; p < w * h; p++) {
+          const ri = d[p*4], gi = d[p*4+1], bi = d[p*4+2], ai = d[p*4+3];
+          pixels.push(ai < 128 ? '#000000' : '#' + ri.toString(16).padStart(2,'0') + gi.toString(16).padStart(2,'0') + bi.toString(16).padStart(2,'0'));
+        }
+        frames.push(pixels);
+        URL.revokeObjectURL(img.src);
+      }
+
+      console.info('iPIXEL Gallery: Decoded', frames.length, 'frames, delay:', avgDelay);
+
+      // Stop any running effect and play the frames
+      renderer.stopFrames?.();
+      renderer.stop();
+      if (frames.length > 1 && renderer.playFrames) {
+        renderer.playFrames(frames, Math.max(20, avgDelay));
+      } else if (frames.length > 0) {
+        renderer.setData(frames[0]);
+        renderer.setEffect('fixed', 50);
+        renderer.renderStatic();
+      }
+    } catch (err) {
+      console.error('iPIXEL Gallery: GIF preview failed', err);
+    }
+  }
+
   // ── Send ──
 
   async _sendToDevice(item) {
     this._sending = item.name || item.file;
     this.render();
 
+    // Play on the preview display renderer
+    // For bundled items, the HA service call triggers preview.html's playGifOnPreview
+    // via the mock callService. For user items (data URLs), we play directly.
+    const previewUrl = item.type === 'user'
+      ? item.dataUrl
+      : `${GALLERY_BASE}/${this._selectedSize}/${item.file}`;
+
+    // Expose the URL so preview.html can use it, and play directly for user GIFs
+    // or when not in preview mode (HA environment)
+    if (item.type === 'user' || isHA) {
+      this._playGifOnPreview(previewUrl);
+    }
+    // In preview mode for bundled items, preview.html's mock callService handles the preview
+
     try {
       if (item.type === 'user') {
-        // Convert data URL to blob, upload via upload_gif service
         const resp = await fetch(item.dataUrl);
         const blob = await resp.blob();
         // Create a temporary object URL the backend can't access,
