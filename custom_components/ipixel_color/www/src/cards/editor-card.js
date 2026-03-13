@@ -67,10 +67,18 @@ export class iPIXELEditorCard extends iPIXELCardBase {
     const hadHass = !!this._hass;
     this._hass = hass;
 
-    // Only do full render on first hass set or config change
+    // Get resolution from device (or use defaults in test mode)
+    const [w, h] = this.getResolution();
+
     if (!hadHass) {
-      // Get resolution from device (or use defaults in test mode)
-      const [w, h] = this.getResolution();
+      // First hass set — initialize
+      this._width = w;
+      this._height = h;
+      this._logicalCanvas.width = w;
+      this._logicalCanvas.height = h;
+      this.render();
+    } else if (w !== this._width || h !== this._height) {
+      // Resolution changed (e.g. BLE auto-detect) — update
       this._width = w;
       this._height = h;
       this._logicalCanvas.width = w;
