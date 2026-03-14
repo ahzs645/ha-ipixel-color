@@ -1350,6 +1350,55 @@ function buildPayloadChannelPackets(dataType, content, slot, mode = 0) {
 }
 
 /**
+ * Send data using writeValue (with BLE response) — slower but reliable.
+ * pypixelcolor uses this for slot saves: write_gatt_char(uuid, chunk, response=True)
+ */
+async function sendLargeDataReliable(data) {
+  const BLE_CHUNK_SIZE = 244;
+  const uint8Data = data instanceof Uint8Array ? data : new Uint8Array(data);
+  const totalChunks = Math.ceil(uint8Data.length / BLE_CHUNK_SIZE);
+
+  console.log(`iPIXEL BLE: sendReliable ${uint8Data.length} bytes in ${totalChunks} chunks`);
+
+  for (let chunkNum = 0; chunkNum < totalChunks; chunkNum++) {
+    const pos = chunkNum * BLE_CHUNK_SIZE;
+    const end = Math.min(pos + BLE_CHUNK_SIZE, uint8Data.length);
+    const chunk = uint8Data.slice(pos, end);
+
+    if (!isDeviceConnected() || !characteristic) {
+      throw new Error('Not connected to device');
+    }
+    // Use writeValueWithResponse — guarantees delivery before next write
+    // (matches pypixelcolor's write_gatt_char(response=True))
+    if (typeof characteristic.writeValueWithResponse === 'function') {
+      await characteristic.writeValueWithResponse(chunk);
+    } else {
+      await characteristic.writeValue(chunk);
+    }
+
+    if ((chunkNum + 1) % 10 === 0 || chunkNum === totalChunks - 1) {
+      console.log(`iPIXEL BLE: Sent chunk ${chunkNum + 1}/${totalChunks}`);
+    }
+  }
+}
+
+/**
+ * Wait for a device notification ACK (window-level).
+ * Returns the ACK or null on timeout.
+ */
+function waitForWindowAck(timeout = 8000) {
+  if (!notifyChar) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    if (_pendingAck) {
+      clearTimeout(_pendingAck.timer);
+      _pendingAck.resolve(null);
+    }
+    const timer = setTimeout(() => { _pendingAck = null; resolve(null); }, timeout);
+    _pendingAck = { resolve, reject: () => {}, timer };
+  });
+}
+
+/**
  * Save raw RGB image data to a device slot.
  * @param {number} slot  Slot number (1-255)
  * @param {string[]} pixels  Hex color strings (#RRGGBB)
@@ -1379,9 +1428,9 @@ export async function saveImageToSlot(slot, pixels, width, height, onProgress) {
   const packets = buildPayloadChannelPackets(2, rgb, slot); // type 2 = IMAGE
   for (let i = 0; i < packets.length; i++) {
     onProgress?.('upload', { chunk: i + 1, total: packets.length });
-    await sendLargeData(packets[i]);
-    // Small delay between logical chunks — don't wait for ACK (device expects rapid flow)
-    if (i < packets.length - 1) await new Promise(r => setTimeout(r, 50));
+    const ackPromise = waitForWindowAck();
+    await sendLargeDataReliable(packets[i]);
+    await ackPromise; // wait for device ACK before next window
   }
   onProgress?.('done', { slot });
 }
@@ -1402,8 +1451,9 @@ export async function saveGifToSlot(slot, gifBytes, onProgress) {
   const packets = buildPayloadChannelPackets(3, gifBytes, slot, 0x02); // type 3 = GIF, mode 0x02
   for (let i = 0; i < packets.length; i++) {
     onProgress?.('upload', { chunk: i + 1, total: packets.length, bytes: packets[i].length });
-    await sendLargeData(packets[i]);
-    if (i < packets.length - 1) await new Promise(r => setTimeout(r, 50));
+    const ackPromise = waitForWindowAck();
+    await sendLargeDataReliable(packets[i]);
+    await ackPromise; // wait for device ACK before next window
   }
 
   // Show the slot after upload so the device displays it

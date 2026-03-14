@@ -569,11 +569,34 @@
             } else if (service === 'set_font_offset') {
               await BLE.sendCommand([0x06, 0x00, 0x0D, 0x01, data.x & 0xFF, data.y & 0xFF]);
               logService('ble', 'set_font_offset', data);
-            } else if (service === 'save_to_slot') {
-              await saveEffectToSlot(data.slot, data.type, data.frames, data.delay);
             }
           } catch (e) {
             logService('ble', 'error', { message: e.message });
+          }
+        }
+
+        // Save effect to slot — capture + encode always, BLE upload if connected
+        if (domain === 'ipixel_color' && service === 'save_to_slot') {
+          try {
+            await saveEffectToSlot(data.slot, data.type, data.frames, data.delay);
+          } catch (e) {
+            logService('save', 'error', { message: e.message });
+          }
+        }
+
+        // Upload user-generated GIF (data URL from gallery card)
+        if (domain === 'ipixel_color' && service === 'upload_gif' && BLE.isDeviceConnected()) {
+          try {
+            const dataUrl = data.gif_url;
+            const resp = await fetch(dataUrl);
+            const gifBytes = new Uint8Array(await resp.arrayBuffer());
+            logService('ble', 'upload_gif', { size: gifBytes.length });
+            const slot = data.buffer_slot || 1;
+            await BLE.saveGifToSlot(slot, gifBytes, (stage, detail) => {
+              logService('ble', 'upload_gif_' + stage, detail);
+            });
+          } catch (e) {
+            logService('ble', 'upload_gif_error', { message: e.message });
           }
         }
 
@@ -927,16 +950,11 @@
         const gifBytes = encodeGif(frames, width, height, gifDelay, 0);
         logService('ble', 'save_slot_encoded', { gifSize: gifBytes.length });
 
-        // Debug: auto-download the GIF so we can inspect it
-        const blob = new Blob([gifBytes], { type: 'image/gif' });
-        const dlUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = dlUrl; a.download = `ipixel_slot${slot}_${frames.length}f.gif`;
-        a.click();
-        URL.revokeObjectURL(dlUrl);
-        logService('debug', 'gif_downloaded', { filename: a.download });
-
-        await BLE.saveGifToSlot(slot, gifBytes, progress);
+        if (BLE.isDeviceConnected()) {
+          await BLE.saveGifToSlot(slot, gifBytes, progress);
+        } else {
+          logService('save', 'no_ble', { message: 'BLE not connected — GIF encoded but not uploaded' });
+        }
       }
 
       logService('ble', 'save_slot_complete', { slot, type });
