@@ -73,6 +73,13 @@ SERVICE_DISPLAY_BORDER = "display_border"
 SERVICE_QUERY_DEVICE_TIME = "query_device_time"
 SERVICE_QUERY_DEVICE_DATETIME = "query_device_datetime"
 SERVICE_DISPLAY_LOCAL_GALLERY = "display_local_gallery"
+# New features from APK decompilation (alarm, timing, template, corrected commands)
+SERVICE_SET_ALARM_CLOCK = "set_alarm_clock"
+SERVICE_SET_TIMING = "set_timing"
+SERVICE_SEND_TEMPLATE = "send_template"
+SERVICE_GET_HW_INFO = "get_hw_info"
+SERVICE_SET_TEXT_SPEED = "set_text_speed"
+SERVICE_SEND_RHYTHM_EQ = "send_rhythm_eq"
 
 def rgb_to_hex(rgb) -> str:
     """Convert RGB array [r, g, b] to hex string 'rrggbb'."""
@@ -1099,6 +1106,189 @@ async def handle_query_device_datetime(call: ServiceCall) -> None:
         _LOGGER.error("Error querying device datetime: %s", err)
 
 
+async def handle_set_alarm_clock(call: ServiceCall) -> None:
+    """Handle set_alarm_clock service call."""
+    api = get_api(call)
+
+    slot = call.data.get("slot", 0)
+    hour = call.data.get("hour", 7)
+    minute = call.data.get("minute", 0)
+    enabled = call.data.get("enabled", True)
+    buzzer = call.data.get("buzzer", False)
+    duration_index = call.data.get("duration_index", 0)
+    image_url = call.data.get("image_url", "")
+
+    # Parse weekdays
+    weekdays_raw = call.data.get("weekdays", None)
+    weekdays = None
+    if weekdays_raw:
+        if isinstance(weekdays_raw, str):
+            day_map = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+            weekdays = [False] * 7
+            for d in weekdays_raw.lower().replace(" ", "").split(","):
+                if d in day_map:
+                    weekdays[day_map[d]] = True
+        elif isinstance(weekdays_raw, list):
+            if all(isinstance(d, bool) for d in weekdays_raw):
+                weekdays = weekdays_raw
+            else:
+                day_map = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+                weekdays = [False] * 7
+                for d in weekdays_raw:
+                    if isinstance(d, str) and d.lower() in day_map:
+                        weekdays[day_map[d.lower()]] = True
+
+    try:
+        # Download image if URL provided
+        if image_url:
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get(image_url) as resp:
+                    image_data = await resp.read()
+        else:
+            # Send a minimal 1-pixel placeholder if no image
+            image_data = bytes([0xFF, 0xFF, 0xFF])
+
+        success = await api.set_alarm_clock(
+            slot=slot, hour=hour, minute=minute,
+            image_data=image_data, enabled=enabled,
+            weekdays=weekdays, duration_index=duration_index,
+            buzzer=buzzer,
+        )
+        if success:
+            _LOGGER.info("Alarm clock set: slot=%d, %02d:%02d", slot, hour, minute)
+        else:
+            _LOGGER.error("Failed to set alarm clock")
+    except Exception as err:
+        _LOGGER.error("Error setting alarm clock: %s", err)
+
+
+async def handle_set_timing(call: ServiceCall) -> None:
+    """Handle set_timing service call."""
+    api = get_api(call)
+
+    slot = call.data.get("slot", 0)
+    hour = call.data.get("hour", 7)
+    minute = call.data.get("minute", 0)
+    enabled = call.data.get("enabled", True)
+    buzzer = call.data.get("buzzer", False)
+
+    # Parse weekdays
+    weekdays_raw = call.data.get("weekdays", None)
+    weekdays = None
+    if weekdays_raw:
+        if isinstance(weekdays_raw, str):
+            day_map = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+            weekdays = [False] * 7
+            for d in weekdays_raw.lower().replace(" ", "").split(","):
+                if d in day_map:
+                    weekdays[day_map[d]] = True
+        elif isinstance(weekdays_raw, list):
+            if all(isinstance(d, bool) for d in weekdays_raw):
+                weekdays = weekdays_raw
+            else:
+                day_map = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+                weekdays = [False] * 7
+                for d in weekdays_raw:
+                    if isinstance(d, str) and d.lower() in day_map:
+                        weekdays[day_map[d.lower()]] = True
+
+    try:
+        success = await api.set_timing(
+            slot=slot, hour=hour, minute=minute,
+            enabled=enabled, weekdays=weekdays, buzzer=buzzer,
+        )
+        if success:
+            _LOGGER.info("Timer set: slot=%d, %02d:%02d", slot, hour, minute)
+        else:
+            _LOGGER.error("Failed to set timer")
+    except Exception as err:
+        _LOGGER.error("Error setting timer: %s", err)
+
+
+async def handle_send_template(call: ServiceCall) -> None:
+    """Handle send_template service call."""
+    api = get_api(call)
+
+    zones_raw = call.data.get("zones", [])
+    channel_index = call.data.get("channel_index", 1)
+    save_to_device = call.data.get("save_to_device", True)
+
+    try:
+        # Convert zone dicts - data field may be hex string
+        zones = []
+        for z in zones_raw:
+            zone = dict(z)
+            if "data" in zone and isinstance(zone["data"], str):
+                zone["data"] = bytes.fromhex(zone["data"].replace(" ", ""))
+            elif "data" not in zone:
+                zone["data"] = b""
+            zones.append(zone)
+
+        success = await api.send_template(
+            zones=zones,
+            channel_index=channel_index,
+            save_to_device=save_to_device,
+        )
+        if success:
+            _LOGGER.info("Template sent: %d zones", len(zones))
+        else:
+            _LOGGER.error("Failed to send template")
+    except Exception as err:
+        _LOGGER.error("Error sending template: %s", err)
+
+
+async def handle_get_hw_info(call: ServiceCall) -> None:
+    """Handle get_hw_info service call."""
+    api = get_api(call)
+    try:
+        success = await api.get_hw_info()
+        if success:
+            _LOGGER.info("Hardware info requested")
+        else:
+            _LOGGER.error("Failed to request hardware info")
+    except Exception as err:
+        _LOGGER.error("Error requesting hardware info: %s", err)
+
+
+async def handle_set_text_speed(call: ServiceCall) -> None:
+    """Handle set_text_speed service call."""
+    api = get_api(call)
+    speed = call.data.get("speed", 50)
+
+    try:
+        success = await api.set_text_speed(speed)
+        if success:
+            _LOGGER.info("Text speed set to %d", speed)
+        else:
+            _LOGGER.error("Failed to set text speed")
+    except Exception as err:
+        _LOGGER.error("Error setting text speed: %s", err)
+
+
+async def handle_send_rhythm_eq(call: ServiceCall) -> None:
+    """Handle send_rhythm_eq service call."""
+    api = get_api(call)
+    mode = call.data.get("mode", 0)
+    levels_raw = call.data.get("levels", "")
+
+    try:
+        if isinstance(levels_raw, str):
+            levels = [int(x.strip()) for x in levels_raw.split(",")]
+        elif isinstance(levels_raw, list):
+            levels = [int(x) for x in levels_raw]
+        else:
+            raise ValueError("levels must be comma-separated string or list")
+
+        success = await api.send_rhythm_eq(mode, levels)
+        if success:
+            _LOGGER.info("Rhythm EQ sent: mode=%d", mode)
+        else:
+            _LOGGER.error("Failed to send rhythm EQ")
+    except Exception as err:
+        _LOGGER.error("Error sending rhythm EQ: %s", err)
+
+
 @callback
 def async_setup_services(hass: HomeAssistant) -> None:
     """Register iPIXEL services."""
@@ -1215,4 +1405,17 @@ def async_setup_services(hass: HomeAssistant) -> None:
         hass.services.async_register(DOMAIN, SERVICE_QUERY_DEVICE_TIME, handle_query_device_time)
     if not hass.services.has_service(DOMAIN, SERVICE_QUERY_DEVICE_DATETIME):
         hass.services.async_register(DOMAIN, SERVICE_QUERY_DEVICE_DATETIME, handle_query_device_datetime)
+    # New features from APK decompilation (alarm, timing, template, corrected commands)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_ALARM_CLOCK):
+        hass.services.async_register(DOMAIN, SERVICE_SET_ALARM_CLOCK, handle_set_alarm_clock)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_TIMING):
+        hass.services.async_register(DOMAIN, SERVICE_SET_TIMING, handle_set_timing)
+    if not hass.services.has_service(DOMAIN, SERVICE_SEND_TEMPLATE):
+        hass.services.async_register(DOMAIN, SERVICE_SEND_TEMPLATE, handle_send_template)
+    if not hass.services.has_service(DOMAIN, SERVICE_GET_HW_INFO):
+        hass.services.async_register(DOMAIN, SERVICE_GET_HW_INFO, handle_get_hw_info)
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_TEXT_SPEED):
+        hass.services.async_register(DOMAIN, SERVICE_SET_TEXT_SPEED, handle_set_text_speed)
+    if not hass.services.has_service(DOMAIN, SERVICE_SEND_RHYTHM_EQ):
+        hass.services.async_register(DOMAIN, SERVICE_SEND_RHYTHM_EQ, handle_send_rhythm_eq)
 

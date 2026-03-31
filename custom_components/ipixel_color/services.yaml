@@ -1525,3 +1525,273 @@ query_device_datetime:
       selector:
         device:
           integration: ipixel_color
+
+# New features from APK decompilation
+
+set_alarm_clock:
+  name: Set Alarm Clock
+  description: Set a device-side alarm that displays an image and optionally buzzes at the scheduled time. Supports up to 10 alarms with weekday repeat patterns.
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    slot:
+      name: Alarm Slot
+      description: Alarm slot index (0-9, max 10 alarms)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 9
+          mode: box
+    hour:
+      name: Hour
+      description: Alarm hour (0-23)
+      required: true
+      default: 7
+      selector:
+        number:
+          min: 0
+          max: 23
+          mode: box
+    minute:
+      name: Minute
+      description: Alarm minute (0-59)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+    enabled:
+      name: Enabled
+      description: Whether this alarm is active
+      required: false
+      default: true
+      selector:
+        boolean:
+    buzzer:
+      name: Buzzer
+      description: Enable buzzer sound when alarm fires
+      required: false
+      default: false
+      selector:
+        boolean:
+    duration_index:
+      name: Display Duration
+      description: "How long to show alarm image: 0=10s, 1=30s, 2=1min, 3=5min, 4=15min"
+      required: false
+      default: 0
+      selector:
+        select:
+          options:
+            - label: "10 seconds"
+              value: "0"
+            - label: "30 seconds"
+              value: "1"
+            - label: "1 minute"
+              value: "2"
+            - label: "5 minutes"
+              value: "3"
+            - label: "15 minutes"
+              value: "4"
+    weekdays:
+      name: Repeat Days
+      description: "Days to repeat (comma-separated: mon,tue,wed,thu,fri,sat,sun). Leave empty for one-shot."
+      required: false
+      example: "mon,tue,wed,thu,fri"
+      selector:
+        text:
+    image_url:
+      name: Image URL
+      description: URL of image to display when alarm fires (PNG, JPG, GIF)
+      required: false
+      example: "https://example.com/alarm-image.png"
+      selector:
+        text:
+
+set_timing:
+  name: Set Device Timer
+  description: Set a lightweight on/off timer on the device. Supports up to 10 timers with weekday repeat patterns. No image payload — the device turns on or buzzes at the scheduled time.
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    slot:
+      name: Timer Slot
+      description: Timer slot index (0-9, max 10 timers)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 9
+          mode: box
+    hour:
+      name: Hour
+      description: Timer hour (0-23)
+      required: true
+      default: 7
+      selector:
+        number:
+          min: 0
+          max: 23
+          mode: box
+    minute:
+      name: Minute
+      description: Timer minute (0-59)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+    enabled:
+      name: Enabled
+      description: Whether this timer is active
+      required: false
+      default: true
+      selector:
+        boolean:
+    buzzer:
+      name: Buzzer
+      description: Enable buzzer sound when timer fires
+      required: false
+      default: false
+      selector:
+        boolean:
+    weekdays:
+      name: Repeat Days
+      description: "Days to repeat (comma-separated: mon,tue,wed,thu,fri,sat,sun). Leave empty for one-shot."
+      required: false
+      example: "mon,wed,fri"
+      selector:
+        text:
+
+send_template:
+  name: Send Template
+  description: Send a multi-zone template layout to the device. Supports 2-3 zones with independent content (text, image, animation) in each zone.
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    zones:
+      name: Zones
+      description: |
+        List of zone objects. Each zone has:
+        - content_type: 0=empty, 1=animation, 2=image (BGR), 3=text
+        - x, y: position on LED matrix
+        - width, height: zone dimensions
+        - data: content bytes as hex string
+        - border_index, border_speed, border_effect: optional border styling (text zones only)
+      required: true
+      example: |
+        - content_type: 3
+          x: 0
+          y: 0
+          width: 64
+          height: 16
+          data: "48656C6C6F"
+        - content_type: 3
+          x: 0
+          y: 16
+          width: 64
+          height: 16
+          data: "576F726C64"
+      selector:
+        object:
+    channel_index:
+      name: Channel/Slot
+      description: Device slot to save the template to (1-255)
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box
+    save_to_device:
+      name: Save to Device
+      description: Persist template on device (true) or preview only (false)
+      required: false
+      default: true
+      selector:
+        boolean:
+
+get_hw_info:
+  name: Get Hardware Info
+  description: Request hardware information from the device (corrected command from APK decompilation)
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+
+set_text_speed:
+  name: Set Text Speed
+  description: Change text scroll speed without resending text data. Useful for adjusting speed of already-displayed scrolling text.
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    speed:
+      name: Speed
+      description: Text scroll speed (0-100)
+      required: true
+      default: 50
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+
+send_rhythm_eq:
+  name: Send Rhythm EQ
+  description: Send rhythm equalizer visualization with 11 frequency band levels. Updates the audio visualizer bars in real-time.
+  fields:
+    device_id:
+      name: Device
+      description: Target iPIXEL device
+      required: true
+      selector:
+        device:
+          integration: ipixel_color
+    mode:
+      name: Mode
+      description: Rhythm visualizer style (0-4)
+      required: true
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 4
+          mode: box
+    levels:
+      name: Frequency Levels
+      description: "11 frequency band levels (0-255 each), comma-separated. Scaled to device range (1-15) automatically."
+      required: true
+      example: "128,200,255,180,150,120,100,80,60,40,20"
+      selector:
+        text:

@@ -1254,3 +1254,493 @@ def image_to_rgb_bytes(
             rgb_data.append(b)
 
     return bytes(rgb_data)
+
+
+# =============================================================================
+# Device Alarm Clock Protocol (from APK decompilation)
+# =============================================================================
+
+# Duration mapping for alarm clock display
+ALARM_DURATION_MAP = {
+    0: 10,    # 10 seconds
+    1: 30,    # 30 seconds
+    2: 60,    # 1 minute
+    3: 300,   # 5 minutes
+    4: 900,   # 15 minutes
+}
+
+MAX_ALARMS = 10
+MAX_TIMERS = 10
+
+
+def _encode_week_bitmask(enabled: bool, weekdays: list[bool] | None = None) -> int:
+    """Encode enabled flag + weekday repeat pattern into a single byte.
+
+    Bit layout (LSB first):
+        bit 0 = enabled (1=active, 0=disabled)
+        bit 1 = Monday
+        bit 2 = Tuesday
+        bit 3 = Wednesday
+        bit 4 = Thursday
+        bit 5 = Friday
+        bit 6 = Saturday
+        bit 7 = Sunday
+
+    Args:
+        enabled: Whether the alarm/timer is active.
+        weekdays: List of 7 booleans [Mon, Tue, Wed, Thu, Fri, Sat, Sun].
+                  None or empty means one-shot (no repeat).
+
+    Returns:
+        Single byte encoding enabled + day flags.
+    """
+    week = 0
+    if enabled:
+        week |= 0x01
+    if weekdays:
+        if len(weekdays) != 7:
+            raise ValueError("weekdays must be a list of 7 booleans [Mon..Sun]")
+        for i, day in enumerate(weekdays):
+            if day:
+                week |= (1 << (i + 1))
+    return week & 0xFF
+
+
+def _int2byte(value: int) -> bytes:
+    """Convert int to 4-byte little-endian (matches APK int2byte)."""
+    return (value & 0xFFFFFFFF).to_bytes(4, 'little')
+
+
+def make_alarm_clock_command(
+    slot: int,
+    hour: int,
+    minute: int,
+    image_data: bytes,
+    enabled: bool = True,
+    weekdays: list[bool] | None = None,
+    duration_index: int = 0,
+    content_type: int = 1,
+    buzzer: bool = False,
+    option: int = 0,
+) -> bytes:
+    """Build alarm clock packet with image payload.
+
+    Protocol from APK SendCore.payLoadAlarmClockData() (24-byte header + data).
+    The image_data should already be chunked to getLedFrameSize().
+
+    Args:
+        slot: Alarm slot index (0-9).
+        hour: Hour (0-23).
+        minute: Minute (0-59).
+        image_data: Image data chunk for this packet.
+        enabled: Whether alarm is active.
+        weekdays: Repeat days [Mon..Sun], None for one-shot.
+        duration_index: Display duration (0=10s, 1=30s, 2=60s, 3=5min, 4=15min).
+        content_type: 1=file image, 2=raw pixel data.
+        buzzer: Enable buzzer sound.
+        option: 0=first chunk, 2=continuation chunk.
+
+    Returns:
+        Command bytes for alarm clock with image payload.
+    """
+    if slot < 0 or slot >= MAX_ALARMS:
+        raise ValueError(f"Alarm slot must be 0-{MAX_ALARMS - 1}")
+    if hour < 0 or hour > 23:
+        raise ValueError("Hour must be 0-23")
+    if minute < 0 or minute > 59:
+        raise ValueError("Minute must be 0-59")
+    if duration_index not in ALARM_DURATION_MAP:
+        raise ValueError(f"Duration index must be one of {list(ALARM_DURATION_MAP.keys())}")
+
+    duration_seconds = ALARM_DURATION_MAP[duration_index]
+    week = _encode_week_bitmask(enabled, weekdays)
+
+    total_len = len(image_data) + 24
+    header = bytearray(24)
+
+    # [0-1] packet length (LE)
+    header[0] = total_len & 0xFF
+    header[1] = (total_len >> 8) & 0xFF
+    # [2] fixed zero
+    header[2] = 0x00
+    # [3] command flag
+    header[3] = 0x80
+    # [4] alarm slot
+    header[4] = slot & 0xFF
+    # [5] week bitmask
+    header[5] = week
+    # [6] hour
+    header[6] = hour & 0xFF
+    # [7] minute
+    header[7] = minute & 0xFF
+    # [8-9] duration in seconds (LE)
+    header[8] = duration_seconds & 0xFF
+    header[9] = (duration_seconds >> 8) & 0xFF
+    # [10] content type
+    header[10] = content_type & 0xFF
+    # [11] buzzer
+    header[11] = 0x01 if buzzer else 0x00
+    # [12] option (first=0, continue=2)
+    header[12] = option & 0xFF
+    # [13-16] total image data length (LE)
+    header[13:17] = _int2byte(len(image_data))
+    # [17-20] CRC32 of image data (LE)
+    crc = zlib.crc32(image_data) & 0xFFFFFFFF
+    header[17:21] = _int2byte(crc)
+    # [21-22] reserved
+    header[21] = 0x00
+    header[22] = 0x00
+    # [23] slot offset (num + 120)
+    header[23] = (slot + 120) & 0xFF
+
+    return bytes(header) + image_data
+
+
+def make_alarm_clock_plan(
+    slot: int,
+    hour: int,
+    minute: int,
+    image_data: bytes,
+    enabled: bool = True,
+    weekdays: list[bool] | None = None,
+    duration_index: int = 0,
+    content_type: int = 1,
+    buzzer: bool = False,
+    chunk_size: int = 4096,
+) -> SendPlan:
+    """Build a SendPlan for alarm clock with chunked image upload.
+
+    Args:
+        slot: Alarm slot index (0-9).
+        hour: Hour (0-23).
+        minute: Minute (0-59).
+        image_data: Complete image data to upload.
+        enabled: Whether alarm is active.
+        weekdays: Repeat days [Mon..Sun], None for one-shot.
+        duration_index: Display duration index.
+        content_type: 1=file image, 2=raw pixel data.
+        buzzer: Enable buzzer sound.
+        chunk_size: Bytes per chunk (4096 for BLE, 12288 for WiFi).
+
+    Returns:
+        SendPlan for chunked alarm clock upload.
+    """
+    windows = []
+    total_crc = zlib.crc32(image_data) & 0xFFFFFFFF
+    duration_seconds = ALARM_DURATION_MAP.get(duration_index, 10)
+    week = _encode_week_bitmask(enabled, weekdays)
+
+    for i in range(0, len(image_data), chunk_size):
+        chunk = image_data[i:i + chunk_size]
+        option = 0 if i == 0 else 2
+
+        total_len = len(chunk) + 24
+        header = bytearray(24)
+        header[0] = total_len & 0xFF
+        header[1] = (total_len >> 8) & 0xFF
+        header[2] = 0x00
+        header[3] = 0x80
+        header[4] = slot & 0xFF
+        header[5] = week
+        header[6] = hour & 0xFF
+        header[7] = minute & 0xFF
+        header[8] = duration_seconds & 0xFF
+        header[9] = (duration_seconds >> 8) & 0xFF
+        header[10] = content_type & 0xFF
+        header[11] = 0x01 if buzzer else 0x00
+        header[12] = option & 0xFF
+        header[13:17] = _int2byte(len(image_data))
+        header[17:21] = _int2byte(total_crc)
+        header[21] = 0x00
+        header[22] = 0x00
+        header[23] = (slot + 120) & 0xFF
+
+        windows.append(Window(data=bytes(header) + chunk, requires_ack=True))
+
+    _LOGGER.info("Alarm clock plan: slot=%d, %02d:%02d, %d chunks", slot, hour, minute, len(windows))
+    return SendPlan("alarm_clock", windows)
+
+
+# =============================================================================
+# Device Timing/Schedule Protocol (from APK decompilation)
+# =============================================================================
+
+def make_timing_command(
+    slot: int,
+    hour: int,
+    minute: int,
+    enabled: bool = True,
+    weekdays: list[bool] | None = None,
+    buzzer: bool = False,
+) -> bytes:
+    """Build device timing/schedule command (9 bytes).
+
+    Protocol from APK SendCore.sendTimingData():
+    [0x09, 0x00, 0x11, 0x80, buzzer, slot, week, hour, min]
+
+    This is a lightweight on/off timer -- no image payload.
+
+    Args:
+        slot: Timer slot number (0-9).
+        hour: Hour (0-23).
+        minute: Minute (0-59).
+        enabled: Whether timer is active.
+        weekdays: Repeat days [Mon..Sun], None for one-shot.
+        buzzer: Enable buzzer sound when timer fires.
+
+    Returns:
+        9-byte command for device timing.
+    """
+    if slot < 0 or slot >= MAX_TIMERS:
+        raise ValueError(f"Timer slot must be 0-{MAX_TIMERS - 1}")
+    if hour < 0 or hour > 23:
+        raise ValueError("Hour must be 0-23")
+    if minute < 0 or minute > 59:
+        raise ValueError("Minute must be 0-59")
+
+    week = _encode_week_bitmask(enabled, weekdays)
+
+    return bytes([
+        0x09, 0x00, 0x11, 0x80,
+        0x01 if buzzer else 0x00,
+        slot & 0xFF,
+        week,
+        hour & 0xFF,
+        minute & 0xFF,
+    ])
+
+
+# =============================================================================
+# Template/Subzone Protocol (from APK decompilation)
+# =============================================================================
+
+# Template content type constants
+TEMPLATE_CONTENT_EMPTY = 0
+TEMPLATE_CONTENT_ANIMATION = 1
+TEMPLATE_CONTENT_IMAGE = 2
+TEMPLATE_CONTENT_TEXT = 3
+
+
+def _compact_to_one_byte(value: int) -> int:
+    """Encode values >255 into a single byte (lossy, from APK compactToOneByte)."""
+    if value > 255:
+        return (value & 0xF0) | ((value >> 8) & 0x0F)
+    return value & 0xFF
+
+
+def make_template_zone_header(
+    content_data: bytes,
+    content_type: int,
+    x: int,
+    y: int,
+    width: int,
+    height: int,
+    border_index: int = 0,
+    border_speed: int = 0,
+    border_effect: int = 0,
+    item_border_index: int = 0,
+    item_border_speed: int = 0,
+    item_border_effect: int = 0,
+) -> bytes:
+    """Build a 16-byte zone header for template/subzone protocol.
+
+    Args:
+        content_data: The zone's content data (text bytes, BGR pixels, or GIF).
+        content_type: 0=empty, 1=animation/GIF, 2=image BGR, 3=text.
+        x: Zone X position on LED matrix.
+        y: Zone Y position on LED matrix.
+        width: Zone width in pixels.
+        height: Zone height in pixels.
+        border_index: Per-zone border style.
+        border_speed: Per-zone border animation speed.
+        border_effect: Per-zone border effect.
+        item_border_index: Shared/global border style.
+        item_border_speed: Shared/global border speed.
+        item_border_effect: Shared/global border effect.
+
+    Returns:
+        16-byte zone header.
+    """
+    header = bytearray(16)
+    content_len = len(content_data)
+    header[0:4] = _int2byte(content_len)
+    header[4] = content_type & 0xFF
+    header[5] = x & 0xFF
+    header[6] = y & 0xFF
+    header[7] = _compact_to_one_byte(width)
+    header[8] = _compact_to_one_byte(height)
+    # Border params (only meaningful for text zones)
+    if content_type == TEMPLATE_CONTENT_TEXT:
+        header[9] = border_index & 0xFF
+        header[10] = border_speed & 0xFF
+        header[11] = border_effect & 0xFF
+        header[12] = item_border_index & 0xFF
+        header[13] = item_border_speed & 0xFF
+        header[14] = item_border_effect & 0xFF
+    header[15] = 0x00  # reserved
+    return bytes(header)
+
+
+def make_template_handshake_command(channel_index: int) -> bytes:
+    """Build the 7-byte handshake sent before template data.
+
+    Expected ACK: [0x05, 0x00, 0x08, 0x80, 0x01]
+
+    Args:
+        channel_index: Channel/slot index for this template.
+
+    Returns:
+        7-byte handshake command.
+    """
+    return bytes([0x07, 0x00, 0x08, 0x80, 0x01, 0x00, channel_index & 0xFF])
+
+
+def make_template_plan(
+    zones: list[dict],
+    channel_index: int = 1,
+    save_to_device: bool = True,
+    chunk_size: int = 4096,
+) -> SendPlan:
+    """Build a SendPlan for template/subzone upload.
+
+    Each zone dict should have:
+        - content_type: int (0-3)
+        - x, y, width, height: int
+        - data: bytes (content data)
+        - border_index, border_speed, border_effect: int (optional, for text)
+        - item_border_index, item_border_speed, item_border_effect: int (optional)
+
+    Args:
+        zones: List of zone dictionaries.
+        channel_index: Device slot to save to.
+        save_to_device: True to persist on device, False for preview only.
+        chunk_size: Bytes per BLE chunk.
+
+    Returns:
+        SendPlan for template upload (includes handshake window).
+    """
+    if not zones:
+        raise ValueError("At least one zone is required")
+
+    # Build concatenated zone data: header(16) + data for each zone
+    zone_payload = bytearray()
+    for zone in zones:
+        content_data = zone.get("data", b"")
+        header = make_template_zone_header(
+            content_data=content_data,
+            content_type=zone.get("content_type", TEMPLATE_CONTENT_EMPTY),
+            x=zone.get("x", 0),
+            y=zone.get("y", 0),
+            width=zone.get("width", 32),
+            height=zone.get("height", 32),
+            border_index=zone.get("border_index", 0),
+            border_speed=zone.get("border_speed", 0),
+            border_effect=zone.get("border_effect", 0),
+            item_border_index=zone.get("item_border_index", 0),
+            item_border_speed=zone.get("item_border_speed", 0),
+            item_border_effect=zone.get("item_border_effect", 0),
+        )
+        zone_payload.extend(header)
+        zone_payload.extend(content_data)
+
+    total_data = bytes(zone_payload)
+    total_crc = zlib.crc32(total_data) & 0xFFFFFFFF
+
+    # Data type for template: type=7 -> [0x04, 0x00]
+    data_type = bytes([0x04, 0x00])
+
+    windows = []
+
+    # First window: handshake
+    handshake = make_template_handshake_command(channel_index)
+    windows.append(Window(data=handshake, requires_ack=True))
+
+    # Subsequent windows: payloadTemChannel chunks
+    for i in range(0, len(total_data), chunk_size):
+        chunk = total_data[i:i + chunk_size]
+        option = 0x00 if i == 0 else 0x02
+
+        # Build payloadTemChannel wrapper
+        pkt_len = len(chunk) + 15
+        pkt = bytearray()
+        pkt.extend(pkt_len.to_bytes(2, 'little'))       # [0-1] length
+        pkt.extend(data_type)                            # [2-3] data type
+        pkt.append(option)                               # [4] option
+        pkt.extend(_int2byte(len(total_data)))           # [5-8] total length
+        pkt.extend(_int2byte(total_crc))                 # [9-12] CRC32
+        pkt.append(0x02)                                 # [13] template marker
+        if save_to_device:
+            pkt.append(101)                              # [14] save flag (0x65)
+        else:
+            pkt.append(channel_index & 0xFF)             # [14] channel index
+        pkt.extend(chunk)                                # [15+] data
+
+        windows.append(Window(data=bytes(pkt), requires_ack=True))
+
+    _LOGGER.info("Template plan: %d zones, %d chunks", len(zones), len(windows) - 1)
+    return SendPlan("send_template", windows)
+
+
+# =============================================================================
+# Corrected/New Commands (from APK decompilation)
+# =============================================================================
+
+def make_hw_info_command() -> bytes:
+    """Build hardware info request command.
+
+    Corrected from APK: opcode is 0x8005 (not 0x0000).
+    [0x04, 0x00, 0x05, 0x80]
+    """
+    return bytes([0x04, 0x00, 0x05, 0x80])
+
+
+def make_text_speed_command(speed: int) -> bytes:
+    """Build standalone text scroll speed command.
+
+    Command format from APK BaseSend:
+    [0x05, 0x00, 0x03, 0x01, speed]
+
+    This changes the text scroll speed without resending text data.
+
+    Args:
+        speed: Scroll speed (0-100).
+
+    Returns:
+        Command bytes for text speed.
+    """
+    if speed < 0 or speed > 100:
+        raise ValueError("Speed must be 0-100")
+    return bytes([0x05, 0x00, 0x03, 0x01, speed & 0xFF])
+
+
+def make_rhythm_eq_command(mode: int, levels: list[int]) -> bytes:
+    """Build rhythm EQ visualization command with 11 frequency bars.
+
+    Command format from APK SendCore.sendRhythmChart:
+    [0x10, 0x00, 0x01, 0x02, mode, bar1..bar11]
+
+    Each bar is scaled from 0-255 input to 1-15 device range.
+
+    Args:
+        mode: Rhythm style (0-4).
+        levels: List of 11 integers (0-255) for each frequency band.
+
+    Returns:
+        16-byte command for rhythm EQ.
+    """
+    if mode < 0 or mode > 4:
+        raise ValueError("Mode must be 0-4")
+    if len(levels) != 11:
+        raise ValueError("Must provide exactly 11 frequency levels")
+
+    # Scale 0-255 to 1-15 (matching APK behavior)
+    scaled = []
+    for level in levels:
+        if level < 0:
+            level = 0
+        elif level > 255:
+            level = 255
+        bar = max(1, (level * 15) // 255) if level > 0 else 1
+        scaled.append(bar)
+
+    return bytes([0x10, 0x00, 0x01, 0x02, mode] + scaled)

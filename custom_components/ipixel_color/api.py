@@ -59,6 +59,17 @@ from .device.commands import (
     make_dual_panel_command,
     make_query_device_time_command,
     make_query_device_datetime_command,
+    # Alarm, timing, template, and corrected commands (from APK decompilation)
+    make_alarm_clock_plan,
+    make_timing_command,
+    make_template_plan,
+    make_hw_info_command,
+    make_text_speed_command,
+    make_rhythm_eq_command,
+    TEMPLATE_CONTENT_EMPTY,
+    TEMPLATE_CONTENT_ANIMATION,
+    TEMPLATE_CONTENT_IMAGE,
+    TEMPLATE_CONTENT_TEXT,
 )
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_plan
@@ -1858,6 +1869,233 @@ class iPIXELAPI:
             _LOGGER.error("Error sending raw mixed data: %s", err)
             return False
     
+    # =================================================================
+    # Alarm Clock (from APK decompilation)
+    # =================================================================
+
+    async def set_alarm_clock(
+        self,
+        slot: int,
+        hour: int,
+        minute: int,
+        image_data: bytes,
+        enabled: bool = True,
+        weekdays: list[bool] | None = None,
+        duration_index: int = 0,
+        content_type: int = 1,
+        buzzer: bool = False,
+    ) -> bool:
+        """Set a device-side alarm clock with image display.
+
+        Args:
+            slot: Alarm slot (0-9).
+            hour: Hour (0-23).
+            minute: Minute (0-59).
+            image_data: Image bytes to display when alarm fires.
+            enabled: Whether alarm is active.
+            weekdays: Repeat days [Mon..Sun], None for one-shot.
+            duration_index: Display duration (0=10s, 1=30s, 2=60s, 3=5min, 4=15min).
+            content_type: 1=file image, 2=raw pixel data.
+            buzzer: Enable buzzer sound.
+
+        Returns:
+            True if alarm was set successfully.
+        """
+        try:
+            plan = make_alarm_clock_plan(
+                slot=slot, hour=hour, minute=minute,
+                image_data=image_data, enabled=enabled,
+                weekdays=weekdays, duration_index=duration_index,
+                content_type=content_type, buzzer=buzzer,
+            )
+            result = await self._bluetooth.send_plan(plan)
+
+            if result.success:
+                _LOGGER.info("Alarm clock set: slot=%d, %02d:%02d", slot, hour, minute)
+            else:
+                _LOGGER.error("Failed to set alarm clock")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid alarm parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting alarm clock: %s", err)
+            return False
+
+    # =================================================================
+    # Timing/Schedule (from APK decompilation)
+    # =================================================================
+
+    async def set_timing(
+        self,
+        slot: int,
+        hour: int,
+        minute: int,
+        enabled: bool = True,
+        weekdays: list[bool] | None = None,
+        buzzer: bool = False,
+    ) -> bool:
+        """Set a device-side on/off timer.
+
+        This is a lightweight schedule -- no image payload.
+        The device will turn on/buzz at the scheduled time.
+
+        Args:
+            slot: Timer slot (0-9).
+            hour: Hour (0-23).
+            minute: Minute (0-59).
+            enabled: Whether timer is active.
+            weekdays: Repeat days [Mon..Sun], None for one-shot.
+            buzzer: Enable buzzer sound.
+
+        Returns:
+            True if timer was set successfully.
+        """
+        try:
+            payload = make_timing_command(
+                slot=slot, hour=hour, minute=minute,
+                enabled=enabled, weekdays=weekdays, buzzer=buzzer,
+            )
+            result = await self._bluetooth.send_command("set_timing", payload)
+
+            if result.success:
+                _LOGGER.info("Timer set: slot=%d, %02d:%02d", slot, hour, minute)
+            else:
+                _LOGGER.error("Failed to set timer")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid timer parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting timer: %s", err)
+            return False
+
+    # =================================================================
+    # Template/Subzone (from APK decompilation)
+    # =================================================================
+
+    async def send_template(
+        self,
+        zones: list[dict],
+        channel_index: int = 1,
+        save_to_device: bool = True,
+    ) -> bool:
+        """Send a multi-zone template display to the device.
+
+        Each zone dict should have:
+            - content_type: int (0=empty, 1=animation, 2=image, 3=text)
+            - x, y, width, height: int
+            - data: bytes
+            - border_index, border_speed, border_effect: int (optional)
+
+        Args:
+            zones: List of zone dicts.
+            channel_index: Device slot to save to.
+            save_to_device: True to persist on device.
+
+        Returns:
+            True if template was sent successfully.
+        """
+        try:
+            plan = make_template_plan(
+                zones=zones,
+                channel_index=channel_index,
+                save_to_device=save_to_device,
+            )
+            result = await self._bluetooth.send_plan(plan)
+
+            if result.success:
+                _LOGGER.info("Template sent: %d zones to slot %d", len(zones), channel_index)
+            else:
+                _LOGGER.error("Failed to send template")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid template parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error sending template: %s", err)
+            return False
+
+    # =================================================================
+    # Corrected/New Commands (from APK decompilation)
+    # =================================================================
+
+    async def get_hw_info(self) -> bool:
+        """Request hardware info from device (corrected opcode).
+
+        Returns:
+            True if command was sent successfully.
+        """
+        try:
+            payload = make_hw_info_command()
+            result = await self._bluetooth.send_command("get_hw_info", payload)
+
+            if result.success:
+                _LOGGER.info("Hardware info requested")
+            else:
+                _LOGGER.error("Failed to request hardware info")
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error requesting hardware info: %s", err)
+            return False
+
+    async def set_text_speed(self, speed: int) -> bool:
+        """Set text scroll speed without resending text data.
+
+        Args:
+            speed: Scroll speed (0-100).
+
+        Returns:
+            True if command was sent successfully.
+        """
+        try:
+            payload = make_text_speed_command(speed)
+            result = await self._bluetooth.send_command("set_text_speed", payload)
+
+            if result.success:
+                _LOGGER.info("Text speed set to %d", speed)
+            else:
+                _LOGGER.error("Failed to set text speed")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid text speed: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error setting text speed: %s", err)
+            return False
+
+    async def send_rhythm_eq(self, mode: int, levels: list[int]) -> bool:
+        """Send rhythm EQ visualization with 11 frequency bars.
+
+        Args:
+            mode: Rhythm style (0-4).
+            levels: List of 11 ints (0-255) for frequency bands.
+
+        Returns:
+            True if command was sent successfully.
+        """
+        try:
+            payload = make_rhythm_eq_command(mode, levels)
+            result = await self._bluetooth.send_command("send_rhythm_eq", payload)
+
+            if result.success:
+                _LOGGER.info("Rhythm EQ sent: mode=%d", mode)
+            else:
+                _LOGGER.error("Failed to send rhythm EQ")
+            return result.success
+
+        except ValueError as err:
+            _LOGGER.error("Invalid rhythm EQ parameters: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Error sending rhythm EQ: %s", err)
+            return False
+
     @property
     def is_connected(self) -> bool:
         """Return True if connected to device."""
