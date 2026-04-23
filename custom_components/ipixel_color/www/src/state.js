@@ -81,6 +81,39 @@ export function setTestMode(enabled) {
 }
 
 /**
+ * Factory for a simple localStorage-backed store.
+ * Returns { load, save, clear } that all cards can share instead of each one
+ * repeating try/catch JSON.parse/stringify boilerplate.
+ *
+ * @param {string} key  localStorage key
+ * @param {*|Function} defaults  default value (or factory fn)
+ */
+export function createStorage(key, defaults = null) {
+  const resolveDefault = () => (typeof defaults === 'function' ? defaults() : defaults);
+  return {
+    load() {
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved !== null) return JSON.parse(saved);
+      } catch (e) {
+        console.warn(`iPIXEL: Could not load ${key}`, e);
+      }
+      return resolveDefault();
+    },
+    save(data) {
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch (e) {
+        console.warn(`iPIXEL: Could not save ${key}`, e);
+      }
+    },
+    clear() {
+      try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+    },
+  };
+}
+
+/**
  * Detect missing browser features relevant to iPIXEL cards
  */
 export function detectMissingFeatures() {
