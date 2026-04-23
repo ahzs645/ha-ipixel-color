@@ -111,6 +111,16 @@ export class iPIXELCardBase extends HTMLElement {
     return r ? [parseInt(r[1], 16), parseInt(r[2], 16), parseInt(r[3], 16)] : [255, 255, 255];
   }
 
+  rgbToHex(r, g, b) {
+    return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   render() { /* Override in subclasses */ }
   getCardSize() { return 2; }
 }

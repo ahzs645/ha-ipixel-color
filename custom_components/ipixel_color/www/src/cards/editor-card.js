@@ -6,6 +6,7 @@
 
 import { iPIXELCardBase } from '../base.js';
 import { iPIXELCardStyles } from '../styles.js';
+import { renderGridSelector, attachGridSelector } from '../components/index.js';
 
 // Color palette (same as original editor)
 const PALETTE_COLORS = [
@@ -95,17 +96,20 @@ export class iPIXELEditorCard extends iPIXELCardBase {
     const isOn = this.isOn();
     const [deviceWidth, deviceHeight] = this.getResolution();
 
-    // Build resolution preset buttons
     const currentRes = `${this._width}x${this._height}`;
-    const presetButtons = RESOLUTION_PRESETS.map(opt => {
-      const active = opt.value === currentRes ? 'active' : '';
-      return `<button class="preset-btn ${active}" data-res="${opt.value}">${opt.label}</button>`;
-    }).join('');
+    const presetButtons = renderGridSelector(RESOLUTION_PRESETS, {
+      selected: currentRes,
+      itemClass: 'preset-btn',
+      gridClass: 'resolution-presets',
+      dataAttr: 'res',
+      label: (i) => i.label,
+      value: (i) => i.value,
+    });
 
-    // Build palette swatches
+    const selectedColor = this._currentColor.toLowerCase();
     const paletteSwatches = PALETTE_COLORS.map(color => {
-      const active = color.toLowerCase() === this._currentColor.toLowerCase() ? 'active' : '';
-      return `<div class="color-swatch ${active}" data-color="${color}" style="background:${color}"></div>`;
+      const active = color.toLowerCase() === selectedColor ? ' active' : '';
+      return `<div class="color-swatch${active}" data-color="${color}" style="background:${color}"></div>`;
     }).join('');
 
     this.shadowRoot.innerHTML = `
@@ -264,12 +268,8 @@ export class iPIXELEditorCard extends iPIXELCardBase {
             </div>
           </div>
 
-          <!-- Resolution Presets -->
-          <div class="resolution-presets" id="res-presets">
-            ${presetButtons}
-          </div>
+          ${presetButtons}
 
-          <!-- Color Palette -->
           <div class="color-palette" id="palette">
             ${paletteSwatches}
           </div>
@@ -506,17 +506,16 @@ export class iPIXELEditorCard extends iPIXELCardBase {
     this.shadowRoot.getElementById('res-width')?.addEventListener('change', applyResInputs);
     this.shadowRoot.getElementById('res-height')?.addEventListener('change', applyResInputs);
 
-    // Resolution preset buttons
-    this.shadowRoot.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const [w, h] = btn.dataset.res.split('x').map(v => parseInt(v, 10));
+    attachGridSelector(this.shadowRoot, '.preset-btn', {
+      attr: 'res',
+      onSelect: (res) => {
+        const [w, h] = res.split('x').map(v => parseInt(v, 10));
         this._resizeCanvas(w, h);
-        // Update the number inputs to match
         const widthInput = this.shadowRoot.getElementById('res-width');
         const heightInput = this.shadowRoot.getElementById('res-height');
         if (widthInput) widthInput.value = w;
         if (heightInput) heightInput.value = h;
-      });
+      },
     });
 
     // Clear button
@@ -614,11 +613,7 @@ export class iPIXELEditorCard extends iPIXELCardBase {
 
           // Only send non-transparent pixels
           if (a > 0) {
-            pixels.push({
-              x,
-              y,
-              color: this._rgbToHex(r, g, b)
-            });
+            pixels.push({ x, y, color: this.rgbToHex(r, g, b).slice(1) });
           }
         }
       }
@@ -635,10 +630,6 @@ export class iPIXELEditorCard extends iPIXELCardBase {
       this._sending = false;
       this.render();
     }
-  }
-
-  _rgbToHex(r, g, b) {
-    return ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
   }
 
   static getConfigElement() {

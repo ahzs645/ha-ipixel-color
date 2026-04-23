@@ -199,6 +199,87 @@ export const iPIXELCardStyles = `
   /* Empty state */
   .empty-state { text-align: center; padding: 24px; opacity: 0.6; font-size: 0.9em; }
 
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab {
+    flex: 1;
+    padding: 10px 8px;
+    border: none;
+    background: rgba(255,255,255,0.05);
+    color: var(--ipixel-text);
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.8em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  .tab:hover { background: rgba(255,255,255,0.1); }
+  .tab.active { background: var(--ipixel-primary); color: #fff; }
+  .tab-panel { display: block; }
+  .tab-panel[hidden] { display: none; }
+
+  /* Toggle switch (iOS style) */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+  .toggle-label { font-size: 0.85em; color: var(--ipixel-text); }
+  .toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.active { background: var(--ipixel-primary); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle-switch.active::after { transform: translateX(20px); }
+
+  /* Subsection grouping */
+  .subsection {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .subsection-title {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.6;
+    margin-bottom: 8px;
+  }
+
+  /* Form dialog */
+  .form-dialog {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+  }
+  .form-row { margin-bottom: 12px; }
+  .form-row label { display: block; font-size: 0.8em; opacity: 0.7; margin-bottom: 4px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  /* Two-column helper */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
   @media (max-width: 400px) {
     .button-grid-4 { grid-template-columns: repeat(2, 1fr); }
     .button-grid-3 { grid-template-columns: repeat(2, 1fr); }
