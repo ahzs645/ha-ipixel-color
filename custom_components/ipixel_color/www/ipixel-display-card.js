@@ -1,6 +1,1829 @@
-(()=>{var le=Object.defineProperty;var zt=(d,e)=>()=>(d&&(e=d(d=0)),e);var Ht=(d,e)=>{for(var t in e)le(d,t,{get:e[t],enumerable:!0})};var Ut={};Ht(Ut,{$Bitmap:()=>_e,$Font:()=>be,$Glyph:()=>ve,Bitmap:()=>D,Font:()=>st,Glyph:()=>O});var H,fe,pe,Wt,ue,ge,me,it,st,O,D,be,ve,_e,qt=zt(()=>{H=function(d,e,t,s){function i(o){return o instanceof t?o:new t(function(n){n(o)})}return new(t||(t=Promise))(function(o,n){function r(c){try{l(s.next(c))}catch(f){n(f)}}function a(c){try{l(s.throw(c))}catch(f){n(f)}}function l(c){c.done?o(c.value):i(c.value).then(r,a)}l((s=s.apply(d,e||[])).next())})},fe=function(d){if(!Symbol.asyncIterator)throw new TypeError("Symbol.asyncIterator is not defined.");var e=d[Symbol.asyncIterator],t;return e?e.call(d):(d=typeof __values=="function"?__values(d):d[Symbol.iterator](),t={},s("next"),s("throw"),s("return"),t[Symbol.asyncIterator]=function(){return this},t);function s(o){t[o]=d[o]&&function(n){return new Promise(function(r,a){n=d[o](n),i(r,a,n.done,n.value)})}}function i(o,n,r,a){Promise.resolve(a).then(function(l){o({value:l,done:r})},n)}},pe=(d,e,t)=>{d[e]=t},Wt="[\\s]+",ue={glyphname:"empty",codepoint:8203,bbw:0,bbh:0,bbxoff:0,bbyoff:0,swx0:0,swy0:0,dwx0:0,dwy0:0,swx1:0,swy1:0,dwx1:0,dwy1:0,vvectorx:0,vvectory:0,hexdata:[]},ge=["glyphname","codepoint","bbw","bbh","bbxoff","bbyoff","swx0","swy0","dwx0","dwy0","swx1","swy1","dwx1","dwy1","vvectorx","vvectory","hexdata"],me={lr:"lrtb",rl:"rltb",tb:"tbrl",bt:"btrl",lrtb:void 0,lrbt:void 0,rltb:void 0,rlbt:void 0,tbrl:void 0,tblr:void 0,btrl:void 0,btlr:void 0},it={lr:1,rl:2,tb:0,bt:-1},st=class{constructor(){this.headers=void 0,this.__headers={},this.props={},this.glyphs=new Map,this.__glyph_count_to_check=null,this.__curline_startchar=null,this.__curline_chars=null}load_filelines(e){var t,s;return H(this,void 0,void 0,function*(){try{this.__f=e,yield this.__parse_headers()}finally{if(typeof Deno<"u"&&this.__f!==void 0)try{for(var i=fe(this.__f),o;o=yield i.next(),!o.done;){let n=o.value}}catch(n){t={error:n}}finally{try{o&&!o.done&&(s=i.return)&&(yield s.call(i))}finally{if(t)throw t.error}}}return this})}__parse_headers(){var e,t;return H(this,void 0,void 0,function*(){for(;;){let s=(t=yield(e=this.__f)===null||e===void 0?void 0:e.next())===null||t===void 0?void 0:t.value,i=s.split(/ (.+)/,2),o=i.length,n;if(o===2){let r=i[0],a=i[1].trim();switch(r){case"STARTFONT":this.__headers.bdfversion=parseFloat(a);break;case"FONT":this.__headers.fontname=a;break;case"SIZE":n=a.split(" "),this.__headers.pointsize=parseInt(n[0],10),this.__headers.xres=parseInt(n[1],10),this.__headers.yres=parseInt(n[2],10);break;case"FONTBOUNDINGBOX":n=a.split(" "),this.__headers.fbbx=parseInt(n[0],10),this.__headers.fbby=parseInt(n[1],10),this.__headers.fbbxoff=parseInt(n[2],10),this.__headers.fbbyoff=parseInt(n[3],10);break;case"STARTPROPERTIES":this.__parse_headers_after(),yield this.__parse_props();return;case"COMMENT":(!("comment"in this.__headers)||!Array.isArray(this.__headers.comment))&&(this.__headers.comment=[]),this.__headers.comment.push(a.replace(/^[\s"'\t\r\n]+|[\s"'\t\r\n]+$/g,""));break;case"SWIDTH":n=a.split(" "),this.__headers.swx0=parseInt(n[0],10),this.__headers.swy0=parseInt(n[1],10);break;case"DWIDTH":n=a.split(" "),this.__headers.dwx0=parseInt(n[0],10),this.__headers.dwy0=parseInt(n[1],10);break;case"SWIDTH1":n=a.split(" "),this.__headers.swx1=parseInt(n[0],10),this.__headers.swy1=parseInt(n[1],10);break;case"DWIDTH1":n=a.split(" "),this.__headers.dwx1=parseInt(n[0],10),this.__headers.dwy1=parseInt(n[1],10);break;case"VVECTOR":n=Wt.split(a),this.__headers.vvectorx=parseInt(n[0],10),this.__headers.vvectory=parseInt(n[1],10);break;case"METRICSSET":case"CONTENTVERSION":this.__headers[r.toLowerCase()]=parseInt(a,10);break;case"CHARS":console.warn("It looks like the font does not have property block beginning with 'STARTPROPERTIES' keyword"),this.__parse_headers_after(),this.__curline_chars=s,yield this.__parse_glyph_count();return;case"STARTCHAR":console.warn("It looks like the font does not have property block beginning with 'STARTPROPERTIES' keyword"),console.warn("Cannot find 'CHARS' line"),this.__parse_headers_after(),this.__curline_startchar=s,yield this.__prepare_glyphs();return}}if(o===1&&i[0].trim()==="ENDFONT"){console.warn("It looks like the font does not have property block beginning with 'STARTPROPERTIES' keyword"),console.warn("This font does not have any glyphs");return}}})}__parse_headers_after(){"metricsset"in this.__headers||(this.__headers.metricsset=0),this.headers=this.__headers}__parse_props(){var e,t;return H(this,void 0,void 0,function*(){for(;;){let i=((t=yield(e=this.__f)===null||e===void 0?void 0:e.next())===null||t===void 0?void 0:t.value).split(/ (.+)/,2),o=i.length;if(o===2){let n=i[0],r=i[1].replace(/^[\s"'\t\r\n]+|[\s"'\t\r\n]+$/g,"");n==="COMMENT"?((!("comment"in this.props)||!Array.isArray(this.props.comment))&&(this.props.comment=[]),this.props.comment.push(r.replace(/^[\s"'\t\r\n]+|[\s"'\t\r\n]+$/g,""))):this.props[n.toLowerCase()]=r}else if(o===1){let n=i[0].trim();if(n==="ENDPROPERTIES"){yield this.__parse_glyph_count();return}if(n==="ENDFONT"){console.warn("This font does not have any glyphs");return}else this.props[n]=null}}})}__parse_glyph_count(){var e,t;return H(this,void 0,void 0,function*(){let s;if(this.__curline_chars===null?s=(t=yield(e=this.__f)===null||e===void 0?void 0:e.next())===null||t===void 0?void 0:t.value:(s=this.__curline_chars,this.__curline_chars=null),s.trim()==="ENDFONT"){console.warn("This font does not have any glyphs");return}let i=s.split(/ (.+)/,2);i[0]==="CHARS"?this.__glyph_count_to_check=parseInt(i[1].trim(),10):(this.__curline_startchar=s,console.warn("Cannot find 'CHARS' line next to 'ENDPROPERTIES' line")),yield this.__prepare_glyphs()})}__prepare_glyphs(){var e,t;return H(this,void 0,void 0,function*(){let s=0,i=[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],o=[],n=!1,r=!1;for(;;){let a;if(this.__curline_startchar===null?a=(t=yield(e=this.__f)===null||e===void 0?void 0:e.next())===null||t===void 0?void 0:t.value:(a=this.__curline_startchar,this.__curline_startchar=null),a==null){console.warn("This font does not have 'ENDFONT' keyword"),this.__prepare_glyphs_after();return}let l=a.split(/ (.+)/,2),c=l.length;if(c===2){let f=l[0],h=l[1].trim(),p;switch(f){case"STARTCHAR":i=[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],i[0]=h,r=!1;break;case"ENCODING":s=parseInt(h,10),i[1]=s;break;case"BBX":p=h.split(" "),i[2]=parseInt(p[0],10),i[3]=parseInt(p[1],10),i[4]=parseInt(p[2],10),i[5]=parseInt(p[3],10);break;case"SWIDTH":p=h.split(" "),i[6]=parseInt(p[0],10),i[7]=parseInt(p[1],10);break;case"DWIDTH":p=h.split(" "),i[8]=parseInt(p[0],10),i[9]=parseInt(p[1],10);break;case"SWIDTH1":p=h.split(" "),i[10]=parseInt(p[0],10),i[11]=parseInt(p[1],10);break;case"DWIDTH1":p=h.split(" "),i[12]=parseInt(p[0],10),i[13]=parseInt(p[1],10);break;case"VVECTOR":p=Wt.split(h),i[14]=parseInt(p[0],10),i[15]=parseInt(p[1],10);break}}else if(c===1){let f=l[0].trim();switch(f){case"BITMAP":o=[],n=!0;break;case"ENDCHAR":n=!1,i[16]=o,this.glyphs.set(s,i),r=!0;break;case"ENDFONT":if(r){this.__prepare_glyphs_after();return}default:n&&o.push(f);break}}}})}__prepare_glyphs_after(){let e=this.glyphs.size;this.__glyph_count_to_check!==e&&(this.__glyph_count_to_check===null?console.warn("The glyph count next to 'CHARS' keyword does not exist"):console.warn(`The glyph count next to 'CHARS' keyword is ${this.__glyph_count_to_check.toString()}, which does not match the actual glyph count ${e.toString()}`))}get length(){return this.glyphs.size}itercps(e,t){let s=e??1,i=t??null,o,n=[...this.glyphs.keys()];switch(s){case 1:o=n.sort((r,a)=>r-a);break;case 0:o=n;break;case 2:o=n.sort((r,a)=>a-r);break;case-1:o=n.reverse();break}if(i!==null){let r=a=>{if(typeof i=="number")return a<i;if(Array.isArray(i)&&i.length===2&&typeof i[0]=="number"&&typeof i[1]=="number")return a<=i[1]&&a>=i[0];if(Array.isArray(i)&&Array.isArray(i[0]))for(let l of i){let[c,f]=l;if(a<=f&&a>=c)return!0}return!1};o=o.filter(r)}return o}*iterglyphs(e,t){for(let s of this.itercps(e,t))yield this.glyphbycp(s)}glyphbycp(e){let t=this.glyphs.get(e);if(t==null)return console.warn(`Glyph "${String.fromCodePoint(e)}" (codepoint ${e.toString()}) does not exist in the font. Will return 'null'`),null;{let s={};return ge.forEach((i,o)=>{pe(s,i,t[o])}),new O(s,this)}}glyph(e){let t=e.codePointAt(0);return t===void 0?null:this.glyphbycp(t)}lacksglyphs(e){let t=[],s=e.length;for(let i,o=0;o<s;o++){i=e[o];let n=i.codePointAt(0);(n===void 0||!this.glyphs.has(n))&&t.push(i)}return t.length!==0?t:null}drawcps(e,t={}){var s,i,o,n,r,a,l;let c=(s=t.linelimit)!==null&&s!==void 0?s:512,f=(i=t.mode)!==null&&i!==void 0?i:1,h=(o=t.direction)!==null&&o!==void 0?o:"lrtb",p=(n=t.usecurrentglyphspacing)!==null&&n!==void 0?n:!1,u=(r=t.missing)!==null&&r!==void 0?r:null;if(this.headers===void 0)throw new Error("Font is not loaded");let g,b,m,_,v,x,y,E,w,k,S,C,I,T,F,K,Z,Q,Pt=(a=me[h])!==null&&a!==void 0?a:h,Ot=Pt.slice(0,2),At=Pt.slice(2,4);Ot in it&&At in it?(x=it[Ot],y=it[At]):(x=1,y=0),y===0||y===2?g=1:(y===1||y===-1)&&(g=0),x===1||x===-1?b=1:(x===2||x===0)&&(b=0),f===1&&(E=x>0?this.headers.fbbx:this.headers.fbby,x>0?(C="dwx0",I="dwy0"):(C="dwx1",I="dwy1"),C in this.headers?S=this.headers[C]:I in this.headers?S=this.headers[I]:S=null);let Bt=[];_=[];let Dt=[];F=[],K=0;let Ft=()=>{Bt.push(_),p?F.shift():F.pop(),Dt.push(F)},ne=e[Symbol.iterator]();for(Z=!1;;){if(Z)Z=!1;else{if(v=(l=ne.next())===null||l===void 0?void 0:l.value,v===void 0)break;let tt=this.glyphbycp(v);tt!==null?w=tt:u?u instanceof O?w=u:w=new O(u,this):w=new O(ue,this),m=w.draw(),Q=m.width(),T=0,f===1&&C!==void 0&&I!==void 0&&(k=w.meta[C]||w.meta[I],k==null&&(k=S),k!=null&&E!==void 0&&(T=k-E))}if(Q!==void 0&&T!==void 0&&m!==void 0&&w!==void 0&&v!==void 0)if(K+=Q+T,K<=c)_.push(m),F.push(T);else{if(_.length===0)throw new Error(`\`_linelimit\` (${c}) is too small the line can't even contain one glyph: "${w.chr()}" (codepoint ${v}, width: ${Q})`);Ft(),K=0,_=[],F=[],Z=!0}}_.length!==0&&Ft();let ae=Bt.map((tt,re)=>D.concatall(tt,{direction:x,align:g,offsetlist:Dt[re]}));return D.concatall(ae,{direction:y,align:b})}draw(e,t={}){let{linelimit:s,mode:i,direction:o,usecurrentglyphspacing:n,missing:r}=t;return this.drawcps(e.split("").map(a=>{let l=a.codePointAt(0);return l===void 0?8203:l}),{linelimit:s,mode:i,direction:o,usecurrentglyphspacing:n,missing:r})}drawall(e={}){let{order:t,r:s,linelimit:i,mode:o,direction:n,usecurrentglyphspacing:r}=e,a=o??0;return this.drawcps(this.itercps(t,s),{linelimit:i,mode:a,direction:n,usecurrentglyphspacing:r})}},O=class{constructor(e,t){this.meta=e,this.font=t}toString(){return this.draw().toString()}repr(){var e;return"Glyph("+JSON.stringify(this.meta,null,2)+", Font(<"+((e=this.font.headers)===null||e===void 0?void 0:e.fontname)+">)"}cp(){return this.meta.codepoint}chr(){return String.fromCodePoint(this.cp())}draw(e,t){let s=e??0,i=t??null,o;switch(s){case 0:o=this.__draw_fbb();break;case 1:o=this.__draw_bb();break;case 2:o=this.__draw_original();break;case-1:if(i!==null)o=this.__draw_user_specified(i);else throw new Error("Parameter bb in draw() method must be set when mode=-1");break}return o}__draw_user_specified(e){let t=this.meta.bbxoff,s=this.meta.bbyoff,[i,o,n,r]=e;return this.__draw_bb().crop(i,o,-t+n,-s+r)}__draw_original(){return new D(this.meta.hexdata.map(e=>e?parseInt(e,16).toString(2).padStart(e.length*4,"0"):""))}__draw_bb(){let e=this.meta.bbw,t=this.meta.bbh,s=this.__draw_original(),i=s.bindata,o=i.length;return o!==t&&console.warn(`Glyph "${this.meta.glyphname.toString()}" (codepoint ${this.meta.codepoint.toString()})'s bbh, ${t.toString()}, does not match its hexdata line count, ${o.toString()}`),s.bindata=i.map(n=>n.slice(0,e)),s}__draw_fbb(){let e=this.font.headers;if(e===void 0)throw new Error("Font is not loaded");return this.__draw_user_specified([e.fbbx,e.fbby,e.fbbxoff,e.fbbyoff])}origin(e={}){var t,s,i,o;let n=(t=e.mode)!==null&&t!==void 0?t:0,r=(s=e.fromorigin)!==null&&s!==void 0?s:!1,a=(i=e.xoff)!==null&&i!==void 0?i:null,l=(o=e.yoff)!==null&&o!==void 0?o:null,c,f=this.meta.bbxoff,h=this.meta.bbyoff;switch(n){case 0:let p=this.font.headers;if(p===void 0)throw new Error("Font is not loaded");c=[p.fbbxoff,p.fbbyoff];break;case 1:c=[f,h];break;case 2:c=[f,h];break;case-1:if(a!==null&&l!==null)c=[a,l];else throw new Error("Parameter xoff and yoff in origin() method must be all set when mode=-1");break}return r?c:[0-c[0],0-c[1]]}},D=class d{constructor(e){this.bindata=e}toString(){return this.bindata.join(`
-`).replace(/0/g,".").replace(/1/g,"#").replace(/2/g,"&")}repr(){return`Bitmap(${JSON.stringify(this.bindata,null,2)})`}width(){return this.bindata[0].length}height(){return this.bindata.length}clone(){return new d([...this.bindata])}static __crop_string(e,t,s){let i=e,o=e.length,n=0;t<0&&(n=0-t,i=i.padStart(n+o,"0")),t+s>o&&(i=i.padEnd(t+s-o+i.length,"0"));let r=t+n;return i.slice(r,r+s)}static __string_offset_concat(e,t,s){let i=s??0;if(i===0)return e+t;let o=e.length,n=t.length,r=o+i,a=r+n,l=Math.min(0,r),c=Math.max(o,a),f=d.__crop_string(e,l,c-l),h=d.__crop_string(t,l-r,c-l);return f.split("").map((p,u)=>(parseInt(h[u],10)||parseInt(p,10)).toString()).join("")}static __listofstr_offset_concat(e,t,s){let i=s??0,o,n;if(i===0)return e.concat(t);let r=e[0].length,a=e.length,l=t.length,c=a+i,f=c+l,h=Math.min(0,c),p=Math.max(a,f),u=[];for(let g=h;g<p;g++)g<0||g>=a?o="0".repeat(r):o=e[g],g<c||g>=f?n="0".repeat(r):n=t[g-c],u.push(o.split("").map((b,m)=>(parseInt(n[m],10)||parseInt(b,10)).toString()).join(""));return u}static __crop_bitmap(e,t,s,i,o){let n,r=[],a=e.length;for(let l=0;l<s;l++)n=a-o-s+l,n<0||n>=a?r.push("0".repeat(t)):r.push(d.__crop_string(e[n],i,t));return r}crop(e,t,s,i){let o=s??0,n=i??0;return this.bindata=d.__crop_bitmap(this.bindata,e,t,o,n),this}overlay(e){let t=this.bindata,s=e.bindata;return t.length!==s.length&&console.warn("the bitmaps to overlay have different height"),t[0].length!==s[0].length&&console.warn("the bitmaps to overlay have different width"),this.bindata=t.map((i,o)=>{let n=i,r=s[o];return n.split("").map((a,l)=>(parseInt(r[l],10)||parseInt(a,10)).toString()).join("")}),this}static concatall(e,t={}){var s,i,o;let n=(s=t.direction)!==null&&s!==void 0?s:1,r=(i=t.align)!==null&&i!==void 0?i:1,a=(o=t.offsetlist)!==null&&o!==void 0?o:null,l,c,f,h,p,u,g;if(n>0){f=Math.max(...e.map(m=>m.height())),p=Array(f).fill("");let b=(m,_,v)=>n===1?d.__string_offset_concat(m,_,v):d.__string_offset_concat(_,m,v);for(let m=0;m<f;m++){r?c=-m-1:c=m,h=0;let _=e.length;for(let v=0;v<_;v++){let x=e[v];a&&v!==0&&(h=a[v-1]),m<x.height()?c>=0?p[c]=b(p[c],x.bindata[c],h):p[f+c]=b(p[f+c],x.bindata[x.height()+c],h):c>=0?p[c]=b(p[c],"0".repeat(x.width()),h):p[f+c]=b(p[f+c],"0".repeat(x.width()),h)}}}else{f=Math.max(...e.map(m=>m.width())),p=[],h=0;let b=e.length;for(let m=0;m<b;m++){let _=e[m];a&&m!==0&&(h=a[m-1]),l=_.bindata,u=_.width(),u!==f&&(r?g=0:g=u-f,l=this.__crop_bitmap(l,f,_.height(),g,0)),n===0?p=d.__listofstr_offset_concat(p,l,h):p=d.__listofstr_offset_concat(l,p,h)}}return new this(p)}concat(e,t={}){let{direction:s,align:i,offset:o}=t,n=o??0;return this.bindata=d.concatall([this,e],{direction:s,align:i,offsetlist:[n]}).bindata,this}static __enlarge_bindata(e,t,s){let i=t??1,o=s??1,n=[...e];return i>1&&(n=n.map(r=>r.split("").reduce((a,l)=>a.concat(Array(i).fill(l)),[]).join(""))),o>1&&(n=n.reduce((r,a)=>r.concat(Array(o).fill(a)),[])),n}enlarge(e,t){return this.bindata=d.__enlarge_bindata(this.bindata,e,t),this}replace(e,t){let s=typeof e=="number"?e.toString():e,i=typeof t=="number"?t.toString():t,o=(n,r,a)=>{if("replaceAll"in String.prototype)return n.replaceAll(r,a);{let l=c=>c.replace(/[.*+\-?^${}()|[\]\\]/g,"\\$&");return n.replace(new RegExp(l(r),"g"),a)}};return this.bindata=this.bindata.map(n=>o(n,s,i)),this}shadow(e,t){let s=e??1,i=t??-1,o,n,r,a,l,c,f=this.clone();return c=this.width(),o=this.height(),c+=Math.abs(s),o+=Math.abs(i),f.bindata=f.bindata.map(h=>h.replace(/1/g,"2")),s>0?(n=0,a=-s):(n=s,a=0),i>0?(r=0,l=-i):(r=i,l=0),this.crop(c,o,n,r),f.crop(c,o,a,l),f.overlay(this),this.bindata=f.bindata,this}glow(e){var t,s,i,o,n,r,a,l,c,f,h,p,u,g;let b=e??0,m,_,v,x;v=this.width(),x=this.height(),v+=2,x+=2,this.crop(v,x,-1,-1);let y=this.todata(2),E=y.length;for(let w=0;w<E;w++){m=y[w];let k=m.length;for(let S=0;S<k;S++)_=m[S],_===1&&((t=y[w])[s=S-1]||(t[s]=2),(i=y[w])[o=S+1]||(i[o]=2),(n=y[w-1])[S]||(n[S]=2),(r=y[w+1])[S]||(r[S]=2),b===1&&((a=y[w-1])[l=S-1]||(a[l]=2),(c=y[w-1])[f=S+1]||(c[f]=2),(h=y[w+1])[p=S-1]||(h[p]=2),(u=y[w+1])[g=S+1]||(u[g]=2)))}return this.bindata=y.map(w=>w.map(k=>k.toString()).join("")),this}bytepad(e){let t=e??8,s=this.width(),i=this.height(),o=s%t;return o===0?this:this.crop(s+t-o,i)}todata(e){let t=e??1,s;switch(t){case 0:s=this.bindata.join(`
-`);break;case 1:s=this.bindata;break;case 2:s=this.bindata.map(i=>i.split("").map(o=>parseInt(o,10)));break;case 3:s=[].concat(...this.todata(2));break;case 4:s=this.bindata.map(i=>{if(!/^[01]+$/.test(i))throw new Error(`Invalid binary string: ${i}`);return parseInt(i,2).toString(16).padStart(Math.floor(-1*this.width()/4)*-1,"0")});break;case 5:s=this.bindata.map(i=>{if(!/^[01]+$/.test(i))throw new Error(`Invalid binary string: ${i}`);return parseInt(i,2)});break}return s}draw2canvas(e,t){let s=t??{0:null,1:"black",2:"red"};return this.todata(2).forEach((i,o)=>{i.forEach((n,r)=>{let a=n.toString();if(a==="0"||a==="1"||a==="2"){let l=s[a];l!=null&&(e.fillStyle=l,e.fillRect(r,o,1,1))}})}),this}},be=d=>H(void 0,void 0,void 0,function*(){return yield new st().load_filelines(d)}),ve=(d,e)=>new O(d,e),_e=d=>new D(d)});var Yt={};Ht(Yt,{default:()=>Se});function Se(d,{includeLastEmptyLine:e=!0,encoding:t="utf-8",delimiter:s=/\r?\n/g}={}){return ye(this,arguments,function*(){let o=yield A(Ee(d)),{value:n,done:r}=yield A(o.read()),a=new TextDecoder(t),l=n?a.decode(n):"",c;if(typeof s=="string"){if(s==="")throw new Error("delimiter cannot be empty string!");c=new RegExp(we(s),"g")}else/g/.test(s.flags)===!1?c=new RegExp(s.source,s.flags+"g"):c=s;let f=0;for(;;){let h=c.exec(l);if(h===null){if(r===!0)break;let p=l.substring(f);({value:n,done:r}=yield A(o.read())),l=p+(l?a.decode(n):""),f=0;continue}yield yield A(l.substring(f,h.index)),f=c.lastIndex}(e||f<l.length)&&(yield yield A(l.substring(f)))})}var xe,A,ye,we,Ee,Jt=zt(()=>{xe=function(d,e,t,s){function i(o){return o instanceof t?o:new t(function(n){n(o)})}return new(t||(t=Promise))(function(o,n){function r(c){try{l(s.next(c))}catch(f){n(f)}}function a(c){try{l(s.throw(c))}catch(f){n(f)}}function l(c){c.done?o(c.value):i(c.value).then(r,a)}l((s=s.apply(d,e||[])).next())})},A=function(d){return this instanceof A?(this.v=d,this):new A(d)},ye=function(d,e,t){if(!Symbol.asyncIterator)throw new TypeError("Symbol.asyncIterator is not defined.");var s=t.apply(d,e||[]),i,o=[];return i={},n("next"),n("throw"),n("return"),i[Symbol.asyncIterator]=function(){return this},i;function n(h){s[h]&&(i[h]=function(p){return new Promise(function(u,g){o.push([h,p,u,g])>1||r(h,p)})})}function r(h,p){try{a(s[h](p))}catch(u){f(o[0][3],u)}}function a(h){h.value instanceof A?Promise.resolve(h.value.v).then(l,c):f(o[0][2],h)}function l(h){r("next",h)}function c(h){r("throw",h)}function f(h,p){h(p),o.shift(),o.length&&r(o[0][0],o[0][1])}},we=d=>d.replace(/[.*+\-?^${}()|[\]\\]/g,"\\$&"),Ee=d=>xe(void 0,void 0,void 0,function*(){let e=yield fetch(d);if(e.body===null)throw new Error("Cannot read file");return e.body.getReader()})});var Gt="2.11.1";var Nt="iPIXEL_DisplayState",Xt="iPIXEL_TestMode",de={text:"",mode:"text",effect:"fixed",speed:50,fgColor:"#ff6600",bgColor:"#000000",font:"VCR_OSD_MONO",lastUpdate:0};function ce(){try{let d=localStorage.getItem(Nt);if(d)return JSON.parse(d)}catch(d){console.warn("iPIXEL: Could not load saved state",d)}return{...de}}function he(d){try{localStorage.setItem(Nt,JSON.stringify(d))}catch(e){console.warn("iPIXEL: Could not save state",e)}}window.iPIXELDisplayState||(window.iPIXELDisplayState=ce());function et(){return window.iPIXELDisplayState}function R(d){return window.iPIXELDisplayState={...window.iPIXELDisplayState,...d,lastUpdate:Date.now()},he(window.iPIXELDisplayState),window.dispatchEvent(new CustomEvent("ipixel-display-update",{detail:window.iPIXELDisplayState})),window.iPIXELDisplayState}function z(){if(window.iPIXELTestMode!==void 0)return window.iPIXELTestMode;try{return localStorage.getItem(Xt)==="true"}catch{return!1}}function Vt(d){window.iPIXELTestMode=d;try{localStorage.setItem(Xt,String(d))}catch{}window.dispatchEvent(new CustomEvent("ipixel-test-mode-change",{detail:{enabled:d}}))}function jt(){let d=[];typeof navigator<"u"&&!navigator.bluetooth&&d.push("WebBluetooth");try{document.createElement("canvas").getContext("2d")||d.push("Canvas")}catch{d.push("Canvas")}return d}var L=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"open"}),this._config={},this._hass=null,this._handleTestModeChange=()=>this.render(),window.addEventListener("ipixel-test-mode-change",this._handleTestModeChange)}disconnectedCallback(){window.removeEventListener("ipixel-test-mode-change",this._handleTestModeChange)}set hass(e){this._hass=e,this.render()}setConfig(e){if(!e.entity&&!z()){this._config=e;return}this._config=e,this.render()}isInTestMode(){return z()||!this._config.entity||!this.getEntity()}getEntity(){return!this._hass||!this._config.entity?null:this._hass.states[this._config.entity]}getRelatedEntity(e,t=""){if(!this._hass||!this._config.entity)return null;let s=this._config.entity.replace(/^[^.]+\./,"").replace(/_?(text|display|gif_url)$/i,""),i=`${e}.${s}${t}`;if(this._hass.states[i])return this._hass.states[i];let o=Object.keys(this._hass.states).filter(n=>{if(!n.startsWith(`${e}.`))return!1;let r=n.replace(/^[^.]+\./,"");return r.includes(s)||s.includes(r.replace(t,""))});if(t){let n=o.find(r=>r.endsWith(t));if(n)return this._hass.states[n]}else{let n=o.sort((r,a)=>r.length-a.length);if(n.length>0)return this._hass.states[n[0]]}return o.length>0?this._hass.states[o[0]]:null}async callService(e,t,s={}){if(this._hass){this.isInTestMode()&&console.info(`iPIXEL [Test Mode]: ${e}.${t}`,s);try{await this._hass.callService(e,t,s)}catch(i){console.error(`iPIXEL service call failed: ${e}.${t}`,i)}}}getResolution(){let e=this.getRelatedEntity("sensor","_width")||this._hass?.states["sensor.display_width"],t=this.getRelatedEntity("sensor","_height")||this._hass?.states["sensor.display_height"];if(e&&t){let s=parseInt(e.state),i=parseInt(t.state);if(!isNaN(s)&&!isNaN(i)&&s>0&&i>0)return[s,i]}return[64,16]}isOn(){return this.isInTestMode()?!0:this.getRelatedEntity("switch")?.state==="on"}hexToRgb(e){let t=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(e);return t?[parseInt(t[1],16),parseInt(t[2],16),parseInt(t[3],16)]:[255,255,255]}render(){}getCardSize(){return 2}};var $=`
+(() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __esm = (fn, res) => function __init() {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  };
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+
+  // node_modules/react-pixel-display/dist/index-Ds5kwaZ_.js
+  var index_Ds5kwaZ_exports = {};
+  __export(index_Ds5kwaZ_exports, {
+    $Bitmap: () => $Bitmap,
+    $Font: () => $Font,
+    $Glyph: () => $Glyph,
+    Bitmap: () => Bitmap,
+    Font: () => Font,
+    Glyph: () => Glyph
+  });
+  var __awaiter, __asyncValues, setProperty, PATTERN_VVECTOR_DELIMITER, EMPTY_GLYPH, META_TITLES, DIRE_SHORTCUT_MAP, DIRE_MAP, Font, Glyph, Bitmap, $Font, $Glyph, $Bitmap;
+  var init_index_Ds5kwaZ = __esm({
+    "node_modules/react-pixel-display/dist/index-Ds5kwaZ_.js"() {
+      __awaiter = function(thisArg, _arguments, P, generator) {
+        function adopt(value) {
+          return value instanceof P ? value : new P(function(resolve) {
+            resolve(value);
+          });
+        }
+        return new (P || (P = Promise))(function(resolve, reject) {
+          function fulfilled(value) {
+            try {
+              step(generator.next(value));
+            } catch (e) {
+              reject(e);
+            }
+          }
+          function rejected(value) {
+            try {
+              step(generator["throw"](value));
+            } catch (e) {
+              reject(e);
+            }
+          }
+          function step(result) {
+            result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+          }
+          step((generator = generator.apply(thisArg, _arguments || [])).next());
+        });
+      };
+      __asyncValues = function(o) {
+        if (!Symbol.asyncIterator)
+          throw new TypeError("Symbol.asyncIterator is not defined.");
+        var m = o[Symbol.asyncIterator], i;
+        return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
+          return this;
+        }, i);
+        function verb(n) {
+          i[n] = o[n] && function(v) {
+            return new Promise(function(resolve, reject) {
+              v = o[n](v), settle(resolve, reject, v.done, v.value);
+            });
+          };
+        }
+        function settle(resolve, reject, d, v) {
+          Promise.resolve(v).then(function(v2) {
+            resolve({ value: v2, done: d });
+          }, reject);
+        }
+      };
+      setProperty = (obj, key, value) => {
+        obj[key] = value;
+      };
+      PATTERN_VVECTOR_DELIMITER = "[\\s]+";
+      EMPTY_GLYPH = {
+        glyphname: "empty",
+        codepoint: 8203,
+        bbw: 0,
+        bbh: 0,
+        bbxoff: 0,
+        bbyoff: 0,
+        swx0: 0,
+        swy0: 0,
+        dwx0: 0,
+        dwy0: 0,
+        swx1: 0,
+        swy1: 0,
+        dwx1: 0,
+        dwy1: 0,
+        vvectorx: 0,
+        vvectory: 0,
+        hexdata: []
+      };
+      META_TITLES = [
+        "glyphname",
+        "codepoint",
+        "bbw",
+        "bbh",
+        "bbxoff",
+        "bbyoff",
+        "swx0",
+        "swy0",
+        "dwx0",
+        "dwy0",
+        "swx1",
+        "swy1",
+        "dwx1",
+        "dwy1",
+        "vvectorx",
+        "vvectory",
+        "hexdata"
+      ];
+      DIRE_SHORTCUT_MAP = {
+        lr: "lrtb",
+        rl: "rltb",
+        tb: "tbrl",
+        bt: "btrl",
+        lrtb: void 0,
+        lrbt: void 0,
+        rltb: void 0,
+        rlbt: void 0,
+        tbrl: void 0,
+        tblr: void 0,
+        btrl: void 0,
+        btlr: void 0
+      };
+      DIRE_MAP = { lr: 1, rl: 2, tb: 0, bt: -1 };
+      Font = class {
+        constructor() {
+          this.headers = void 0;
+          this.__headers = {};
+          this.props = {};
+          this.glyphs = /* @__PURE__ */ new Map();
+          this.__glyph_count_to_check = null;
+          this.__curline_startchar = null;
+          this.__curline_chars = null;
+        }
+        /**
+         * Load the BDF font file (file line async iterator).
+         *
+         * @param filelines - Asynchronous iterable iterator containing each line in string text from the font file
+         *
+         * @returns The current `Font` object
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#load_filelines}
+         */
+        load_filelines(filelines) {
+          var e_1, _a;
+          return __awaiter(this, void 0, void 0, function* () {
+            try {
+              this.__f = filelines;
+              yield this.__parse_headers();
+            } finally {
+              if (typeof Deno !== "undefined") {
+                if (this.__f !== void 0) {
+                  try {
+                    for (var _b = __asyncValues(this.__f), _c; _c = yield _b.next(), !_c.done; ) {
+                      const _ = _c.value;
+                    }
+                  } catch (e_1_1) {
+                    e_1 = { error: e_1_1 };
+                  } finally {
+                    try {
+                      if (_c && !_c.done && (_a = _b.return))
+                        yield _a.call(_b);
+                    } finally {
+                      if (e_1)
+                        throw e_1.error;
+                    }
+                  }
+                }
+              }
+            }
+            return this;
+          });
+        }
+        __parse_headers() {
+          var _a, _b;
+          return __awaiter(this, void 0, void 0, function* () {
+            while (1) {
+              const line = (_b = yield (_a = this.__f) === null || _a === void 0 ? void 0 : _a.next()) === null || _b === void 0 ? void 0 : _b.value;
+              const kvlist = line.split(/ (.+)/, 2);
+              const l = kvlist.length;
+              let nlist;
+              if (l === 2) {
+                const key = kvlist[0];
+                const value = kvlist[1].trim();
+                switch (key) {
+                  case "STARTFONT":
+                    this.__headers["bdfversion"] = parseFloat(value);
+                    break;
+                  case "FONT":
+                    this.__headers["fontname"] = value;
+                    break;
+                  case "SIZE":
+                    nlist = value.split(" ");
+                    this.__headers["pointsize"] = parseInt(nlist[0], 10);
+                    this.__headers["xres"] = parseInt(nlist[1], 10);
+                    this.__headers["yres"] = parseInt(nlist[2], 10);
+                    break;
+                  case "FONTBOUNDINGBOX":
+                    nlist = value.split(" ");
+                    this.__headers["fbbx"] = parseInt(nlist[0], 10);
+                    this.__headers["fbby"] = parseInt(nlist[1], 10);
+                    this.__headers["fbbxoff"] = parseInt(nlist[2], 10);
+                    this.__headers["fbbyoff"] = parseInt(nlist[3], 10);
+                    break;
+                  case "STARTPROPERTIES":
+                    this.__parse_headers_after();
+                    yield this.__parse_props();
+                    return;
+                  case "COMMENT":
+                    if (!("comment" in this.__headers) || !Array.isArray(this.__headers.comment)) {
+                      this.__headers.comment = [];
+                    }
+                    this.__headers.comment.push(value.replace(/^[\s"'\t\r\n]+|[\s"'\t\r\n]+$/g, ""));
+                    break;
+                  case "SWIDTH":
+                    nlist = value.split(" ");
+                    this.__headers["swx0"] = parseInt(nlist[0], 10);
+                    this.__headers["swy0"] = parseInt(nlist[1], 10);
+                    break;
+                  case "DWIDTH":
+                    nlist = value.split(" ");
+                    this.__headers["dwx0"] = parseInt(nlist[0], 10);
+                    this.__headers["dwy0"] = parseInt(nlist[1], 10);
+                    break;
+                  case "SWIDTH1":
+                    nlist = value.split(" ");
+                    this.__headers["swx1"] = parseInt(nlist[0], 10);
+                    this.__headers["swy1"] = parseInt(nlist[1], 10);
+                    break;
+                  case "DWIDTH1":
+                    nlist = value.split(" ");
+                    this.__headers["dwx1"] = parseInt(nlist[0], 10);
+                    this.__headers["dwy1"] = parseInt(nlist[1], 10);
+                    break;
+                  case "VVECTOR":
+                    nlist = PATTERN_VVECTOR_DELIMITER.split(value);
+                    this.__headers["vvectorx"] = parseInt(nlist[0], 10);
+                    this.__headers["vvectory"] = parseInt(nlist[1], 10);
+                    break;
+                  case "METRICSSET":
+                  case "CONTENTVERSION":
+                    this.__headers[key.toLowerCase()] = parseInt(value, 10);
+                    break;
+                  case "CHARS":
+                    console.warn("It looks like the font does not have property block beginning with 'STARTPROPERTIES' keyword");
+                    this.__parse_headers_after();
+                    this.__curline_chars = line;
+                    yield this.__parse_glyph_count();
+                    return;
+                  case "STARTCHAR":
+                    console.warn("It looks like the font does not have property block beginning with 'STARTPROPERTIES' keyword");
+                    console.warn("Cannot find 'CHARS' line");
+                    this.__parse_headers_after();
+                    this.__curline_startchar = line;
+                    yield this.__prepare_glyphs();
+                    return;
+                }
+              }
+              if (l === 1 && kvlist[0].trim() === "ENDFONT") {
+                console.warn("It looks like the font does not have property block beginning with 'STARTPROPERTIES' keyword");
+                console.warn("This font does not have any glyphs");
+                return;
+              }
+            }
+          });
+        }
+        __parse_headers_after() {
+          if (!("metricsset" in this.__headers)) {
+            this.__headers["metricsset"] = 0;
+          }
+          this.headers = this.__headers;
+        }
+        __parse_props() {
+          var _a, _b;
+          return __awaiter(this, void 0, void 0, function* () {
+            while (1) {
+              const line = (_b = yield (_a = this.__f) === null || _a === void 0 ? void 0 : _a.next()) === null || _b === void 0 ? void 0 : _b.value;
+              const kvlist = line.split(/ (.+)/, 2);
+              const l = kvlist.length;
+              if (l === 2) {
+                const key = kvlist[0];
+                const value = kvlist[1].replace(/^[\s"'\t\r\n]+|[\s"'\t\r\n]+$/g, "");
+                if (key === "COMMENT") {
+                  if (!("comment" in this.props) || !Array.isArray(this.props.comment)) {
+                    this.props.comment = [];
+                  }
+                  this.props.comment.push(value.replace(/^[\s"'\t\r\n]+|[\s"'\t\r\n]+$/g, ""));
+                } else {
+                  this.props[key.toLowerCase()] = value;
+                }
+              } else {
+                if (l === 1) {
+                  const key = kvlist[0].trim();
+                  if (key === "ENDPROPERTIES") {
+                    yield this.__parse_glyph_count();
+                    return;
+                  }
+                  if (key === "ENDFONT") {
+                    console.warn("This font does not have any glyphs");
+                    return;
+                  } else {
+                    this.props[key] = null;
+                  }
+                }
+              }
+            }
+          });
+        }
+        __parse_glyph_count() {
+          var _a, _b;
+          return __awaiter(this, void 0, void 0, function* () {
+            let line;
+            if (this.__curline_chars === null) {
+              line = (_b = yield (_a = this.__f) === null || _a === void 0 ? void 0 : _a.next()) === null || _b === void 0 ? void 0 : _b.value;
+            } else {
+              line = this.__curline_chars;
+              this.__curline_chars = null;
+            }
+            if (line.trim() === "ENDFONT") {
+              console.warn("This font does not have any glyphs");
+              return;
+            }
+            const kvlist = line.split(/ (.+)/, 2);
+            if (kvlist[0] === "CHARS") {
+              this.__glyph_count_to_check = parseInt(kvlist[1].trim(), 10);
+            } else {
+              this.__curline_startchar = line;
+              console.warn("Cannot find 'CHARS' line next to 'ENDPROPERTIES' line");
+            }
+            yield this.__prepare_glyphs();
+          });
+        }
+        __prepare_glyphs() {
+          var _a, _b;
+          return __awaiter(this, void 0, void 0, function* () {
+            let glyph_codepoint = 0;
+            let glyph_meta = [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ];
+            let glyph_bitmap = [];
+            let glyph_bitmap_is_on = false;
+            let glyph_end = false;
+            while (1) {
+              let line;
+              if (this.__curline_startchar === null) {
+                line = (_b = yield (_a = this.__f) === null || _a === void 0 ? void 0 : _a.next()) === null || _b === void 0 ? void 0 : _b.value;
+              } else {
+                line = this.__curline_startchar;
+                this.__curline_startchar = null;
+              }
+              if (line === void 0 || line === null) {
+                console.warn("This font does not have 'ENDFONT' keyword");
+                this.__prepare_glyphs_after();
+                return;
+              }
+              const kvlist = line.split(/ (.+)/, 2);
+              const l = kvlist.length;
+              if (l === 2) {
+                const key = kvlist[0];
+                const value = kvlist[1].trim();
+                let nlist;
+                switch (key) {
+                  case "STARTCHAR":
+                    glyph_meta = [
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                      null
+                    ];
+                    glyph_meta[0] = value;
+                    glyph_end = false;
+                    break;
+                  case "ENCODING":
+                    glyph_codepoint = parseInt(value, 10);
+                    glyph_meta[1] = glyph_codepoint;
+                    break;
+                  case "BBX":
+                    nlist = value.split(" ");
+                    glyph_meta[2] = parseInt(nlist[0], 10);
+                    glyph_meta[3] = parseInt(nlist[1], 10);
+                    glyph_meta[4] = parseInt(nlist[2], 10);
+                    glyph_meta[5] = parseInt(nlist[3], 10);
+                    break;
+                  case "SWIDTH":
+                    nlist = value.split(" ");
+                    glyph_meta[6] = parseInt(nlist[0], 10);
+                    glyph_meta[7] = parseInt(nlist[1], 10);
+                    break;
+                  case "DWIDTH":
+                    nlist = value.split(" ");
+                    glyph_meta[8] = parseInt(nlist[0], 10);
+                    glyph_meta[9] = parseInt(nlist[1], 10);
+                    break;
+                  case "SWIDTH1":
+                    nlist = value.split(" ");
+                    glyph_meta[10] = parseInt(nlist[0], 10);
+                    glyph_meta[11] = parseInt(nlist[1], 10);
+                    break;
+                  case "DWIDTH1":
+                    nlist = value.split(" ");
+                    glyph_meta[12] = parseInt(nlist[0], 10);
+                    glyph_meta[13] = parseInt(nlist[1], 10);
+                    break;
+                  case "VVECTOR":
+                    nlist = PATTERN_VVECTOR_DELIMITER.split(value);
+                    glyph_meta[14] = parseInt(nlist[0], 10);
+                    glyph_meta[15] = parseInt(nlist[1], 10);
+                    break;
+                }
+              } else {
+                if (l === 1) {
+                  const key = kvlist[0].trim();
+                  switch (key) {
+                    case "BITMAP":
+                      glyph_bitmap = [];
+                      glyph_bitmap_is_on = true;
+                      break;
+                    case "ENDCHAR":
+                      glyph_bitmap_is_on = false;
+                      glyph_meta[16] = glyph_bitmap;
+                      this.glyphs.set(glyph_codepoint, glyph_meta);
+                      glyph_end = true;
+                      break;
+                    case "ENDFONT":
+                      if (glyph_end) {
+                        this.__prepare_glyphs_after();
+                        return;
+                      }
+                    default:
+                      if (glyph_bitmap_is_on) {
+                        glyph_bitmap.push(key);
+                      }
+                      break;
+                  }
+                }
+              }
+            }
+          });
+        }
+        __prepare_glyphs_after() {
+          const l = this.glyphs.size;
+          if (this.__glyph_count_to_check !== l) {
+            if (this.__glyph_count_to_check === null) {
+              console.warn("The glyph count next to 'CHARS' keyword does not exist");
+            } else {
+              console.warn(`The glyph count next to 'CHARS' keyword is ${this.__glyph_count_to_check.toString()}, which does not match the actual glyph count ${l.toString()}`);
+            }
+          }
+        }
+        /**
+         * Same as `.length()`
+         * Returns how many glyphs actually exist in the font.
+         *
+         * @returns Actual glyph count in the font
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#length}
+         */
+        get length() {
+          return this.glyphs.size;
+        }
+        /**
+         * Similar to `.iterglyphs()`, except it returns an `array` of glyph codepoints instead of an `iterator` of `Glyph` objects.
+         *
+         * @param order  - Order
+         * @param r  - Codepoint range
+         *
+         * @returns An iterator of the codepoints of glyphs
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#itercps}
+         */
+        itercps(order, r) {
+          const _order = order !== null && order !== void 0 ? order : 1;
+          const _r = r !== null && r !== void 0 ? r : null;
+          let ret;
+          const ks = [...this.glyphs.keys()];
+          switch (_order) {
+            case 1:
+              ret = ks.sort((a, b) => a - b);
+              break;
+            case 0:
+              ret = ks;
+              break;
+            case 2:
+              ret = ks.sort((a, b) => b - a);
+              break;
+            case -1:
+              ret = ks.reverse();
+              break;
+          }
+          if (_r !== null) {
+            const f = (cp) => {
+              if (typeof _r === "number") {
+                return cp < _r;
+              } else if (Array.isArray(_r) && _r.length === 2 && typeof _r[0] === "number" && typeof _r[1] === "number") {
+                return cp <= _r[1] && cp >= _r[0];
+              } else {
+                if (Array.isArray(_r) && Array.isArray(_r[0])) {
+                  for (const t of _r) {
+                    const [t0, t1] = t;
+                    if (cp <= t1 && cp >= t0) {
+                      return true;
+                    }
+                  }
+                }
+                return false;
+              }
+            };
+            ret = ret.filter(f);
+          }
+          return ret;
+        }
+        /**
+         * Returns an iterator of all the glyphs (as `Glyph` objects) in the font (default) or in the specified codepoint range in the font, sorted by the specified order (or by the ascending codepoint order by default).
+         *
+         * @param order  - Order
+         * @param r  - Codepoint range
+         *
+         * @returns An iterator of glyphs as `Glyph` objects. Missing glyphs are replaced by `null`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#iterglyphs}
+         */
+        *iterglyphs(order, r) {
+          for (const cp of this.itercps(order, r)) {
+            yield this.glyphbycp(cp);
+          }
+        }
+        /**
+         * Get a glyph (as Glyph Object) by its codepoint.
+         *
+         * @param codepoint - Codepoint
+         *
+         * @returns `Glyph` object, or `null` if the glyph does not exist in the font
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#glyphbycp}
+         */
+        glyphbycp(codepoint) {
+          const b = this.glyphs.get(codepoint);
+          if (b === void 0 || b === null) {
+            console.warn(`Glyph "${String.fromCodePoint(codepoint)}" (codepoint ${codepoint.toString()}) does not exist in the font. Will return 'null'`);
+            return null;
+          } else {
+            const d = {};
+            META_TITLES.forEach((val, i) => {
+              setProperty(d, val, b[i]);
+            });
+            return new Glyph(d, this);
+          }
+        }
+        /**
+         * Get a glyph (as `Glyph` object) by its character.
+         *
+         * @param character - Character
+         *
+         * @returns `Glyph` object, or `null` if the glyph does not exist in the font
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#glyph}
+         */
+        glyph(character) {
+          const ret = character.codePointAt(0);
+          return ret === void 0 ? null : this.glyphbycp(ret);
+        }
+        /**
+         * Check if there is any missing glyph and gets these glyphs' character.
+         *
+         * @param str - string to check
+         *
+         * @returns List of missing glyph(s)' characters, or `null` if all the glyphs in your string exist in the font
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#lacksglyphs}
+         */
+        lacksglyphs(str) {
+          const l = [];
+          const len = str.length;
+          for (let c, i = 0; i < len; i++) {
+            c = str[i];
+            const cp = c.codePointAt(0);
+            if (cp === void 0 || !this.glyphs.has(cp)) {
+              l.push(c);
+            }
+          }
+          return l.length !== 0 ? l : null;
+        }
+        /**
+         * Draw the glyphs of the specified codepoints, to a `Bitmap` object.
+         *
+         * @param cps - Array of codepoints to draw
+         * @param options.linelimit - Maximum pixels per line
+         * @param options.mode - Mode
+         * @param options.direction - Writing direction
+         * @param options.usecurrentglyphspacing - Use current glyph spacing
+         * @param options.missing - Missing glyph replacement
+         *
+         * @returns `Bitmap` object
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#drawcps}
+         */
+        drawcps(cps, options = {}) {
+          var _a, _b, _c, _d, _e, _f, _g;
+          const _linelimit = (_a = options.linelimit) !== null && _a !== void 0 ? _a : 512;
+          const _mode = (_b = options.mode) !== null && _b !== void 0 ? _b : 1;
+          const _direction = (_c = options.direction) !== null && _c !== void 0 ? _c : "lrtb";
+          const _usecurrentglyphspacing = (_d = options.usecurrentglyphspacing) !== null && _d !== void 0 ? _d : false;
+          const _missing = (_e = options.missing) !== null && _e !== void 0 ? _e : null;
+          if (this.headers === void 0) {
+            throw new Error("Font is not loaded");
+          }
+          let align_glyph, align_line = void 0, bitmap = void 0, bitmaplist, cp = void 0, dire_glyph, dire_line, fbbsize = void 0, glyph = void 0, interglyph, interglyph_global, interglyph_str = void 0, interglyph_str2 = void 0, offset = void 0, offsetlist, size, skip, w = void 0;
+          const dire = (_f = DIRE_SHORTCUT_MAP[_direction]) !== null && _f !== void 0 ? _f : _direction;
+          const dire_glyph_str = dire.slice(0, 2);
+          const dire_line_str = dire.slice(2, 4);
+          if (dire_glyph_str in DIRE_MAP && dire_line_str in DIRE_MAP) {
+            dire_glyph = DIRE_MAP[dire_glyph_str];
+            dire_line = DIRE_MAP[dire_line_str];
+          } else {
+            dire_glyph = 1;
+            dire_line = 0;
+          }
+          if (dire_line === 0 || dire_line === 2) {
+            align_glyph = 1;
+          } else {
+            if (dire_line === 1 || dire_line === -1) {
+              align_glyph = 0;
+            }
+          }
+          if (dire_glyph === 1 || dire_glyph === -1) {
+            align_line = 1;
+          } else {
+            if (dire_glyph === 2 || dire_glyph === 0) {
+              align_line = 0;
+            }
+          }
+          if (_mode === 1) {
+            fbbsize = dire_glyph > 0 ? this.headers["fbbx"] : this.headers["fbby"];
+            if (dire_glyph > 0) {
+              interglyph_str = "dwx0";
+              interglyph_str2 = "dwy0";
+            } else {
+              interglyph_str = "dwx1";
+              interglyph_str2 = "dwy1";
+            }
+            if (interglyph_str in this.headers) {
+              interglyph_global = this.headers[interglyph_str];
+            } else {
+              if (interglyph_str2 in this.headers) {
+                interglyph_global = this.headers[interglyph_str2];
+              } else {
+                interglyph_global = null;
+              }
+            }
+          }
+          const list_of_bitmaplist = [];
+          bitmaplist = [];
+          const list_of_offsetlist = [];
+          offsetlist = [];
+          size = 0;
+          const append_bitmaplist_and_offsetlist = () => {
+            list_of_bitmaplist.push(bitmaplist);
+            if (_usecurrentglyphspacing) {
+              offsetlist.shift();
+            } else {
+              offsetlist.pop();
+            }
+            list_of_offsetlist.push(offsetlist);
+          };
+          const cpsiter = cps[Symbol.iterator]();
+          skip = false;
+          while (1) {
+            if (skip) {
+              skip = false;
+            } else {
+              cp = (_g = cpsiter.next()) === null || _g === void 0 ? void 0 : _g.value;
+              if (cp === void 0) {
+                break;
+              }
+              const glyphTemp = this.glyphbycp(cp);
+              if (glyphTemp !== null) {
+                glyph = glyphTemp;
+              } else {
+                if (_missing) {
+                  if (_missing instanceof Glyph) {
+                    glyph = _missing;
+                  } else {
+                    glyph = new Glyph(_missing, this);
+                  }
+                } else {
+                  glyph = new Glyph(EMPTY_GLYPH, this);
+                }
+              }
+              bitmap = glyph.draw();
+              w = bitmap.width();
+              offset = 0;
+              if (_mode === 1 && interglyph_str !== void 0 && interglyph_str2 !== void 0) {
+                interglyph = glyph.meta[interglyph_str] || glyph.meta[interglyph_str2];
+                if (interglyph === void 0 || interglyph === null) {
+                  interglyph = interglyph_global;
+                }
+                if (interglyph !== void 0 && interglyph !== null && fbbsize !== void 0) {
+                  offset = interglyph - fbbsize;
+                }
+              }
+            }
+            if (w !== void 0 && offset !== void 0 && bitmap !== void 0 && glyph !== void 0 && cp !== void 0) {
+              size += w + offset;
+              if (size <= _linelimit) {
+                bitmaplist.push(bitmap);
+                offsetlist.push(offset);
+              } else {
+                if (bitmaplist.length === 0) {
+                  throw new Error(`\`_linelimit\` (${_linelimit}) is too small the line can't even contain one glyph: "${glyph.chr()}" (codepoint ${cp}, width: ${w})`);
+                }
+                append_bitmaplist_and_offsetlist();
+                size = 0;
+                bitmaplist = [];
+                offsetlist = [];
+                skip = true;
+              }
+            }
+          }
+          if (bitmaplist.length !== 0) {
+            append_bitmaplist_and_offsetlist();
+          }
+          const list_of_bitmap_line_lists = list_of_bitmaplist.map((bitmaplist2, i) => Bitmap.concatall(bitmaplist2, {
+            direction: dire_glyph,
+            align: align_glyph,
+            offsetlist: list_of_offsetlist[i]
+          }));
+          return Bitmap.concatall(list_of_bitmap_line_lists, {
+            direction: dire_line,
+            align: align_line
+          });
+        }
+        /**
+         * Draw (render) the glyphs of the specified words / setences / paragraphs (as a `string`), to a `Bitmap` object.
+         *
+         * @param str - String to draw
+         * @param options.linelimit - Maximum pixels per line
+         * @param options.mode - Mode
+         * @param options.direction - Writing direction
+         * @param options.usecurrentglyphspacing - Use current glyph spacing
+         * @param options.missing - Missing glyph replacement
+         *
+         * @returns `Bitmap` object
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#draw}
+         */
+        draw(str, options = {}) {
+          const { linelimit, mode, direction, usecurrentglyphspacing, missing } = options;
+          return this.drawcps(str.split("").map((c) => {
+            const cp = c.codePointAt(0);
+            if (cp === void 0) {
+              return 8203;
+            } else {
+              return cp;
+            }
+          }), {
+            linelimit,
+            mode,
+            direction,
+            usecurrentglyphspacing,
+            missing
+          });
+        }
+        /**
+         * Draw all the glyphs in the font (default) or in the specified codepoint range in the font, sorted by the specified order (or by the ascending codepoint order by default), to a `Bitmap` object.
+         *
+         * @param options.order - Order
+         * @param options.r - Codepoint range
+         * @param options.linelimit - Maximum pixels per line
+         * @param options.mode - Mode
+         * @param options.direction - Writing direction
+         * @param options.usecurrentglyphspacing - Use current glyph spacing
+         *
+         * @returns `Bitmap` object
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/font#drawall}
+         */
+        drawall(options = {}) {
+          const { order, r, linelimit, mode, direction, usecurrentglyphspacing } = options;
+          const _mode = mode !== null && mode !== void 0 ? mode : 0;
+          return this.drawcps(this.itercps(order, r), {
+            linelimit,
+            mode: _mode,
+            direction,
+            usecurrentglyphspacing
+          });
+        }
+      };
+      Glyph = class {
+        /**
+         * `Glyph` object constructor
+         *
+         * @param meta_obj - Meta information
+         * @param font - The font the glyph belongs to
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/glyph}
+         */
+        constructor(meta_obj, font) {
+          this.meta = meta_obj;
+          this.font = font;
+        }
+        /**
+         * Gets a human-readable (multi-line) `string` representation of the `Glyph` object.
+         *
+         * @returns String representation
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/glyph#tostring}
+         */
+        toString() {
+          return this.draw().toString();
+        }
+        /**
+         * Gets a programmer-readable `string` representation of the `Glyph` object.
+         *
+         * @returns String representation
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/glyph#repr}
+         */
+        repr() {
+          var _a;
+          return "Glyph(" + JSON.stringify(this.meta, null, 2) + ", Font(<" + ((_a = this.font.headers) === null || _a === void 0 ? void 0 : _a.fontname) + ">)";
+        }
+        /**
+         * Get the codepoint of the glyph.
+         *
+         * @returns Codepoint of the glyph
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/glyph#cp}
+         */
+        cp() {
+          return this.meta["codepoint"];
+        }
+        /**
+         * Get the character of the glyph.
+         *
+         * @returns Character (one character string) of the glyph
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/glyph#chr}
+         */
+        chr() {
+          return String.fromCodePoint(this.cp());
+        }
+        /**
+         * Draw the glyph to a `Bitmap` object.
+         *
+         * @param mode - Mode
+         * @param bb - Bounding box
+         *
+         * @returns `Bitmap` object
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/glyph#draw}
+         */
+        draw(mode, bb) {
+          const _mode = mode !== null && mode !== void 0 ? mode : 0;
+          const _bb = bb !== null && bb !== void 0 ? bb : null;
+          let retbitmap;
+          switch (_mode) {
+            case 0:
+              retbitmap = this.__draw_fbb();
+              break;
+            case 1:
+              retbitmap = this.__draw_bb();
+              break;
+            case 2:
+              retbitmap = this.__draw_original();
+              break;
+            case -1:
+              if (_bb !== null) {
+                retbitmap = this.__draw_user_specified(_bb);
+              } else {
+                throw new Error("Parameter bb in draw() method must be set when mode=-1");
+              }
+              break;
+          }
+          return retbitmap;
+        }
+        __draw_user_specified(fbb) {
+          const bbxoff = this.meta["bbxoff"];
+          const bbyoff = this.meta["bbyoff"];
+          const [fbbx, fbby, fbbxoff, fbbyoff] = fbb;
+          const bitmap = this.__draw_bb();
+          return bitmap.crop(fbbx, fbby, -bbxoff + fbbxoff, -bbyoff + fbbyoff);
+        }
+        __draw_original() {
+          return new Bitmap(this.meta["hexdata"].map((val) => val ? parseInt(val, 16).toString(2).padStart(val.length * 4, "0") : ""));
+        }
+        __draw_bb() {
+          const bbw = this.meta["bbw"];
+          const bbh = this.meta["bbh"];
+          const bitmap = this.__draw_original();
+          const bindata = bitmap.bindata;
+          const l = bindata.length;
+          if (l !== bbh) {
+            console.warn(`Glyph "${this.meta["glyphname"].toString()}" (codepoint ${this.meta["codepoint"].toString()})'s bbh, ${bbh.toString()}, does not match its hexdata line count, ${l.toString()}`);
+          }
+          bitmap.bindata = bindata.map((val) => val.slice(0, bbw));
+          return bitmap;
+        }
+        __draw_fbb() {
+          const fh = this.font.headers;
+          if (fh === void 0) {
+            throw new Error("Font is not loaded");
+          }
+          return this.__draw_user_specified([
+            fh["fbbx"],
+            fh["fbby"],
+            fh["fbbxoff"],
+            fh["fbbyoff"]
+          ]);
+        }
+        /**
+         * Get the relative position (displacement) of the origin from the left bottom corner of the bitmap drawn by the method `.draw()`, or vice versa.
+         *
+         * @param options.mode - Mode
+         * @param options.fromorigin - From or to the origin
+         * @param options.xoff - X offset
+         * @param options.yoff - Y offset
+         *
+         * @returns The relative position (displacement) represented by `[x, y]` array / tuple (where right and top directions are positive)
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/glyph#origin}
+         */
+        origin(options = {}) {
+          var _a, _b, _c, _d;
+          const _mode = (_a = options.mode) !== null && _a !== void 0 ? _a : 0;
+          const _fromorigin = (_b = options.fromorigin) !== null && _b !== void 0 ? _b : false;
+          const _xoff = (_c = options.xoff) !== null && _c !== void 0 ? _c : null;
+          const _yoff = (_d = options.yoff) !== null && _d !== void 0 ? _d : null;
+          let ret;
+          const bbxoff = this.meta["bbxoff"];
+          const bbyoff = this.meta["bbyoff"];
+          switch (_mode) {
+            case 0:
+              const fh = this.font.headers;
+              if (fh === void 0) {
+                throw new Error("Font is not loaded");
+              }
+              ret = [fh["fbbxoff"], fh["fbbyoff"]];
+              break;
+            case 1:
+              ret = [bbxoff, bbyoff];
+              break;
+            case 2:
+              ret = [bbxoff, bbyoff];
+              break;
+            case -1:
+              if (_xoff !== null && _yoff !== null) {
+                ret = [_xoff, _yoff];
+              } else {
+                throw new Error("Parameter xoff and yoff in origin() method must be all set when mode=-1");
+              }
+              break;
+          }
+          return _fromorigin ? ret : [0 - ret[0], 0 - ret[1]];
+        }
+      };
+      Bitmap = class _Bitmap {
+        /**
+         * Initialize a `Bitmap` object. Load binary bitmap data (`array` of `string`s).
+         *
+         * @param bin_bitmap_list - Binary bitmap data
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap}
+         */
+        constructor(bin_bitmap_list) {
+          this.bindata = bin_bitmap_list;
+        }
+        /**
+         * Gets a human-readable (multi-line) `string` representation of the `Bitmap` object.
+         *
+         * @returns String representation
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#tostring}
+         */
+        toString() {
+          return this.bindata.join("\n").replace(/0/g, ".").replace(/1/g, "#").replace(/2/g, "&");
+        }
+        /**
+         * Gets a programmer-readable (multi-line) `string` representation of the `Bitmap` object.
+         *
+         * @returns String representation
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#repr}
+         */
+        repr() {
+          return `Bitmap(${JSON.stringify(this.bindata, null, 2)})`;
+        }
+        /**
+         * Get the width of the bitmap.
+         *
+         * @returns Width of the bitmap
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#width}
+         */
+        width() {
+          return this.bindata[0].length;
+        }
+        /**
+         * Get the height of the bitmap.
+         *
+         * @returns Height of the bitmap
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#height}
+         */
+        height() {
+          return this.bindata.length;
+        }
+        /**
+         * Get a deep copy / clone of the `Bitmap` object.
+         *
+         * @returns A deep copy of the original `Bitmap` object
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#clone}
+         */
+        clone() {
+          return new _Bitmap([...this.bindata]);
+        }
+        static __crop_string(s, start, length) {
+          let stemp = s;
+          const l = s.length;
+          let left = 0;
+          if (start < 0) {
+            left = 0 - start;
+            stemp = stemp.padStart(left + l, "0");
+          }
+          if (start + length > l) {
+            stemp = stemp.padEnd(start + length - l + stemp.length, "0");
+          }
+          const newstart = start + left;
+          return stemp.slice(newstart, newstart + length);
+        }
+        static __string_offset_concat(s1, s2, offset) {
+          const _offset = offset !== null && offset !== void 0 ? offset : 0;
+          if (_offset === 0) {
+            return s1 + s2;
+          }
+          const len1 = s1.length;
+          const len2 = s2.length;
+          const s2start = len1 + _offset;
+          const s2end = s2start + len2;
+          const finalstart = Math.min(0, s2start);
+          const finalend = Math.max(len1, s2end);
+          const news1 = _Bitmap.__crop_string(s1, finalstart, finalend - finalstart);
+          const news2 = _Bitmap.__crop_string(s2, finalstart - s2start, finalend - finalstart);
+          return news1.split("").map((val, i) => (parseInt(news2[i], 10) || parseInt(val, 10)).toString()).join("");
+        }
+        static __listofstr_offset_concat(list1, list2, offset) {
+          const _offset = offset !== null && offset !== void 0 ? offset : 0;
+          let s1, s2;
+          if (_offset === 0) {
+            return list1.concat(list2);
+          }
+          const width = list1[0].length;
+          const len1 = list1.length;
+          const len2 = list2.length;
+          const s2start = len1 + _offset;
+          const s2end = s2start + len2;
+          const finalstart = Math.min(0, s2start);
+          const finalend = Math.max(len1, s2end);
+          const retlist = [];
+          for (let i = finalstart; i < finalend; i++) {
+            if (i < 0 || i >= len1) {
+              s1 = "0".repeat(width);
+            } else {
+              s1 = list1[i];
+            }
+            if (i < s2start || i >= s2end) {
+              s2 = "0".repeat(width);
+            } else {
+              s2 = list2[i - s2start];
+            }
+            retlist.push(s1.split("").map((val, i2) => (parseInt(s2[i2], 10) || parseInt(val, 10)).toString()).join(""));
+          }
+          return retlist;
+        }
+        static __crop_bitmap(bitmap, w, h, xoff, yoff) {
+          let bn;
+          const retlist = [];
+          const l = bitmap.length;
+          for (let n = 0; n < h; n++) {
+            bn = l - yoff - h + n;
+            if (bn < 0 || bn >= l) {
+              retlist.push("0".repeat(w));
+            } else {
+              retlist.push(_Bitmap.__crop_string(bitmap[bn], xoff, w));
+            }
+          }
+          return retlist;
+        }
+        /**
+         * Crop and/or extend the bitmap.
+         *
+         * @param w - Width
+         * @param h - Height
+         * @param xoff - X offset
+         * @param yoff - Y offset
+         *
+         * @returns The `Bitmap` object itself, which now has only the specified area as its `.bindata`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#crop}
+         */
+        crop(w, h, xoff, yoff) {
+          const _xoff = xoff !== null && xoff !== void 0 ? xoff : 0;
+          const _yoff = yoff !== null && yoff !== void 0 ? yoff : 0;
+          this.bindata = _Bitmap.__crop_bitmap(this.bindata, w, h, _xoff, _yoff);
+          return this;
+        }
+        /**
+         * Overlay another bitmap over the current one.
+         *
+         * @param bitmap - The incoming bitmap to overlay over the current one
+         *
+         * @returns The `Bitmap` object itself, which now has the combined bitmap as its `.bindata`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#overlay}
+         */
+        overlay(bitmap) {
+          const bindata_a = this.bindata;
+          const bindata_b = bitmap.bindata;
+          if (bindata_a.length !== bindata_b.length) {
+            console.warn("the bitmaps to overlay have different height");
+          }
+          if (bindata_a[0].length !== bindata_b[0].length) {
+            console.warn("the bitmaps to overlay have different width");
+          }
+          this.bindata = bindata_a.map((val, li) => {
+            const la = val;
+            const lb = bindata_b[li];
+            return la.split("").map((val2, i) => (parseInt(lb[i], 10) || parseInt(val2, 10)).toString()).join("");
+          });
+          return this;
+        }
+        /**
+         * Concatenate all `Bitmap` objects in an `array`.
+         *
+         * @param bitmaplist - List of bitmaps to concatenate
+         * @param options.direction - Direction
+         * @param options.align - Align
+         * @param options.offsetlist - List of spacing offsets between every two glyphs
+         *
+         * @returns `Bitmap` object
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#bitmapconcatall}
+         */
+        static concatall(bitmaplist, options = {}) {
+          var _a, _b, _c;
+          const _direction = (_a = options.direction) !== null && _a !== void 0 ? _a : 1;
+          const _align = (_b = options.align) !== null && _b !== void 0 ? _b : 1;
+          const _offsetlist = (_c = options.offsetlist) !== null && _c !== void 0 ? _c : null;
+          let bd, ireal, maxsize, offset, ret, w, xoff;
+          if (_direction > 0) {
+            maxsize = Math.max(...bitmaplist.map((val) => val.height()));
+            ret = Array(maxsize).fill("");
+            const stroffconcat = (s1, s2, offset2) => {
+              if (_direction === 1) {
+                return _Bitmap.__string_offset_concat(s1, s2, offset2);
+              } else {
+                return _Bitmap.__string_offset_concat(s2, s1, offset2);
+              }
+            };
+            for (let i = 0; i < maxsize; i++) {
+              if (_align) {
+                ireal = -i - 1;
+              } else {
+                ireal = i;
+              }
+              offset = 0;
+              const bl = bitmaplist.length;
+              for (let bi = 0; bi < bl; bi++) {
+                const bitmap = bitmaplist[bi];
+                if (_offsetlist && bi !== 0) {
+                  offset = _offsetlist[bi - 1];
+                }
+                if (i < bitmap.height()) {
+                  if (ireal >= 0) {
+                    ret[ireal] = stroffconcat(ret[ireal], bitmap.bindata[ireal], offset);
+                  } else {
+                    ret[maxsize + ireal] = stroffconcat(ret[maxsize + ireal], bitmap.bindata[bitmap.height() + ireal], offset);
+                  }
+                } else {
+                  if (ireal >= 0) {
+                    ret[ireal] = stroffconcat(ret[ireal], "0".repeat(bitmap.width()), offset);
+                  } else {
+                    ret[maxsize + ireal] = stroffconcat(ret[maxsize + ireal], "0".repeat(bitmap.width()), offset);
+                  }
+                }
+              }
+            }
+          } else {
+            maxsize = Math.max(...bitmaplist.map((val) => val.width()));
+            ret = [];
+            offset = 0;
+            const bl = bitmaplist.length;
+            for (let bi = 0; bi < bl; bi++) {
+              const bitmap = bitmaplist[bi];
+              if (_offsetlist && bi !== 0) {
+                offset = _offsetlist[bi - 1];
+              }
+              bd = bitmap.bindata;
+              w = bitmap.width();
+              if (w !== maxsize) {
+                if (_align) {
+                  xoff = 0;
+                } else {
+                  xoff = w - maxsize;
+                }
+                bd = this.__crop_bitmap(bd, maxsize, bitmap.height(), xoff, 0);
+              }
+              if (_direction === 0) {
+                ret = _Bitmap.__listofstr_offset_concat(ret, bd, offset);
+              } else {
+                ret = _Bitmap.__listofstr_offset_concat(bd, ret, offset);
+              }
+            }
+          }
+          return new this(ret);
+        }
+        /**
+         * Concatenate another `Bitmap` objects to the current one.
+         *
+         * @param bitmap - Bitmap to concatenate
+         * @param options.direction - Direction
+         * @param options.align - Align
+         * @param options.offset - Spacing offset between the glyphs
+         *
+         * @returns The `Bitmap` object itself, which now has the combined bitmap as its `.bindata`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#concat}
+         */
+        concat(bitmap, options = {}) {
+          const { direction, align, offset } = options;
+          const _offset = offset !== null && offset !== void 0 ? offset : 0;
+          this.bindata = _Bitmap.concatall([this, bitmap], {
+            direction,
+            align,
+            offsetlist: [_offset]
+          }).bindata;
+          return this;
+        }
+        static __enlarge_bindata(bindata, x, y) {
+          const _x = x !== null && x !== void 0 ? x : 1;
+          const _y = y !== null && y !== void 0 ? y : 1;
+          let ret = [...bindata];
+          if (_x > 1) {
+            ret = ret.map((v) => v.split("").reduce((acc, cur) => {
+              return acc.concat(Array(_x).fill(cur));
+            }, []).join(""));
+          }
+          if (_y > 1) {
+            ret = ret.reduce((acc, cur) => {
+              return acc.concat(Array(_y).fill(cur));
+            }, []);
+          }
+          return ret;
+        }
+        /**
+         * Enlarge a `Bitmap` object, by multiplying every pixel in x (right) direction and in y (top) direction.
+         *
+         * @param x - Multiplier in x (right) direction
+         * @param y - Multiplier in y (top) direction
+         *
+         * @returns The `Bitmap` object itself, which now has the enlarged bitmap as its `.bindata`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#enlarge}
+         */
+        enlarge(x, y) {
+          this.bindata = _Bitmap.__enlarge_bindata(this.bindata, x, y);
+          return this;
+        }
+        /**
+         * Replace a string by another in the bitmap.
+         *
+         * @param substr - Substring to be replaced
+         * @param newsubstr - New substring as the replacement
+         *
+         * @returns The `Bitmap` object itself, which now has the altered bitmap as its `.bindata`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#replace}
+         */
+        replace(substr, newsubstr) {
+          const _substr = typeof substr === "number" ? substr.toString() : substr;
+          const _newsubstr = typeof newsubstr === "number" ? newsubstr.toString() : newsubstr;
+          const replaceAll = (str, substr2, newsubstr2) => {
+            if ("replaceAll" in String.prototype) {
+              return str.replaceAll(substr2, newsubstr2);
+            } else {
+              const escapeRegExp2 = (s) => s.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&");
+              return str.replace(new RegExp(escapeRegExp2(substr2), "g"), newsubstr2);
+            }
+          };
+          this.bindata = this.bindata.map((val) => replaceAll(val, _substr, _newsubstr));
+          return this;
+        }
+        /**
+         * Add shadow to the shape in the bitmap.
+         *
+         * The shadow will be filled by `'2'`s.
+         *
+         * @param xoff - Shadow's offset in x (right) direction
+         * @param yoff - Shadow's offset in y (top) direction
+         *
+         * @returns The `Bitmap` object itself, which now has a bitmap of the original shape with its shadow as the `Bitmap` object's `.bindata`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#shadow}
+         */
+        shadow(xoff, yoff) {
+          const _xoff = xoff !== null && xoff !== void 0 ? xoff : 1;
+          const _yoff = yoff !== null && yoff !== void 0 ? yoff : -1;
+          let h, resized_xoff, resized_yoff, shadow_xoff, shadow_yoff, w;
+          const bitmap_shadow = this.clone();
+          w = this.width();
+          h = this.height();
+          w += Math.abs(_xoff);
+          h += Math.abs(_yoff);
+          bitmap_shadow.bindata = bitmap_shadow.bindata.map((val) => val.replace(/1/g, "2"));
+          if (_xoff > 0) {
+            resized_xoff = 0;
+            shadow_xoff = -_xoff;
+          } else {
+            resized_xoff = _xoff;
+            shadow_xoff = 0;
+          }
+          if (_yoff > 0) {
+            resized_yoff = 0;
+            shadow_yoff = -_yoff;
+          } else {
+            resized_yoff = _yoff;
+            shadow_yoff = 0;
+          }
+          this.crop(w, h, resized_xoff, resized_yoff);
+          bitmap_shadow.crop(w, h, shadow_xoff, shadow_yoff);
+          bitmap_shadow.overlay(this);
+          this.bindata = bitmap_shadow.bindata;
+          return this;
+        }
+        /**
+         * Add glow effect to the shape in the bitmap.
+         *
+         * The glowing area is one pixel up, right, bottom and left to the original pixels (corners will not be filled in default mode 0 but will in mode 1), and will be filled by `'2'`s.
+         *
+         * @param mode - Mode
+         *
+         * @returns The `Bitmap` object itself, which now has a bitmap of the original shape with glow effect as the `Bitmap` object's `.bindata`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#glow}
+         */
+        glow(mode) {
+          var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+          const _mode = mode !== null && mode !== void 0 ? mode : 0;
+          let line, pixel, w, h;
+          w = this.width();
+          h = this.height();
+          w += 2;
+          h += 2;
+          this.crop(w, h, -1, -1);
+          const b = this.todata(2);
+          const bl = b.length;
+          for (let i_line = 0; i_line < bl; i_line++) {
+            line = b[i_line];
+            const ll = line.length;
+            for (let i_pixel = 0; i_pixel < ll; i_pixel++) {
+              pixel = line[i_pixel];
+              if (pixel === 1) {
+                (_a = b[i_line])[_b = i_pixel - 1] || (_a[_b] = 2);
+                (_c = b[i_line])[_d = i_pixel + 1] || (_c[_d] = 2);
+                (_e = b[i_line - 1])[i_pixel] || (_e[i_pixel] = 2);
+                (_f = b[i_line + 1])[i_pixel] || (_f[i_pixel] = 2);
+                if (_mode === 1) {
+                  (_g = b[i_line - 1])[_h = i_pixel - 1] || (_g[_h] = 2);
+                  (_j = b[i_line - 1])[_k = i_pixel + 1] || (_j[_k] = 2);
+                  (_l = b[i_line + 1])[_m = i_pixel - 1] || (_l[_m] = 2);
+                  (_o = b[i_line + 1])[_p = i_pixel + 1] || (_o[_p] = 2);
+                }
+              }
+            }
+          }
+          this.bindata = b.map((l) => l.map((val) => val.toString()).join(""));
+          return this;
+        }
+        /**
+         * Pad each line (row) to multiple of 8 (or other numbers) bits/pixels, with `'0'`s.
+         *
+         * Do this before using the bitmap for a glyph in a BDF font.
+         *
+         * @param bits - Each line should be padded to multiple of how many bits/pixels
+         *
+         * @returns The `Bitmap` object itself, which now has the altered bitmap as its `.bindata`
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#bytepad}
+         */
+        bytepad(bits) {
+          const _bits = bits !== null && bits !== void 0 ? bits : 8;
+          const w = this.width();
+          const h = this.height();
+          const mod = w % _bits;
+          if (mod === 0) {
+            return this;
+          }
+          return this.crop(w + _bits - mod, h);
+        }
+        /**
+         * Get the bitmap's data in the specified type and format.
+         *
+         * @param datatype - Output data type
+         *
+         * @returns Bitmap data in the specified type (list or string) and format
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#todata}
+         */
+        todata(datatype) {
+          const _datatype = datatype !== null && datatype !== void 0 ? datatype : 1;
+          let ret;
+          switch (_datatype) {
+            case 0:
+              ret = this.bindata.join("\n");
+              break;
+            case 1:
+              ret = this.bindata;
+              break;
+            case 2:
+              ret = this.bindata.map((l) => l.split("").map((s) => parseInt(s, 10)));
+              break;
+            case 3:
+              ret = [].concat(...this.todata(2));
+              break;
+            case 4:
+              ret = this.bindata.map((s) => {
+                if (!/^[01]+$/.test(s)) {
+                  throw new Error(`Invalid binary string: ${s}`);
+                }
+                return parseInt(s, 2).toString(16).padStart(Math.floor(-1 * this.width() / 4) * -1, "0");
+              });
+              break;
+            case 5:
+              ret = this.bindata.map((s) => {
+                if (!/^[01]+$/.test(s)) {
+                  throw new Error(`Invalid binary string: ${s}`);
+                }
+                return parseInt(s, 2);
+              });
+              break;
+          }
+          return ret;
+        }
+        /**
+         * Draw the bitmap to HTML canvas
+         *
+         * @param context - Canvas 2D context (`canvas.getContext("2d")`)
+         * @param pixelcolors - Object mapping `'0'`/`'1'`/`'2'` in the bitmap data to color
+         *
+         * @returns The `Bitmap` object itself
+         *
+         * @see online docs: {@link https://font.tomchen.org/bdfparser_js/bitmap#draw2canvas}
+         */
+        draw2canvas(context, pixelcolors) {
+          const _pixelcolors = pixelcolors !== null && pixelcolors !== void 0 ? pixelcolors : {
+            "0": null,
+            "1": "black",
+            "2": "red"
+          };
+          this.todata(2).forEach((line, y) => {
+            line.forEach((pixel, x) => {
+              const s = pixel.toString();
+              if (s === "0" || s === "1" || s === "2") {
+                const color = _pixelcolors[s];
+                if (color !== null && color !== void 0) {
+                  context.fillStyle = color;
+                  context.fillRect(x, y, 1, 1);
+                }
+              }
+            });
+          });
+          return this;
+        }
+      };
+      $Font = (filelines) => __awaiter(void 0, void 0, void 0, function* () {
+        return yield new Font().load_filelines(filelines);
+      });
+      $Glyph = (meta_obj, font) => {
+        return new Glyph(meta_obj, font);
+      };
+      $Bitmap = (bin_bitmap_list) => {
+        return new Bitmap(bin_bitmap_list);
+      };
+    }
+  });
+
+  // node_modules/react-pixel-display/dist/index-Cl4FejWM.js
+  var index_Cl4FejWM_exports = {};
+  __export(index_Cl4FejWM_exports, {
+    default: () => fetchline
+  });
+  function fetchline(filepath, { includeLastEmptyLine = true, encoding = "utf-8", delimiter = /\r?\n/g } = {}) {
+    return __asyncGenerator(this, arguments, function* fetchline_1() {
+      const reader = yield __await(getChunkIteratorFetch(filepath));
+      let { value: chunk, done: readerDone } = yield __await(reader.read());
+      const decoder = new TextDecoder(encoding);
+      let chunkStr = chunk ? decoder.decode(chunk) : "";
+      let re;
+      if (typeof delimiter === "string") {
+        if (delimiter === "") {
+          throw new Error("delimiter cannot be empty string!");
+        }
+        re = new RegExp(escapeRegExp(delimiter), "g");
+      } else if (/g/.test(delimiter.flags) === false) {
+        re = new RegExp(delimiter.source, delimiter.flags + "g");
+      } else {
+        re = delimiter;
+      }
+      let startIndex = 0;
+      while (1) {
+        const result = re.exec(chunkStr);
+        if (result === null) {
+          if (readerDone === true) {
+            break;
+          }
+          const remainder = chunkStr.substring(startIndex);
+          ({ value: chunk, done: readerDone } = yield __await(reader.read()));
+          chunkStr = remainder + (chunkStr ? decoder.decode(chunk) : "");
+          startIndex = 0;
+          continue;
+        }
+        yield yield __await(chunkStr.substring(startIndex, result.index));
+        startIndex = re.lastIndex;
+      }
+      if (includeLastEmptyLine || startIndex < chunkStr.length) {
+        yield yield __await(chunkStr.substring(startIndex));
+      }
+    });
+  }
+  var __awaiter2, __await, __asyncGenerator, escapeRegExp, getChunkIteratorFetch;
+  var init_index_Cl4FejWM = __esm({
+    "node_modules/react-pixel-display/dist/index-Cl4FejWM.js"() {
+      __awaiter2 = function(thisArg, _arguments, P, generator) {
+        function adopt(value) {
+          return value instanceof P ? value : new P(function(resolve) {
+            resolve(value);
+          });
+        }
+        return new (P || (P = Promise))(function(resolve, reject) {
+          function fulfilled(value) {
+            try {
+              step(generator.next(value));
+            } catch (e) {
+              reject(e);
+            }
+          }
+          function rejected(value) {
+            try {
+              step(generator["throw"](value));
+            } catch (e) {
+              reject(e);
+            }
+          }
+          function step(result) {
+            result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+          }
+          step((generator = generator.apply(thisArg, _arguments || [])).next());
+        });
+      };
+      __await = function(v) {
+        return this instanceof __await ? (this.v = v, this) : new __await(v);
+      };
+      __asyncGenerator = function(thisArg, _arguments, generator) {
+        if (!Symbol.asyncIterator)
+          throw new TypeError("Symbol.asyncIterator is not defined.");
+        var g = generator.apply(thisArg, _arguments || []), i, q = [];
+        return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
+          return this;
+        }, i;
+        function verb(n) {
+          if (g[n])
+            i[n] = function(v) {
+              return new Promise(function(a, b) {
+                q.push([n, v, a, b]) > 1 || resume(n, v);
+              });
+            };
+        }
+        function resume(n, v) {
+          try {
+            step(g[n](v));
+          } catch (e) {
+            settle(q[0][3], e);
+          }
+        }
+        function step(r) {
+          r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
+        }
+        function fulfill(value) {
+          resume("next", value);
+        }
+        function reject(value) {
+          resume("throw", value);
+        }
+        function settle(f, v) {
+          if (f(v), q.shift(), q.length)
+            resume(q[0][0], q[0][1]);
+        }
+      };
+      escapeRegExp = (s) => s.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&");
+      getChunkIteratorFetch = (filepath) => __awaiter2(void 0, void 0, void 0, function* () {
+        const res = yield fetch(filepath);
+        if (res.body === null) {
+          throw new Error("Cannot read file");
+        }
+        return res.body.getReader();
+      });
+    }
+  });
+
+  // src/version.js
+  var CARD_VERSION = "2.11.1";
+
+  // src/state.js
+  var IPIXEL_STORAGE_KEY = "iPIXEL_DisplayState";
+  var IPIXEL_TEST_MODE_KEY = "iPIXEL_TestMode";
+  var DEFAULT_STATE = {
+    text: "",
+    mode: "text",
+    effect: "fixed",
+    speed: 50,
+    fgColor: "#ff6600",
+    bgColor: "#000000",
+    font: "VCR_OSD_MONO",
+    lastUpdate: 0
+  };
+  function loadDisplayState() {
+    try {
+      const saved = localStorage.getItem(IPIXEL_STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn("iPIXEL: Could not load saved state", e);
+    }
+    return { ...DEFAULT_STATE };
+  }
+  function saveDisplayState(state) {
+    try {
+      localStorage.setItem(IPIXEL_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("iPIXEL: Could not save state", e);
+    }
+  }
+  if (!window.iPIXELDisplayState) {
+    window.iPIXELDisplayState = loadDisplayState();
+  }
+  function getDisplayState() {
+    return window.iPIXELDisplayState;
+  }
+  function updateDisplayState(updates) {
+    window.iPIXELDisplayState = {
+      ...window.iPIXELDisplayState,
+      ...updates,
+      lastUpdate: Date.now()
+    };
+    saveDisplayState(window.iPIXELDisplayState);
+    window.dispatchEvent(new CustomEvent("ipixel-display-update", {
+      detail: window.iPIXELDisplayState
+    }));
+    return window.iPIXELDisplayState;
+  }
+  function isTestMode() {
+    if (window.iPIXELTestMode !== void 0)
+      return window.iPIXELTestMode;
+    try {
+      return localStorage.getItem(IPIXEL_TEST_MODE_KEY) === "true";
+    } catch (e) {
+      return false;
+    }
+  }
+  function setTestMode(enabled) {
+    window.iPIXELTestMode = enabled;
+    try {
+      localStorage.setItem(IPIXEL_TEST_MODE_KEY, String(enabled));
+    } catch (e) {
+    }
+    window.dispatchEvent(new CustomEvent("ipixel-test-mode-change", { detail: { enabled } }));
+  }
+  function detectMissingFeatures() {
+    const missing = [];
+    if (typeof navigator !== "undefined" && !navigator.bluetooth) {
+      missing.push("WebBluetooth");
+    }
+    try {
+      const c = document.createElement("canvas");
+      if (!c.getContext("2d"))
+        missing.push("Canvas");
+    } catch (e) {
+      missing.push("Canvas");
+    }
+    return missing;
+  }
+
+  // src/base.js
+  var iPIXELCardBase = class extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: "open" });
+      this._config = {};
+      this._hass = null;
+      this._handleTestModeChange = () => this.render();
+      window.addEventListener("ipixel-test-mode-change", this._handleTestModeChange);
+    }
+    disconnectedCallback() {
+      window.removeEventListener("ipixel-test-mode-change", this._handleTestModeChange);
+    }
+    set hass(hass) {
+      this._hass = hass;
+      this.render();
+    }
+    setConfig(config) {
+      if (!config.entity && !isTestMode()) {
+        this._config = config;
+        return;
+      }
+      this._config = config;
+      this.render();
+    }
+    /**
+     * Check if card is in test mode (no entity or explicitly enabled)
+     */
+    isInTestMode() {
+      return isTestMode() || !this._config.entity || !this.getEntity();
+    }
+    getEntity() {
+      if (!this._hass || !this._config.entity)
+        return null;
+      return this._hass.states[this._config.entity];
+    }
+    getRelatedEntity(domain, suffix = "") {
+      if (!this._hass || !this._config.entity)
+        return null;
+      const baseName = this._config.entity.replace(/^[^.]+\./, "").replace(/_?(text|display|gif_url)$/i, "");
+      const exactId = `${domain}.${baseName}${suffix}`;
+      if (this._hass.states[exactId])
+        return this._hass.states[exactId];
+      const matches = Object.keys(this._hass.states).filter((id) => {
+        if (!id.startsWith(`${domain}.`))
+          return false;
+        const entityName = id.replace(/^[^.]+\./, "");
+        return entityName.includes(baseName) || baseName.includes(entityName.replace(suffix, ""));
+      });
+      if (suffix) {
+        const withSuffix = matches.find((id) => id.endsWith(suffix));
+        if (withSuffix)
+          return this._hass.states[withSuffix];
+      } else {
+        const sorted = matches.sort((a, b) => a.length - b.length);
+        if (sorted.length > 0)
+          return this._hass.states[sorted[0]];
+      }
+      return matches.length > 0 ? this._hass.states[matches[0]] : null;
+    }
+    async callService(domain, service, data = {}) {
+      if (!this._hass)
+        return;
+      if (this.isInTestMode()) {
+        console.info(`iPIXEL [Test Mode]: ${domain}.${service}`, data);
+      }
+      try {
+        await this._hass.callService(domain, service, data);
+      } catch (err) {
+        console.error(`iPIXEL service call failed: ${domain}.${service}`, err);
+      }
+    }
+    getResolution() {
+      const widthEntity = this.getRelatedEntity("sensor", "_width") || this._hass?.states["sensor.display_width"];
+      const heightEntity = this.getRelatedEntity("sensor", "_height") || this._hass?.states["sensor.display_height"];
+      if (widthEntity && heightEntity) {
+        const w = parseInt(widthEntity.state), h = parseInt(heightEntity.state);
+        if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0)
+          return [w, h];
+      }
+      return [64, 16];
+    }
+    isOn() {
+      if (this.isInTestMode())
+        return true;
+      return this.getRelatedEntity("switch")?.state === "on";
+    }
+    hexToRgb(hex) {
+      const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return r ? [parseInt(r[1], 16), parseInt(r[2], 16), parseInt(r[3], 16)] : [255, 255, 255];
+    }
+    render() {
+    }
+    getCardSize() {
+      return 2;
+    }
+  };
+
+  // src/styles.js
+  var iPIXELCardStyles = `
   :host {
     --ipixel-primary: var(--primary-color, #03a9f4);
     --ipixel-accent: var(--accent-color, #ff9800);
@@ -212,37 +2035,1998 @@
     .dropdown { padding: 10px 12px; }
     .text-input { padding: 12px; }
   }
-`;function at(d){if(!d||d==="#111"||d==="#000")return[17,17,17];if(d==="#050505")return[5,5,5];let e=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(d);return e?[parseInt(e[1],16),parseInt(e[2],16),parseInt(e[3],16)]:[17,17,17]}function W(d,e,t){let s=0,i=0,o=0,n=Math.floor(d*6),r=d*6-n,a=t*(1-e),l=t*(1-r*e),c=t*(1-(1-r)*e);switch(n%6){case 0:s=t,i=c,o=a;break;case 1:s=l,i=t,o=a;break;case 2:s=a,i=t,o=c;break;case 3:s=a,i=l,o=t;break;case 4:s=c,i=a,o=t;break;case 5:s=t,i=a,o=l;break}return[s*255,i*255,o*255]}var rt=class{constructor(e){this.renderer=e}init(e,t){let{width:s,height:i}=this.renderer;switch(e){case"scroll_ltr":case"scroll_rtl":t.offset=0;break;case"blink":t.visible=!0;break;case"snow":case"breeze":t.phases=[];for(let o=0;o<s*i;o++)t.phases.push(Math.random()*Math.PI*2);break;case"laser":t.position=0;break;case"fade":t.opacity=0,t.direction=1;break;case"typewriter":t.charIndex=0,t.cursorVisible=!0;break;case"bounce":t.offset=0,t.direction=1;break;case"sparkle":t.sparkles=[];for(let o=0;o<Math.floor(s*i*.1);o++)t.sparkles.push({x:Math.floor(Math.random()*s),y:Math.floor(Math.random()*i),brightness:Math.random(),speed:.05+Math.random()*.1});break}}step(e,t){let{width:s,extendedWidth:i}=this.renderer;switch(e){case"scroll_ltr":t.offset-=1,t.offset<=-(i||s)&&(t.offset=s);break;case"scroll_rtl":t.offset+=1,t.offset>=(i||s)&&(t.offset=-s);break;case"blink":t.visible=!t.visible;break;case"laser":t.position=(t.position+1)%s;break;case"fade":t.opacity+=t.direction*.05,t.opacity>=1?(t.opacity=1,t.direction=-1):t.opacity<=0&&(t.opacity=0,t.direction=1);break;case"typewriter":t.tick%3===0&&t.charIndex++,t.cursorVisible=t.tick%10<5;break;case"bounce":{t.offset+=t.direction;let o=Math.max(0,(i||s)-s);t.offset>=o?(t.offset=o,t.direction=-1):t.offset<=0&&(t.offset=0,t.direction=1);break}case"sparkle":{let o=t.sparkles;for(let n of o)n.brightness+=n.speed,n.brightness>1&&(n.brightness=0,n.x=Math.floor(Math.random()*s),n.y=Math.floor(Math.random()*this.renderer.height));break}}}render(e,t,s,i,o){let{width:n,height:r}=this.renderer,a=i||s||[],l=s||[],c=o||n;for(let f=0;f<r;f++)for(let h=0;h<n;h++){let p,u=h;if(e==="scroll_ltr"||e==="scroll_rtl"||e==="bounce"){for(u=h-(t.offset||0);u<0;)u+=c;for(;u>=c;)u-=c;p=a[f*c+u]||"#111"}else if(e==="typewriter"){let x=(t.charIndex||0)*6;h<x?p=l[f*n+h]||"#111":h===x&&t.cursorVisible?p="#ffffff":p="#111"}else p=l[f*n+h]||"#111";let[g,b,m]=at(p);if(g>20||b>20||m>20)switch(e){case"blink":t.visible||(g=b=m=17);break;case"snow":{let v=t.phases,x=v?.[f*n+h]||0,y=t.tick||0,E=.3+.7*Math.abs(Math.sin(x+y*.3));g*=E,b*=E,m*=E;break}case"breeze":{let v=t.phases,x=v?.[f*n+h]||0,y=t.tick||0,E=.4+.6*Math.abs(Math.sin(x+y*.15+h*.2));g*=E,b*=E,m*=E;break}case"laser":{let v=t.position||0,y=Math.abs(h-v)<3?1:.3;g*=y,b*=y,m*=y;break}case"fade":{let v=t.opacity||1;g*=v,b*=v,m*=v;break}}if(e==="sparkle"&&t.sparkles){let v=t.sparkles;for(let x of v)if(x.x===h&&x.y===f){let y=Math.sin(x.brightness*Math.PI);g=Math.min(255,g+y*200),b=Math.min(255,b+y*200),m=Math.min(255,m+y*200)}}this.renderer.setPixel(h,f,[g,b,m])}}},lt=class{constructor(e){this.renderer=e}init(e,t){let{width:s,height:i}=this.renderer;switch(e){case"rainbow":t.position=0;break;case"matrix":{let o=[[0,255,0],[0,255,255],[255,0,255]];t.colorMode=o[Math.floor(Math.random()*o.length)],t.buffer=[];for(let n=0;n<i;n++)t.buffer.push(Array(s).fill(null).map(()=>[0,0,0]));break}case"plasma":case"gradient":t.time=0;break;case"fire":t.heat=[];for(let o=0;o<s*i;o++)t.heat.push(0);t.palette=this._createFirePalette();break;case"water":t.current=[],t.previous=[];for(let o=0;o<s*i;o++)t.current.push(0),t.previous.push(0);t.damping=.95;break;case"stars":{t.stars=[];let o=Math.floor(s*i*.15);for(let n=0;n<o;n++)t.stars.push({x:Math.floor(Math.random()*s),y:Math.floor(Math.random()*i),brightness:Math.random(),speed:.02+Math.random()*.05,phase:Math.random()*Math.PI*2});break}case"confetti":t.particles=[];for(let o=0;o<20;o++)t.particles.push(this._createConfettiParticle(s,i,!0));break;case"plasma_wave":case"radial_pulse":case"hypnotic":case"aurora":t.time=0;break;case"lava":t.time=0,t.noise=[];for(let o=0;o<s*i;o++)t.noise.push(Math.random()*Math.PI*2);break}}step(e,t){let{width:s,height:i}=this.renderer;switch(e){case"rainbow":t.position=(t.position+.01)%1;break;case"matrix":this._stepMatrix(t,s,i);break;case"plasma":case"gradient":t.time=(t.time||0)+.05;break;case"fire":this._stepFire(t,s,i);break;case"water":this._stepWater(t,s,i);break;case"stars":{let o=t.stars;for(let n of o)n.phase+=n.speed;break}case"confetti":{let o=t.particles;for(let n=0;n<o.length;n++){let r=o[n];r.y+=r.speed,r.x+=r.drift,r.rotation+=r.rotationSpeed,r.y>i&&(o[n]=this._createConfettiParticle(s,i,!1))}break}case"plasma_wave":case"radial_pulse":case"hypnotic":case"lava":case"aurora":t.time=(t.time||0)+.03;break}}render(e,t){switch(e){case"rainbow":this._renderRainbow(t);break;case"matrix":this._renderMatrix(t);break;case"plasma":this._renderPlasma(t);break;case"gradient":this._renderGradient(t);break;case"fire":this._renderFire(t);break;case"water":this._renderWater(t);break;case"stars":this._renderStars(t);break;case"confetti":this._renderConfetti(t);break;case"plasma_wave":this._renderPlasmaWave(t);break;case"radial_pulse":this._renderRadialPulse(t);break;case"hypnotic":this._renderHypnotic(t);break;case"lava":this._renderLava(t);break;case"aurora":this._renderAurora(t);break}}_renderRainbow(e){let{width:t,height:s}=this.renderer,i=e.position||0;for(let o=0;o<t;o++){let n=(i+o/t)%1,[r,a,l]=W(n,1,.6);for(let c=0;c<s;c++)this.renderer.setPixel(o,c,[r,a,l])}}_stepMatrix(e,t,s){let i=e.buffer,o=e.colorMode,n=.15;i.pop();let r=i[0].map(([a,l,c])=>[a*(1-n),l*(1-n),c*(1-n)]);i.unshift(JSON.parse(JSON.stringify(r)));for(let a=0;a<t;a++)Math.random()<.08&&(i[0][a]=[Math.floor(Math.random()*o[0]),Math.floor(Math.random()*o[1]),Math.floor(Math.random()*o[2])])}_renderMatrix(e){var t;let{width:s,height:i}=this.renderer,o=e.buffer;if(o)for(let n=0;n<i;n++)for(let r=0;r<s;r++){let[a,l,c]=((t=o[n])==null?void 0:t[r])||[0,0,0];this.renderer.setPixel(r,n,[a,l,c])}}_renderPlasma(e){let{width:t,height:s}=this.renderer,i=e.time||0,o=t/2,n=s/2;for(let r=0;r<t;r++)for(let a=0;a<s;a++){let l=r-o,c=a-n,f=Math.sqrt(l*l+c*c),h=Math.sin(r/8+i),p=Math.sin(a/6+i*.8),u=Math.sin(f/6-i*1.2),g=Math.sin((r+a)/10+i*.5),b=(h+p+u+g+4)/8,m=Math.sin(b*Math.PI*2)*.5+.5,_=Math.sin(b*Math.PI*2+2)*.5+.5,v=Math.sin(b*Math.PI*2+4)*.5+.5;this.renderer.setPixel(r,a,[m*255,_*255,v*255])}}_renderGradient(e){let{width:t,height:s}=this.renderer,o=(e.time||0)*10;for(let n=0;n<t;n++)for(let r=0;r<s;r++){let a=(Math.sin((n+o)*.05)*.5+.5)*255,l=(Math.cos((r+o)*.05)*.5+.5)*255,c=(Math.sin((n+r+o)*.03)*.5+.5)*255;this.renderer.setPixel(n,r,[a,l,c])}}_createFirePalette(){let e=[];for(let t=0;t<256;t++){let s,i,o;t<64?(s=t*4,i=0,o=0):t<128?(s=255,i=(t-64)*4,o=0):t<192?(s=255,i=255,o=(t-128)*4):(s=255,i=255,o=255),e.push([s,i,o])}return e}_stepFire(e,t,s){let i=e.heat;for(let o=0;o<t*s;o++)i[o]=Math.max(0,i[o]-Math.random()*10);for(let o=0;o<s-1;o++)for(let n=0;n<t;n++){let r=o*t+n,a=(o+1)*t+n,l=o*t+Math.max(0,n-1),c=o*t+Math.min(t-1,n+1);i[r]=(i[a]+i[l]+i[c])/3.05}for(let o=0;o<t;o++)Math.random()<.6&&(i[(s-1)*t+o]=180+Math.random()*75)}_renderFire(e){let{width:t,height:s}=this.renderer,i=e.heat,o=e.palette;for(let n=0;n<s;n++)for(let r=0;r<t;r++){let a=n*t+r,l=Math.floor(Math.min(255,i[a])),[c,f,h]=o[l];this.renderer.setPixel(r,n,[c,f,h])}}_stepWater(e,t,s){let i=e.current,o=e.previous,n=e.damping,r=[...o];for(let a=0;a<i.length;a++)o[a]=i[a];for(let a=1;a<s-1;a++)for(let l=1;l<t-1;l++){let c=a*t+l;i[c]=(r[(a-1)*t+l]+r[(a+1)*t+l]+r[a*t+(l-1)]+r[a*t+(l+1)])/2-i[c],i[c]*=n}if(Math.random()<.1){let a=Math.floor(Math.random()*(t-2))+1,l=Math.floor(Math.random()*(s-2))+1;i[l*t+a]=255}}_renderWater(e){let{width:t,height:s}=this.renderer,i=e.current;for(let o=0;o<s;o++)for(let n=0;n<t;n++){let r=o*t+n,a=Math.abs(i[r]),l=Math.min(255,a*2),c=l>200?l:0,f=l>150?l*.8:l*.3,h=Math.min(255,50+l);this.renderer.setPixel(n,o,[c,f,h])}}_renderStars(e){let{width:t,height:s}=this.renderer;for(let o=0;o<s;o++)for(let n=0;n<t;n++)this.renderer.setPixel(n,o,[5,5,15]);let i=e.stars;for(let o of i){let n=(Math.sin(o.phase)*.5+.5)*255,r=Math.floor(o.x),a=Math.floor(o.y);r>=0&&r<t&&a>=0&&a<s&&this.renderer.setPixel(r,a,[n,n,n*.9])}}_createConfettiParticle(e,t,s){let i=[[255,0,0],[0,255,0],[0,0,255],[255,255,0],[255,0,255],[0,255,255],[255,128,0],[255,192,203]];return{x:Math.random()*e,y:s?Math.random()*t:-2,speed:.2+Math.random()*.3,drift:(Math.random()-.5)*.3,color:i[Math.floor(Math.random()*i.length)],size:1+Math.random(),rotation:Math.random()*Math.PI*2,rotationSpeed:(Math.random()-.5)*.2}}_renderConfetti(e){let{width:t,height:s}=this.renderer;for(let o=0;o<s;o++)for(let n=0;n<t;n++)this.renderer.setPixel(n,o,[10,10,10]);let i=e.particles;for(let o of i){let n=Math.floor(o.x),r=Math.floor(o.y);if(n>=0&&n<t&&r>=0&&r<s){let a=Math.abs(Math.sin(o.rotation))*.5+.5,[l,c,f]=o.color;this.renderer.setPixel(n,r,[l*a,c*a,f*a])}}}_renderPlasmaWave(e){let{width:t,height:s}=this.renderer,i=e.time||0;for(let o=0;o<t;o++)for(let n=0;n<s;n++){let r=o/t,a=n/s,l=Math.sin(r*10+i)+Math.sin(a*10+i)+Math.sin((r+a)*10+i)+Math.sin(Math.sqrt((r-.5)**2+(a-.5)**2)*20-i*2),c=Math.sin(l*Math.PI)*.5+.5,f=Math.sin(l*Math.PI+2.094)*.5+.5,h=Math.sin(l*Math.PI+4.188)*.5+.5;this.renderer.setPixel(o,n,[c*255,f*255,h*255])}}_renderRadialPulse(e){let{width:t,height:s}=this.renderer,i=e.time||0,o=t/2,n=s/2;for(let r=0;r<t;r++)for(let a=0;a<s;a++){let l=r-o,c=a-n,f=Math.sqrt(l*l+c*c),h=Math.sin(f*.8-i*3)*.5+.5,p=Math.sin(i*2)*.3+.7,u=(f/20+i*.5)%1,[g,b,m]=W(u,.8,h*p);this.renderer.setPixel(r,a,[g,b,m])}}_renderHypnotic(e){let{width:t,height:s}=this.renderer,i=e.time||0,o=t/2,n=s/2;for(let r=0;r<t;r++)for(let a=0;a<s;a++){let l=r-o,c=a-n,f=Math.sqrt(l*l+c*c),h=Math.atan2(c,l),u=Math.sin(h*4+f*.5-i*2)*.5+.5,g=u*(Math.sin(i)*.5+.5),b=u*(Math.sin(i+2.094)*.5+.5),m=u*(Math.sin(i+4.188)*.5+.5);this.renderer.setPixel(r,a,[g*255,b*255,m*255])}}_renderLava(e){let{width:t,height:s}=this.renderer,i=e.time||0;for(let o=0;o<t;o++)for(let n=0;n<s;n++){let r=o/t,a=n/s,l=Math.sin(r*8+i*.7)*Math.cos(a*6+i*.5),c=Math.sin(r*12-i*.3)*Math.sin(a*10+i*.8),f=Math.cos((r+a)*5+i),h=(l+c+f+3)/6,p,u,g;h<.3?(p=h*3*100,u=0,g=0):h<.6?(p=100+(h-.3)*3*155,u=(h-.3)*3*100,g=0):(p=255,u=100+(h-.6)*2.5*155,g=(h-.6)*2.5*100),this.renderer.setPixel(o,n,[p,u,g])}}_renderAurora(e){let{width:t,height:s}=this.renderer,i=e.time||0;for(let o=0;o<t;o++)for(let n=0;n<s;n++){let r=o/t,a=n/s,l=Math.sin(r*6+i)*.3,c=Math.sin(r*4-i*.7)*.2,f=Math.sin(r*8+i*1.3)*.15,h=.5+l+c+f,p=Math.abs(a-h),u=Math.max(0,1-p*4),g=Math.pow(u,1.5),b=Math.sin(r*3+i*.5),m=g*(.2+b*.3)*255,_=g*(.8+Math.sin(i+r)*.2)*255,v=g*(.6+b*.4)*255,x=Math.sin(o*127.1+n*311.7)*.5+.5,y=Math.sin(i*3+o+n)*.5+.5;if(x>.98&&u<.3){let E=y*180;m=Math.max(m,E),_=Math.max(_,E),v=Math.max(v,E*.9)}this.renderer.setPixel(o,n,[m,_,v])}}},dt=class{constructor(e){this.renderer=e}init(e,t){switch(e){case"color_cycle":t.hue=0;break;case"rainbow_text":t.offset=0;break;case"neon":t.glowIntensity=0,t.direction=1,t.baseColor=t.fgColor||"#ff00ff";break}}step(e,t){switch(e){case"color_cycle":t.hue=(t.hue+.01)%1;break;case"rainbow_text":t.offset=(t.offset+.02)%1;break;case"neon":t.glowIntensity+=t.direction*.05,t.glowIntensity>=1?(t.glowIntensity=1,t.direction=-1):t.glowIntensity<=.3&&(t.glowIntensity=.3,t.direction=1);break}}render(e,t,s){let{width:i,height:o}=this.renderer,n=s||[];for(let r=0;r<o;r++)for(let a=0;a<i;a++){let l=n[r*i+a]||"#111",[c,f,h]=at(l);if(c>20||f>20||h>20)switch(e){case"color_cycle":{let[u,g,b]=W(t.hue,1,.8),m=(c+f+h)/(3*255);c=u*m,f=g*m,h=b*m;break}case"rainbow_text":{let u=(t.offset+a/i)%1,[g,b,m]=W(u,1,.8),_=(c+f+h)/(3*255);c=g*_,f=b*_,h=m*_;break}case"neon":{let u=at(t.baseColor||"#ff00ff"),g=t.glowIntensity||.5;if(c=u[0]*g,f=u[1]*g,h=u[2]*g,g>.8){let b=(g-.8)*5;c=c+(255-c)*b*.3,f=f+(255-f)*b*.3,h=h+(255-h)*b*.3}break}}this.renderer.setPixel(a,r,[c,f,h])}}},N={TEXT:"text",AMBIENT:"ambient",COLOR:"color"},M={fixed:{category:"text",name:"Fixed",description:"Static display"},scroll_ltr:{category:"text",name:"Scroll Left",description:"Text scrolls left to right"},scroll_rtl:{category:"text",name:"Scroll Right",description:"Text scrolls right to left"},blink:{category:"text",name:"Blink",description:"Text blinks on/off"},breeze:{category:"text",name:"Breeze",description:"Gentle wave brightness"},snow:{category:"text",name:"Snow",description:"Sparkle effect"},laser:{category:"text",name:"Laser",description:"Scanning beam"},fade:{category:"text",name:"Fade",description:"Fade in/out"},typewriter:{category:"text",name:"Typewriter",description:"Characters appear one by one"},bounce:{category:"text",name:"Bounce",description:"Text bounces back and forth"},sparkle:{category:"text",name:"Sparkle",description:"Random sparkle overlay"},rainbow:{category:"ambient",name:"Rainbow",description:"HSV rainbow gradient"},matrix:{category:"ambient",name:"Matrix",description:"Digital rain effect"},plasma:{category:"ambient",name:"Plasma",description:"Classic plasma waves"},gradient:{category:"ambient",name:"Gradient",description:"Moving color gradients"},fire:{category:"ambient",name:"Fire",description:"Fire/flame simulation"},water:{category:"ambient",name:"Water",description:"Ripple/wave effect"},stars:{category:"ambient",name:"Stars",description:"Twinkling starfield"},confetti:{category:"ambient",name:"Confetti",description:"Falling colored particles"},plasma_wave:{category:"ambient",name:"Plasma Wave",description:"Multi-frequency sine waves"},radial_pulse:{category:"ambient",name:"Radial Pulse",description:"Expanding ring patterns"},hypnotic:{category:"ambient",name:"Hypnotic",description:"Spiral pattern"},lava:{category:"ambient",name:"Lava",description:"Flowing lava/magma"},aurora:{category:"ambient",name:"Aurora",description:"Northern lights"},color_cycle:{category:"color",name:"Color Cycle",description:"Cycle through colors"},rainbow_text:{category:"color",name:"Rainbow Text",description:"Rainbow gradient on text"},neon:{category:"color",name:"Neon",description:"Pulsing neon glow"}},U=class{constructor(e){this.renderer=e,this.textEffects=new rt(e),this.ambientEffects=new lt(e),this.colorEffects=new dt(e),this.currentEffect="fixed",this.effectState={tick:0}}getEffectInfo(e){return M[e]||M.fixed}getEffectsByCategory(e){return Object.entries(M).filter(([,t])=>t.category===e).map(([t,s])=>({key:t,...s}))}initEffect(e,t={}){let s=this.getEffectInfo(e);switch(this.currentEffect=e,this.effectState={tick:0,...t},s.category){case"text":this.textEffects.init(e,this.effectState);break;case"ambient":this.ambientEffects.init(e,this.effectState);break;case"color":this.colorEffects.init(e,this.effectState);break}return this.effectState}step(){let e=this.getEffectInfo(this.currentEffect);switch(this.effectState.tick=(this.effectState.tick||0)+1,e.category){case"text":this.textEffects.step(this.currentEffect,this.effectState);break;case"ambient":this.ambientEffects.step(this.currentEffect,this.effectState);break;case"color":this.colorEffects.step(this.currentEffect,this.effectState);break}}render(e,t,s){switch(this.getEffectInfo(this.currentEffect).category){case"ambient":this.ambientEffects.render(this.currentEffect,this.effectState);break;case"text":this.textEffects.render(this.currentEffect,this.effectState,e,t,s);break;case"color":this.colorEffects.render(this.currentEffect,this.effectState,e);break}}isAmbient(e){return this.getEffectInfo(e).category==="ambient"}needsAnimation(e){return e!=="fixed"}},Ie=Object.entries(M).filter(([,d])=>d.category==="text").map(([d])=>d),Ce=Object.entries(M).filter(([,d])=>d.category==="ambient").map(([d])=>d),ke=Object.entries(M).filter(([,d])=>d.category==="color").map(([d])=>d),Re=Object.keys(M),B=class{constructor(e,t={}){this.container=e,this.width=t.width||64,this.height=t.height||16,this.pixelGap=t.pixelGap||.15,this.glowEnabled=t.glow!==!1,this.scale=t.scale||8,this.buffer=[],this._initBuffer(),this._colorPixels=[],this._extendedColorPixels=[],this.extendedWidth=this.width,this.effect="fixed",this.speed=50,this.animationId=null,this.lastFrameTime=0,this._isRunning=!1,this._canvas=null,this._ctx=null,this._imageData=null,this._glowCanvas=null,this._glowCtx=null,this._wrapper=null,this._canvasCreated=!1,this._pixelTemplate=null,this.effectManager=new U(this)}_initBuffer(){this.buffer=[];for(let e=0;e<this.width*this.height;e++)this.buffer.push([0,0,0])}_createCanvas(){if(typeof document>"u")return;let e=this.width*this.scale,t=this.height*this.scale;this._wrapper=document.createElement("div"),this._wrapper.style.cssText=`
+`;
+
+  // node_modules/react-pixel-display/dist/index-DWEf46Kx.js
+  function hexToRgb(hex) {
+    if (!hex || hex === "#111" || hex === "#000")
+      return [17, 17, 17];
+    if (hex === "#050505")
+      return [5, 5, 5];
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [17, 17, 17];
+  }
+  function hsvToRgb(h, s, v) {
+    let r = 0, g = 0, b = 0;
+    const i = Math.floor(h * 6);
+    const f = h * 6 - i;
+    const p = v * (1 - s);
+    const q = v * (1 - f * s);
+    const t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+      case 0:
+        r = v;
+        g = t;
+        b = p;
+        break;
+      case 1:
+        r = q;
+        g = v;
+        b = p;
+        break;
+      case 2:
+        r = p;
+        g = v;
+        b = t;
+        break;
+      case 3:
+        r = p;
+        g = q;
+        b = v;
+        break;
+      case 4:
+        r = t;
+        g = p;
+        b = v;
+        break;
+      case 5:
+        r = v;
+        g = p;
+        b = q;
+        break;
+    }
+    return [r * 255, g * 255, b * 255];
+  }
+  var TextEffects = class {
+    constructor(renderer) {
+      this.renderer = renderer;
+    }
+    init(effectName, state) {
+      const { width, height } = this.renderer;
+      switch (effectName) {
+        case "scroll_ltr":
+        case "scroll_rtl":
+          state.offset = 0;
+          break;
+        case "blink":
+          state.visible = true;
+          break;
+        case "snow":
+        case "breeze":
+          state.phases = [];
+          for (let i = 0; i < width * height; i++) {
+            state.phases.push(Math.random() * Math.PI * 2);
+          }
+          break;
+        case "laser":
+          state.position = 0;
+          break;
+        case "fade":
+          state.opacity = 0;
+          state.direction = 1;
+          break;
+        case "typewriter":
+          state.charIndex = 0;
+          state.cursorVisible = true;
+          break;
+        case "bounce":
+          state.offset = 0;
+          state.direction = 1;
+          break;
+        case "sparkle":
+          state.sparkles = [];
+          for (let i = 0; i < Math.floor(width * height * 0.1); i++) {
+            state.sparkles.push({
+              x: Math.floor(Math.random() * width),
+              y: Math.floor(Math.random() * height),
+              brightness: Math.random(),
+              speed: 0.05 + Math.random() * 0.1
+            });
+          }
+          break;
+      }
+    }
+    step(effectName, state) {
+      const { width, extendedWidth } = this.renderer;
+      switch (effectName) {
+        case "scroll_ltr":
+          state.offset -= 1;
+          if (state.offset <= -(extendedWidth || width)) {
+            state.offset = width;
+          }
+          break;
+        case "scroll_rtl":
+          state.offset += 1;
+          if (state.offset >= (extendedWidth || width)) {
+            state.offset = -width;
+          }
+          break;
+        case "blink":
+          state.visible = !state.visible;
+          break;
+        case "laser":
+          state.position = (state.position + 1) % width;
+          break;
+        case "fade":
+          state.opacity += state.direction * 0.05;
+          if (state.opacity >= 1) {
+            state.opacity = 1;
+            state.direction = -1;
+          } else if (state.opacity <= 0) {
+            state.opacity = 0;
+            state.direction = 1;
+          }
+          break;
+        case "typewriter":
+          if (state.tick % 3 === 0) {
+            state.charIndex++;
+          }
+          state.cursorVisible = state.tick % 10 < 5;
+          break;
+        case "bounce": {
+          state.offset += state.direction;
+          const maxOffset = Math.max(0, (extendedWidth || width) - width);
+          if (state.offset >= maxOffset) {
+            state.offset = maxOffset;
+            state.direction = -1;
+          } else if (state.offset <= 0) {
+            state.offset = 0;
+            state.direction = 1;
+          }
+          break;
+        }
+        case "sparkle": {
+          const sparkles = state.sparkles;
+          for (const sparkle of sparkles) {
+            sparkle.brightness += sparkle.speed;
+            if (sparkle.brightness > 1) {
+              sparkle.brightness = 0;
+              sparkle.x = Math.floor(Math.random() * width);
+              sparkle.y = Math.floor(Math.random() * this.renderer.height);
+            }
+          }
+          break;
+        }
+      }
+    }
+    render(effectName, state, pixels, extendedPixels, extendedWidth) {
+      const { width, height } = this.renderer;
+      const srcPixels = extendedPixels || pixels || [];
+      const displayPixels = pixels || [];
+      const srcWidth = extendedWidth || width;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let color;
+          let sourceX = x;
+          if (effectName === "scroll_ltr" || effectName === "scroll_rtl" || effectName === "bounce") {
+            sourceX = x - (state.offset || 0);
+            while (sourceX < 0)
+              sourceX += srcWidth;
+            while (sourceX >= srcWidth)
+              sourceX -= srcWidth;
+            color = srcPixels[y * srcWidth + sourceX] || "#111";
+          } else if (effectName === "typewriter") {
+            const charWidth = 6;
+            const maxX = (state.charIndex || 0) * charWidth;
+            if (x < maxX) {
+              color = displayPixels[y * width + x] || "#111";
+            } else if (x === maxX && state.cursorVisible) {
+              color = "#ffffff";
+            } else {
+              color = "#111";
+            }
+          } else {
+            color = displayPixels[y * width + x] || "#111";
+          }
+          let [r, g, b] = hexToRgb(color);
+          const isLit = r > 20 || g > 20 || b > 20;
+          if (isLit) {
+            switch (effectName) {
+              case "blink":
+                if (!state.visible) {
+                  r = g = b = 17;
+                }
+                break;
+              case "snow": {
+                const phases = state.phases;
+                const phase = (phases == null ? void 0 : phases[y * width + x]) || 0;
+                const tick = state.tick || 0;
+                const factor = 0.3 + 0.7 * Math.abs(Math.sin(phase + tick * 0.3));
+                r *= factor;
+                g *= factor;
+                b *= factor;
+                break;
+              }
+              case "breeze": {
+                const phases = state.phases;
+                const phase = (phases == null ? void 0 : phases[y * width + x]) || 0;
+                const tick = state.tick || 0;
+                const factor = 0.4 + 0.6 * Math.abs(Math.sin(phase + tick * 0.15 + x * 0.2));
+                r *= factor;
+                g *= factor;
+                b *= factor;
+                break;
+              }
+              case "laser": {
+                const pos = state.position || 0;
+                const dist = Math.abs(x - pos);
+                const factor = dist < 3 ? 1 : 0.3;
+                r *= factor;
+                g *= factor;
+                b *= factor;
+                break;
+              }
+              case "fade": {
+                const opacity = state.opacity || 1;
+                r *= opacity;
+                g *= opacity;
+                b *= opacity;
+                break;
+              }
+            }
+          }
+          if (effectName === "sparkle" && state.sparkles) {
+            const sparkles = state.sparkles;
+            for (const sparkle of sparkles) {
+              if (sparkle.x === x && sparkle.y === y) {
+                const sparkleIntensity = Math.sin(sparkle.brightness * Math.PI);
+                r = Math.min(255, r + sparkleIntensity * 200);
+                g = Math.min(255, g + sparkleIntensity * 200);
+                b = Math.min(255, b + sparkleIntensity * 200);
+              }
+            }
+          }
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+  };
+  var AmbientEffects = class {
+    constructor(renderer) {
+      this.renderer = renderer;
+    }
+    init(effectName, state) {
+      const { width, height } = this.renderer;
+      switch (effectName) {
+        case "rainbow":
+          state.position = 0;
+          break;
+        case "matrix": {
+          const colorModes = [
+            [0, 255, 0],
+            [0, 255, 255],
+            [255, 0, 255]
+          ];
+          state.colorMode = colorModes[Math.floor(Math.random() * colorModes.length)];
+          state.buffer = [];
+          for (let y = 0; y < height; y++) {
+            state.buffer.push(
+              Array(width).fill(null).map(() => [0, 0, 0])
+            );
+          }
+          break;
+        }
+        case "plasma":
+        case "gradient":
+          state.time = 0;
+          break;
+        case "fire":
+          state.heat = [];
+          for (let i = 0; i < width * height; i++) {
+            state.heat.push(0);
+          }
+          state.palette = this._createFirePalette();
+          break;
+        case "water":
+          state.current = [];
+          state.previous = [];
+          for (let i = 0; i < width * height; i++) {
+            state.current.push(0);
+            state.previous.push(0);
+          }
+          state.damping = 0.95;
+          break;
+        case "stars": {
+          state.stars = [];
+          const numStars = Math.floor(width * height * 0.15);
+          for (let i = 0; i < numStars; i++) {
+            state.stars.push({
+              x: Math.floor(Math.random() * width),
+              y: Math.floor(Math.random() * height),
+              brightness: Math.random(),
+              speed: 0.02 + Math.random() * 0.05,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+          break;
+        }
+        case "confetti":
+          state.particles = [];
+          for (let i = 0; i < 20; i++) {
+            state.particles.push(this._createConfettiParticle(width, height, true));
+          }
+          break;
+        case "plasma_wave":
+        case "radial_pulse":
+        case "hypnotic":
+        case "aurora":
+          state.time = 0;
+          break;
+        case "lava":
+          state.time = 0;
+          state.noise = [];
+          for (let i = 0; i < width * height; i++) {
+            state.noise.push(Math.random() * Math.PI * 2);
+          }
+          break;
+      }
+    }
+    step(effectName, state) {
+      const { width, height } = this.renderer;
+      switch (effectName) {
+        case "rainbow":
+          state.position = (state.position + 0.01) % 1;
+          break;
+        case "matrix":
+          this._stepMatrix(state, width, height);
+          break;
+        case "plasma":
+        case "gradient":
+          state.time = (state.time || 0) + 0.05;
+          break;
+        case "fire":
+          this._stepFire(state, width, height);
+          break;
+        case "water":
+          this._stepWater(state, width, height);
+          break;
+        case "stars": {
+          const stars = state.stars;
+          for (const star of stars) {
+            star.phase += star.speed;
+          }
+          break;
+        }
+        case "confetti": {
+          const particles = state.particles;
+          for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.y += p.speed;
+            p.x += p.drift;
+            p.rotation += p.rotationSpeed;
+            if (p.y > height) {
+              particles[i] = this._createConfettiParticle(width, height, false);
+            }
+          }
+          break;
+        }
+        case "plasma_wave":
+        case "radial_pulse":
+        case "hypnotic":
+        case "lava":
+        case "aurora":
+          state.time = (state.time || 0) + 0.03;
+          break;
+      }
+    }
+    render(effectName, state) {
+      switch (effectName) {
+        case "rainbow":
+          this._renderRainbow(state);
+          break;
+        case "matrix":
+          this._renderMatrix(state);
+          break;
+        case "plasma":
+          this._renderPlasma(state);
+          break;
+        case "gradient":
+          this._renderGradient(state);
+          break;
+        case "fire":
+          this._renderFire(state);
+          break;
+        case "water":
+          this._renderWater(state);
+          break;
+        case "stars":
+          this._renderStars(state);
+          break;
+        case "confetti":
+          this._renderConfetti(state);
+          break;
+        case "plasma_wave":
+          this._renderPlasmaWave(state);
+          break;
+        case "radial_pulse":
+          this._renderRadialPulse(state);
+          break;
+        case "hypnotic":
+          this._renderHypnotic(state);
+          break;
+        case "lava":
+          this._renderLava(state);
+          break;
+        case "aurora":
+          this._renderAurora(state);
+          break;
+      }
+    }
+    _renderRainbow(state) {
+      const { width, height } = this.renderer;
+      const position = state.position || 0;
+      for (let x = 0; x < width; x++) {
+        const hue = (position + x / width) % 1;
+        const [r, g, b] = hsvToRgb(hue, 1, 0.6);
+        for (let y = 0; y < height; y++) {
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+    _stepMatrix(state, width, height) {
+      const buffer = state.buffer;
+      const colorMode = state.colorMode;
+      const fadeAmount = 0.15;
+      buffer.pop();
+      const newRow = buffer[0].map(([r, g, b]) => [
+        r * (1 - fadeAmount),
+        g * (1 - fadeAmount),
+        b * (1 - fadeAmount)
+      ]);
+      buffer.unshift(JSON.parse(JSON.stringify(newRow)));
+      for (let x = 0; x < width; x++) {
+        if (Math.random() < 0.08) {
+          buffer[0][x] = [
+            Math.floor(Math.random() * colorMode[0]),
+            Math.floor(Math.random() * colorMode[1]),
+            Math.floor(Math.random() * colorMode[2])
+          ];
+        }
+      }
+    }
+    _renderMatrix(state) {
+      var _a;
+      const { width, height } = this.renderer;
+      const buffer = state.buffer;
+      if (!buffer)
+        return;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const [r, g, b] = ((_a = buffer[y]) == null ? void 0 : _a[x]) || [0, 0, 0];
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+    _renderPlasma(state) {
+      const { width, height } = this.renderer;
+      const time = state.time || 0;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const v1 = Math.sin(x / 8 + time);
+          const v2 = Math.sin(y / 6 + time * 0.8);
+          const v3 = Math.sin(dist / 6 - time * 1.2);
+          const v4 = Math.sin((x + y) / 10 + time * 0.5);
+          const value = (v1 + v2 + v3 + v4 + 4) / 8;
+          const r = Math.sin(value * Math.PI * 2) * 0.5 + 0.5;
+          const g = Math.sin(value * Math.PI * 2 + 2) * 0.5 + 0.5;
+          const b = Math.sin(value * Math.PI * 2 + 4) * 0.5 + 0.5;
+          this.renderer.setPixel(x, y, [r * 255, g * 255, b * 255]);
+        }
+      }
+    }
+    _renderGradient(state) {
+      const { width, height } = this.renderer;
+      const time = state.time || 0;
+      const t = time * 10;
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const r = (Math.sin((x + t) * 0.05) * 0.5 + 0.5) * 255;
+          const g = (Math.cos((y + t) * 0.05) * 0.5 + 0.5) * 255;
+          const b = (Math.sin((x + y + t) * 0.03) * 0.5 + 0.5) * 255;
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+    _createFirePalette() {
+      const palette = [];
+      for (let i = 0; i < 256; i++) {
+        let r, g, b;
+        if (i < 64) {
+          r = i * 4;
+          g = 0;
+          b = 0;
+        } else if (i < 128) {
+          r = 255;
+          g = (i - 64) * 4;
+          b = 0;
+        } else if (i < 192) {
+          r = 255;
+          g = 255;
+          b = (i - 128) * 4;
+        } else {
+          r = 255;
+          g = 255;
+          b = 255;
+        }
+        palette.push([r, g, b]);
+      }
+      return palette;
+    }
+    _stepFire(state, width, height) {
+      const heat = state.heat;
+      for (let i = 0; i < width * height; i++) {
+        heat[i] = Math.max(0, heat[i] - Math.random() * 10);
+      }
+      for (let y = 0; y < height - 1; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          const below = (y + 1) * width + x;
+          const left = y * width + Math.max(0, x - 1);
+          const right = y * width + Math.min(width - 1, x + 1);
+          heat[idx] = (heat[below] + heat[left] + heat[right]) / 3.05;
+        }
+      }
+      for (let x = 0; x < width; x++) {
+        if (Math.random() < 0.6) {
+          heat[(height - 1) * width + x] = 180 + Math.random() * 75;
+        }
+      }
+    }
+    _renderFire(state) {
+      const { width, height } = this.renderer;
+      const heat = state.heat;
+      const palette = state.palette;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          const h = Math.floor(Math.min(255, heat[idx]));
+          const [r, g, b] = palette[h];
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+    _stepWater(state, width, height) {
+      const current = state.current;
+      const previous = state.previous;
+      const damping = state.damping;
+      const temp = [...previous];
+      for (let i = 0; i < current.length; i++) {
+        previous[i] = current[i];
+      }
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = y * width + x;
+          current[idx] = (temp[(y - 1) * width + x] + temp[(y + 1) * width + x] + temp[y * width + (x - 1)] + temp[y * width + (x + 1)]) / 2 - current[idx];
+          current[idx] *= damping;
+        }
+      }
+      if (Math.random() < 0.1) {
+        const x = Math.floor(Math.random() * (width - 2)) + 1;
+        const y = Math.floor(Math.random() * (height - 2)) + 1;
+        current[y * width + x] = 255;
+      }
+    }
+    _renderWater(state) {
+      const { width, height } = this.renderer;
+      const current = state.current;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          const value = Math.abs(current[idx]);
+          const intensity = Math.min(255, value * 2);
+          const r = intensity > 200 ? intensity : 0;
+          const g = intensity > 150 ? intensity * 0.8 : intensity * 0.3;
+          const b = Math.min(255, 50 + intensity);
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+    _renderStars(state) {
+      const { width, height } = this.renderer;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          this.renderer.setPixel(x, y, [5, 5, 15]);
+        }
+      }
+      const stars = state.stars;
+      for (const star of stars) {
+        const brightness = (Math.sin(star.phase) * 0.5 + 0.5) * 255;
+        const x = Math.floor(star.x);
+        const y = Math.floor(star.y);
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+          this.renderer.setPixel(x, y, [brightness, brightness, brightness * 0.9]);
+        }
+      }
+    }
+    _createConfettiParticle(width, height, randomY) {
+      const colors = [
+        [255, 0, 0],
+        [0, 255, 0],
+        [0, 0, 255],
+        [255, 255, 0],
+        [255, 0, 255],
+        [0, 255, 255],
+        [255, 128, 0],
+        [255, 192, 203]
+      ];
+      return {
+        x: Math.random() * width,
+        y: randomY ? Math.random() * height : -2,
+        speed: 0.2 + Math.random() * 0.3,
+        drift: (Math.random() - 0.5) * 0.3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 1 + Math.random(),
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.2
+      };
+    }
+    _renderConfetti(state) {
+      const { width, height } = this.renderer;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          this.renderer.setPixel(x, y, [10, 10, 10]);
+        }
+      }
+      const particles = state.particles;
+      for (const p of particles) {
+        const x = Math.floor(p.x);
+        const y = Math.floor(p.y);
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+          const shimmer = Math.abs(Math.sin(p.rotation)) * 0.5 + 0.5;
+          const [r, g, b] = p.color;
+          this.renderer.setPixel(x, y, [r * shimmer, g * shimmer, b * shimmer]);
+        }
+      }
+    }
+    _renderPlasmaWave(state) {
+      const { width, height } = this.renderer;
+      const time = state.time || 0;
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const uvX = x / width;
+          const uvY = y / height;
+          const v = Math.sin(uvX * 10 + time) + Math.sin(uvY * 10 + time) + Math.sin((uvX + uvY) * 10 + time) + Math.sin(Math.sqrt((uvX - 0.5) ** 2 + (uvY - 0.5) ** 2) * 20 - time * 2);
+          const r = Math.sin(v * Math.PI) * 0.5 + 0.5;
+          const g = Math.sin(v * Math.PI + 2.094) * 0.5 + 0.5;
+          const b = Math.sin(v * Math.PI + 4.188) * 0.5 + 0.5;
+          this.renderer.setPixel(x, y, [r * 255, g * 255, b * 255]);
+        }
+      }
+    }
+    _renderRadialPulse(state) {
+      const { width, height } = this.renderer;
+      const time = state.time || 0;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const wave = Math.sin(dist * 0.8 - time * 3) * 0.5 + 0.5;
+          const pulse = Math.sin(time * 2) * 0.3 + 0.7;
+          const hue = (dist / 20 + time * 0.5) % 1;
+          const [r, g, b] = hsvToRgb(hue, 0.8, wave * pulse);
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+    _renderHypnotic(state) {
+      const { width, height } = this.renderer;
+      const time = state.time || 0;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx);
+          const spiral = Math.sin(angle * 4 + dist * 0.5 - time * 2);
+          const intensity = spiral * 0.5 + 0.5;
+          const r = intensity * (Math.sin(time) * 0.5 + 0.5);
+          const g = intensity * (Math.sin(time + 2.094) * 0.5 + 0.5);
+          const b = intensity * (Math.sin(time + 4.188) * 0.5 + 0.5);
+          this.renderer.setPixel(x, y, [r * 255, g * 255, b * 255]);
+        }
+      }
+    }
+    _renderLava(state) {
+      const { width, height } = this.renderer;
+      const time = state.time || 0;
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const uvX = x / width;
+          const uvY = y / height;
+          const n1 = Math.sin(uvX * 8 + time * 0.7) * Math.cos(uvY * 6 + time * 0.5);
+          const n2 = Math.sin(uvX * 12 - time * 0.3) * Math.sin(uvY * 10 + time * 0.8);
+          const n3 = Math.cos((uvX + uvY) * 5 + time);
+          const value = (n1 + n2 + n3 + 3) / 6;
+          let r, g, b;
+          if (value < 0.3) {
+            r = value * 3 * 100;
+            g = 0;
+            b = 0;
+          } else if (value < 0.6) {
+            r = 100 + (value - 0.3) * 3 * 155;
+            g = (value - 0.3) * 3 * 100;
+            b = 0;
+          } else {
+            r = 255;
+            g = 100 + (value - 0.6) * 2.5 * 155;
+            b = (value - 0.6) * 2.5 * 100;
+          }
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+    _renderAurora(state) {
+      const { width, height } = this.renderer;
+      const time = state.time || 0;
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const uvX = x / width;
+          const uvY = y / height;
+          const wave1 = Math.sin(uvX * 6 + time) * 0.3;
+          const wave2 = Math.sin(uvX * 4 - time * 0.7) * 0.2;
+          const wave3 = Math.sin(uvX * 8 + time * 1.3) * 0.15;
+          const waveLine = 0.5 + wave1 + wave2 + wave3;
+          const distFromWave = Math.abs(uvY - waveLine);
+          const intensity = Math.max(0, 1 - distFromWave * 4);
+          const glow = Math.pow(intensity, 1.5);
+          const colorShift = Math.sin(uvX * 3 + time * 0.5);
+          let r = glow * (0.2 + colorShift * 0.3) * 255;
+          let g = glow * (0.8 + Math.sin(time + uvX) * 0.2) * 255;
+          let b = glow * (0.6 + colorShift * 0.4) * 255;
+          const starChance = Math.sin(x * 127.1 + y * 311.7) * 0.5 + 0.5;
+          const starTwinkle = Math.sin(time * 3 + x + y) * 0.5 + 0.5;
+          if (starChance > 0.98 && intensity < 0.3) {
+            const starBright = starTwinkle * 180;
+            r = Math.max(r, starBright);
+            g = Math.max(g, starBright);
+            b = Math.max(b, starBright * 0.9);
+          }
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+  };
+  var ColorEffects = class {
+    constructor(renderer) {
+      this.renderer = renderer;
+    }
+    init(effectName, state) {
+      switch (effectName) {
+        case "color_cycle":
+          state.hue = 0;
+          break;
+        case "rainbow_text":
+          state.offset = 0;
+          break;
+        case "neon":
+          state.glowIntensity = 0;
+          state.direction = 1;
+          state.baseColor = state.fgColor || "#ff00ff";
+          break;
+      }
+    }
+    step(effectName, state) {
+      switch (effectName) {
+        case "color_cycle":
+          state.hue = (state.hue + 0.01) % 1;
+          break;
+        case "rainbow_text":
+          state.offset = (state.offset + 0.02) % 1;
+          break;
+        case "neon":
+          state.glowIntensity += state.direction * 0.05;
+          if (state.glowIntensity >= 1) {
+            state.glowIntensity = 1;
+            state.direction = -1;
+          } else if (state.glowIntensity <= 0.3) {
+            state.glowIntensity = 0.3;
+            state.direction = 1;
+          }
+          break;
+      }
+    }
+    render(effectName, state, pixels) {
+      const { width, height } = this.renderer;
+      const displayPixels = pixels || [];
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const color = displayPixels[y * width + x] || "#111";
+          let [r, g, b] = hexToRgb(color);
+          const isLit = r > 20 || g > 20 || b > 20;
+          if (isLit) {
+            switch (effectName) {
+              case "color_cycle": {
+                const [nr, ng, nb] = hsvToRgb(state.hue, 1, 0.8);
+                const brightness = (r + g + b) / (3 * 255);
+                r = nr * brightness;
+                g = ng * brightness;
+                b = nb * brightness;
+                break;
+              }
+              case "rainbow_text": {
+                const hue = (state.offset + x / width) % 1;
+                const [nr, ng, nb] = hsvToRgb(hue, 1, 0.8);
+                const brightness = (r + g + b) / (3 * 255);
+                r = nr * brightness;
+                g = ng * brightness;
+                b = nb * brightness;
+                break;
+              }
+              case "neon": {
+                const baseColor = hexToRgb(state.baseColor || "#ff00ff");
+                const intensity = state.glowIntensity || 0.5;
+                r = baseColor[0] * intensity;
+                g = baseColor[1] * intensity;
+                b = baseColor[2] * intensity;
+                if (intensity > 0.8) {
+                  const whiteMix = (intensity - 0.8) * 5;
+                  r = r + (255 - r) * whiteMix * 0.3;
+                  g = g + (255 - g) * whiteMix * 0.3;
+                  b = b + (255 - b) * whiteMix * 0.3;
+                }
+                break;
+              }
+            }
+          }
+          this.renderer.setPixel(x, y, [r, g, b]);
+        }
+      }
+    }
+  };
+  var EFFECT_CATEGORIES = {
+    TEXT: "text",
+    AMBIENT: "ambient",
+    COLOR: "color"
+  };
+  var EFFECTS = {
+    // Text effects
+    fixed: { category: "text", name: "Fixed", description: "Static display" },
+    scroll_ltr: { category: "text", name: "Scroll Left", description: "Text scrolls left to right" },
+    scroll_rtl: { category: "text", name: "Scroll Right", description: "Text scrolls right to left" },
+    blink: { category: "text", name: "Blink", description: "Text blinks on/off" },
+    breeze: { category: "text", name: "Breeze", description: "Gentle wave brightness" },
+    snow: { category: "text", name: "Snow", description: "Sparkle effect" },
+    laser: { category: "text", name: "Laser", description: "Scanning beam" },
+    fade: { category: "text", name: "Fade", description: "Fade in/out" },
+    typewriter: { category: "text", name: "Typewriter", description: "Characters appear one by one" },
+    bounce: { category: "text", name: "Bounce", description: "Text bounces back and forth" },
+    sparkle: { category: "text", name: "Sparkle", description: "Random sparkle overlay" },
+    // Ambient effects
+    rainbow: { category: "ambient", name: "Rainbow", description: "HSV rainbow gradient" },
+    matrix: { category: "ambient", name: "Matrix", description: "Digital rain effect" },
+    plasma: { category: "ambient", name: "Plasma", description: "Classic plasma waves" },
+    gradient: { category: "ambient", name: "Gradient", description: "Moving color gradients" },
+    fire: { category: "ambient", name: "Fire", description: "Fire/flame simulation" },
+    water: { category: "ambient", name: "Water", description: "Ripple/wave effect" },
+    stars: { category: "ambient", name: "Stars", description: "Twinkling starfield" },
+    confetti: { category: "ambient", name: "Confetti", description: "Falling colored particles" },
+    plasma_wave: { category: "ambient", name: "Plasma Wave", description: "Multi-frequency sine waves" },
+    radial_pulse: { category: "ambient", name: "Radial Pulse", description: "Expanding ring patterns" },
+    hypnotic: { category: "ambient", name: "Hypnotic", description: "Spiral pattern" },
+    lava: { category: "ambient", name: "Lava", description: "Flowing lava/magma" },
+    aurora: { category: "ambient", name: "Aurora", description: "Northern lights" },
+    // Color effects
+    color_cycle: { category: "color", name: "Color Cycle", description: "Cycle through colors" },
+    rainbow_text: { category: "color", name: "Rainbow Text", description: "Rainbow gradient on text" },
+    neon: { category: "color", name: "Neon", description: "Pulsing neon glow" }
+  };
+  var EffectManager = class {
+    constructor(renderer) {
+      this.renderer = renderer;
+      this.textEffects = new TextEffects(renderer);
+      this.ambientEffects = new AmbientEffects(renderer);
+      this.colorEffects = new ColorEffects(renderer);
+      this.currentEffect = "fixed";
+      this.effectState = { tick: 0 };
+    }
+    getEffectInfo(effectName) {
+      return EFFECTS[effectName] || EFFECTS.fixed;
+    }
+    getEffectsByCategory(category) {
+      return Object.entries(EFFECTS).filter(([, info]) => info.category === category).map(([key, info]) => ({ key, ...info }));
+    }
+    initEffect(effectName, options = {}) {
+      const info = this.getEffectInfo(effectName);
+      this.currentEffect = effectName;
+      this.effectState = { tick: 0, ...options };
+      switch (info.category) {
+        case "text":
+          this.textEffects.init(effectName, this.effectState);
+          break;
+        case "ambient":
+          this.ambientEffects.init(effectName, this.effectState);
+          break;
+        case "color":
+          this.colorEffects.init(effectName, this.effectState);
+          break;
+      }
+      return this.effectState;
+    }
+    step() {
+      const info = this.getEffectInfo(this.currentEffect);
+      this.effectState.tick = (this.effectState.tick || 0) + 1;
+      switch (info.category) {
+        case "text":
+          this.textEffects.step(this.currentEffect, this.effectState);
+          break;
+        case "ambient":
+          this.ambientEffects.step(this.currentEffect, this.effectState);
+          break;
+        case "color":
+          this.colorEffects.step(this.currentEffect, this.effectState);
+          break;
+      }
+    }
+    render(pixels, extendedPixels, extendedWidth) {
+      const info = this.getEffectInfo(this.currentEffect);
+      switch (info.category) {
+        case "ambient":
+          this.ambientEffects.render(this.currentEffect, this.effectState);
+          break;
+        case "text":
+          this.textEffects.render(this.currentEffect, this.effectState, pixels, extendedPixels, extendedWidth);
+          break;
+        case "color":
+          this.colorEffects.render(this.currentEffect, this.effectState, pixels);
+          break;
+      }
+    }
+    isAmbient(effectName) {
+      return this.getEffectInfo(effectName).category === "ambient";
+    }
+    needsAnimation(effectName) {
+      return effectName !== "fixed";
+    }
+  };
+  var TEXT_EFFECTS = Object.entries(EFFECTS).filter(([, info]) => info.category === "text").map(([name]) => name);
+  var AMBIENT_EFFECTS = Object.entries(EFFECTS).filter(([, info]) => info.category === "ambient").map(([name]) => name);
+  var COLOR_EFFECTS = Object.entries(EFFECTS).filter(([, info]) => info.category === "color").map(([name]) => name);
+  var ALL_EFFECTS = Object.keys(EFFECTS);
+  var ImageDataLEDRenderer = class {
+    constructor(container, options = {}) {
+      this.container = container;
+      this.width = options.width || 64;
+      this.height = options.height || 16;
+      this.pixelGap = options.pixelGap || 0.15;
+      this.glowEnabled = options.glow !== false;
+      this.scale = options.scale || 8;
+      this.buffer = [];
+      this._initBuffer();
+      this._colorPixels = [];
+      this._extendedColorPixels = [];
+      this.extendedWidth = this.width;
+      this.effect = "fixed";
+      this.speed = 50;
+      this.animationId = null;
+      this.lastFrameTime = 0;
+      this._isRunning = false;
+      this._canvas = null;
+      this._ctx = null;
+      this._imageData = null;
+      this._glowCanvas = null;
+      this._glowCtx = null;
+      this._wrapper = null;
+      this._canvasCreated = false;
+      this._pixelTemplate = null;
+      this.effectManager = new EffectManager(this);
+    }
+    _initBuffer() {
+      this.buffer = [];
+      for (let i = 0; i < this.width * this.height; i++) {
+        this.buffer.push([0, 0, 0]);
+      }
+    }
+    _createCanvas() {
+      if (typeof document === "undefined")
+        return;
+      const canvasWidth = this.width * this.scale;
+      const canvasHeight = this.height * this.scale;
+      this._wrapper = document.createElement("div");
+      this._wrapper.style.cssText = `
       position: relative;
       width: 100%;
       aspect-ratio: ${this.width} / ${this.height};
       background: #0a0a0a;
       border-radius: 4px;
       overflow: hidden;
-    `,this.glowEnabled&&(this._glowCanvas=document.createElement("canvas"),this._glowCanvas.width=e,this._glowCanvas.height=t,this._glowCanvas.style.cssText=`
+    `;
+      if (this.glowEnabled) {
+        this._glowCanvas = document.createElement("canvas");
+        this._glowCanvas.width = canvasWidth;
+        this._glowCanvas.height = canvasHeight;
+        this._glowCanvas.style.cssText = `
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        filter: blur(${this.scale*.6}px); opacity: 0.5;
-      `,this._glowCtx=this._glowCanvas.getContext("2d",{alpha:!1}),this._wrapper.appendChild(this._glowCanvas)),this._canvas=document.createElement("canvas"),this._canvas.width=e,this._canvas.height=t,this._canvas.style.cssText=`
+        filter: blur(${this.scale * 0.6}px); opacity: 0.5;
+      `;
+        this._glowCtx = this._glowCanvas.getContext("2d", { alpha: false });
+        this._wrapper.appendChild(this._glowCanvas);
+      }
+      this._canvas = document.createElement("canvas");
+      this._canvas.width = canvasWidth;
+      this._canvas.height = canvasHeight;
+      this._canvas.style.cssText = `
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       image-rendering: pixelated; image-rendering: crisp-edges;
-    `,this._ctx=this._canvas.getContext("2d",{alpha:!1}),this._wrapper.appendChild(this._canvas),this._imageData=this._ctx.createImageData(e,t),this._createPixelTemplate(),this._fillBackground(),this.container&&this.container.isConnected!==!1&&(this.container.innerHTML="",this.container.appendChild(this._wrapper)),this._canvasCreated=!0}_createPixelTemplate(){let e=this.scale,t=Math.max(1,Math.floor(e*this.pixelGap)),s=e-t,i=Math.max(1,Math.floor(e*.15));this._pixelTemplate=[];for(let o=0;o<e;o++)for(let n=0;n<e;n++){let r=!1;if(n<s&&o<s)if(n<i&&o<i){let a=i-n,l=i-o;r=a*a+l*l<=i*i}else if(n>=s-i&&o<i){let a=n-(s-i-1),l=i-o;r=a*a+l*l<=i*i}else if(n<i&&o>=s-i){let a=i-n,l=o-(s-i-1);r=a*a+l*l<=i*i}else if(n>=s-i&&o>=s-i){let a=n-(s-i-1),l=o-(s-i-1);r=a*a+l*l<=i*i}else r=!0;this._pixelTemplate.push(r)}}_fillBackground(){if(!this._imageData)return;let e=this._imageData.data,t=10,s=10,i=10;for(let o=0;o<e.length;o+=4)e[o]=t,e[o+1]=s,e[o+2]=i,e[o+3]=255}_ensureCanvasInContainer(){return this.container?this._wrapper&&this._wrapper.parentNode===this.container?!0:this._wrapper&&this.container.isConnected!==!1?(this.container.innerHTML="",this.container.appendChild(this._wrapper),!0):!1:!1}setPixel(e,t,s){if(e>=0&&e<this.width&&t>=0&&t<this.height){let i=t*this.width+e;i<this.buffer.length&&(this.buffer[i]=s)}}clear(){for(let e=0;e<this.buffer.length;e++)this.buffer[e]=[0,0,0]}flush(){if(this._canvasCreated?this._ensureCanvasInContainer()||this._createCanvas():this._createCanvas(),!this._imageData||!this._ctx||!this._pixelTemplate)return;let e=this._imageData.data,t=this.scale,s=this.width*t,i=this._pixelTemplate,o=10,n=10,r=10;for(let a=0;a<this.height;a++)for(let l=0;l<this.width;l++){let c=a*this.width+l,f=this.buffer[c];if(!f||!Array.isArray(f))continue;let h=Math.round(f[0]),p=Math.round(f[1]),u=Math.round(f[2]),g=l*t,b=a*t;for(let m=0;m<t;m++)for(let _=0;_<t;_++){let v=m*t+_,x=((b+m)*s+(g+_))*4;i[v]?(e[x]=h,e[x+1]=p,e[x+2]=u,e[x+3]=255):(e[x]=o,e[x+1]=n,e[x+2]=r,e[x+3]=255)}}this._ctx.putImageData(this._imageData,0,0),this.glowEnabled&&this._glowCtx&&this._glowCtx.drawImage(this._canvas,0,0)}setData(e,t=null,s=null){this._colorPixels=e||[],t?(this._extendedColorPixels=t,this.extendedWidth=s||this.width):(this._extendedColorPixels=e||[],this.extendedWidth=this.width)}setEffect(e,t=50){let s=this._isRunning;this.effect!==e&&(this.effect=e,this.effectManager.initEffect(e,{speed:t})),this.speed=t,s&&e!=="fixed"&&this.start()}start(){this._isRunning||(this._isRunning=!0,this.lastFrameTime=performance.now(),this._animate())}stop(){this._isRunning=!1,this.animationId&&(cancelAnimationFrame(this.animationId),this.animationId=null)}get isRunning(){return this._isRunning}_animate(){if(!this._isRunning)return;let e=performance.now(),t=500-(this.speed-1)*4.7;e-this.lastFrameTime>=t&&(this.lastFrameTime=e,this.effectManager.step()),this._renderFrame(),this.animationId=requestAnimationFrame(()=>this._animate())}_renderFrame(){this.effectManager.render(this._colorPixels,this._extendedColorPixels,this.extendedWidth),this.flush()}renderStatic(){this._canvasCreated||this._createCanvas(),this._renderFrame()}setDimensions(e,t){(e!==this.width||t!==this.height)&&(this.width=e,this.height=t,this.extendedWidth=e,this._initBuffer(),this._canvasCreated=!1,this.effectManager=new U(this),this.effect!=="fixed"&&this.effectManager.initEffect(this.effect,{speed:this.speed}))}setContainer(e){e!==this.container&&(this.container=e,this._wrapper&&e&&(e.innerHTML="",e.appendChild(this._wrapper)))}destroy(){this.stop(),this._canvas=null,this._ctx=null,this._imageData=null,this._glowCanvas=null,this._glowCtx=null,this._wrapper=null,this._canvasCreated=!1,this._pixelTemplate=null}};var q={A:[124,18,17,18,124],B:[127,73,73,73,54],C:[62,65,65,65,34],D:[127,65,65,34,28],E:[127,73,73,73,65],F:[127,9,9,9,1],G:[62,65,73,73,122],H:[127,8,8,8,127],I:[0,65,127,65,0],J:[32,64,65,63,1],K:[127,8,20,34,65],L:[127,64,64,64,64],M:[127,2,12,2,127],N:[127,4,8,16,127],O:[62,65,65,65,62],P:[127,9,9,9,6],Q:[62,65,81,33,94],R:[127,9,25,41,70],S:[70,73,73,73,49],T:[1,1,127,1,1],U:[63,64,64,64,63],V:[31,32,64,32,31],W:[63,64,56,64,63],X:[99,20,8,20,99],Y:[7,8,112,8,7],Z:[97,81,73,69,67],a:[32,84,84,84,120],b:[127,72,68,68,56],c:[56,68,68,68,32],d:[56,68,68,72,127],e:[56,84,84,84,24],f:[8,126,9,1,2],g:[12,82,82,82,62],h:[127,8,4,4,120],i:[0,68,125,64,0],j:[32,64,68,61,0],k:[127,16,40,68,0],l:[0,65,127,64,0],m:[124,4,24,4,120],n:[124,8,4,4,120],o:[56,68,68,68,56],p:[124,20,20,20,8],q:[8,20,20,24,124],r:[124,8,4,4,8],s:[72,84,84,84,32],t:[4,63,68,64,32],u:[60,64,64,32,124],v:[28,32,64,32,28],w:[60,64,48,64,60],x:[68,40,16,40,68],y:[12,80,80,80,60],z:[68,100,84,76,68],0:[62,81,73,69,62],1:[0,66,127,64,0],2:[66,97,81,73,70],3:[33,65,69,75,49],4:[24,20,18,127,16],5:[39,69,69,69,57],6:[60,74,73,73,48],7:[1,113,9,5,3],8:[54,73,73,73,54],9:[6,73,73,41,30]," ":[0,0,0,0,0],".":[0,96,96,0,0],",":[0,128,96,0,0],":":[0,54,54,0,0],";":[0,128,54,0,0],"!":[0,0,95,0,0],"?":[2,1,81,9,6],"-":[8,8,8,8,8],"+":[8,8,62,8,8],"=":[20,20,20,20,20],_:[64,64,64,64,64],"/":[32,16,8,4,2],"\\":[2,4,8,16,32],"(":[0,28,34,65,0],")":[0,65,34,28,0],"[":[0,127,65,65,0],"]":[0,65,65,127,0],"<":[8,20,34,65,0],">":[0,65,34,20,8],"*":[20,8,62,8,20],"#":[20,127,20,127,20],"@":[62,65,93,85,30],"&":[54,73,85,34,80],"%":[35,19,8,100,98],$:[18,42,127,42,36],"'":[0,0,7,0,0],'"':[0,7,0,7,0],"`":[0,1,2,0,0],"^":[4,2,1,2,4],"~":[8,4,8,16,8]};function St(d,e,t,s="#ff6600",i="#111"){let o=[],a=Math.floor((t-7)/2);for(let h=0;h<t;h++)for(let p=0;p<e;p++)o.push(i);let l=d.length*6-1,f=Math.max(1,Math.floor((e-l)/2));for(let h of d){let p=q[h]||q[" "];for(let u=0;u<5;u++)for(let g=0;g<7;g++){let b=p[u]>>g&1,m=f+u,_=a+g;m>=0&&m<e&&_<t&&_>=0&&(o[_*e+m]=b?s:i)}f+=6}return o}function It(d,e,t,s="#ff6600",i="#111"){let r=Math.floor((t-7)/2),a=d.length*6,l=e+a+e,c=[];for(let h=0;h<t;h++)for(let p=0;p<l;p++)c.push(i);let f=e;for(let h of d){let p=q[h]||q[" "];for(let u=0;u<5;u++)for(let g=0;g<7;g++){let b=p[u]>>g&1,m=f+u,_=r+g;m>=0&&m<l&&_<t&&_>=0&&(c[_*l+m]=b?s:i)}f+=6}return{pixels:c,width:l}}var Ct={VCR_OSD_MONO:{16:{font_size:16,offset:[0,0],pixel_threshold:70,var_width:!0},24:{font_size:24,offset:[0,0],pixel_threshold:70,var_width:!0},32:{font_size:28,offset:[-1,2],pixel_threshold:30,var_width:!1}},CUSONG:{16:{font_size:16,offset:[0,-1],pixel_threshold:70,var_width:!1},24:{font_size:24,offset:[0,0],pixel_threshold:70,var_width:!1},32:{font_size:32,offset:[0,0],pixel_threshold:70,var_width:!1}}},j={},ot={},Me=d=>typeof window>"u"?`/fonts/${d}.ttf`:`${window.location.pathname.substring(0,window.location.pathname.lastIndexOf("/")+1)}fonts/${d}.ttf`,Kt=Me;function wt(d){Kt=d}function Y(d){return d<=18?16:d<=28?24:32}async function X(d,e){return j[d]===!0?!0:j[d]===!1?!1:(d in ot||(ot[d]=(async()=>{if(typeof document>"u")return!1;let s=(e||Kt)(d);try{let o=await new FontFace(d,`url(${s})`).load();return document.fonts.add(o),j[d]=!0,!0}catch(i){return console.warn(`PixelDisplay: Failed to load font ${d}:`,i),j[d]=!1,!1}})()),ot[d])}function J(d){return j[d]===!0}function kt(d,e,t,s="#ff6600",i="#111",o="VCR_OSD_MONO"){if(typeof document>"u")return null;let n=Ct[o];if(!n)return null;if(!J(o))return X(o),null;let r=Y(t),a=n[r],l=document.createElement("canvas");l.width=e,l.height=t;let c=l.getContext("2d");if(!c)return null;if(c.imageSmoothingEnabled=!1,c.fillStyle=i,c.fillRect(0,0,e,t),!d||d.trim()===""){let m=[];for(let _=0;_<e*t;_++)m.push(i);return m}c.font=`${a.font_size}px "${o}"`,c.fillStyle=s,c.textBaseline="top";let h=c.measureText(d).width,p=Math.floor((e-h)/2)+a.offset[0],u=Math.floor((t-a.font_size)/2)+a.offset[1];c.fillText(d,p,u);let g=c.getImageData(0,0,e,t),b=[];for(let m=0;m<g.data.length;m+=4){let _=g.data[m],v=g.data[m+1],x=g.data[m+2],y=(_+v+x)/3;b.push(y>=a.pixel_threshold?s:i)}return b}function Rt(d,e,t,s="#ff6600",i="#111",o="VCR_OSD_MONO"){if(typeof document>"u")return null;let n=Ct[o];if(!n)return null;if(!J(o))return X(o),null;let r=Y(t),a=n[r],c=document.createElement("canvas").getContext("2d");if(!c)return null;c.font=`${a.font_size}px "${o}"`;let f=Math.ceil(c.measureText(d).width),h=e+f+e,p=document.createElement("canvas");p.width=h,p.height=t;let u=p.getContext("2d");if(!u)return null;if(u.imageSmoothingEnabled=!1,u.fillStyle=i,u.fillRect(0,0,h,t),!d||d.trim()===""){let v=[];for(let x=0;x<h*t;x++)v.push(i);return{pixels:v,width:h}}u.font=`${a.font_size}px "${o}"`,u.fillStyle=s,u.textBaseline="top";let g=e+a.offset[0],b=Math.floor((t-a.font_size)/2)+a.offset[1];u.fillText(d,g,b);let m=u.getImageData(0,0,h,t),_=[];for(let v=0;v<m.data.length;v+=4){let x=m.data[v],y=m.data[v+1],E=m.data[v+2],w=(x+y+E)/3;_.push(w>=a.pixel_threshold?s:i)}return{pixels:_,width:h}}var ct=null,ht=null;async function Te(){if(ct&&ht)return!0;try{let d=await Promise.resolve().then(()=>(qt(),Ut)),e=await Promise.resolve().then(()=>(Jt(),Yt));ct=d.$Font;let t=e;return ht=t.default||t.$fetchline||e,!0}catch{return console.warn("PixelDisplay: bdfparser/fetchline packages not available. BDF font rendering disabled."),!1}}var Zt={VCR_OSD_MONO:{16:{file:"VCR_OSD_MONO_16.bdf",yOffset:0},24:{file:"VCR_OSD_MONO_24.bdf",yOffset:0},32:{file:"VCR_OSD_MONO_32.bdf",yOffset:2}},CUSONG:{16:{file:"CUSONG_16.bdf",yOffset:-1},24:{file:"CUSONG_24.bdf",yOffset:0},32:{file:"CUSONG_32.bdf",yOffset:0}}},G=new Map,nt=new Map,Le=(d,e)=>typeof window>"u"?`/fonts/${e||d}`:`${window.location.pathname.substring(0,window.location.pathname.lastIndexOf("/")+1)}fonts/${e||d}`,Qt=Le;function Et(d){Qt=d}function te(d){return d<=18?16:d<=28?24:32}async function P(d,e=16,t){let s=`${d}_${e}`;if(G.has(s))return G.get(s);if(nt.has(s))return nt.get(s);let i=Zt[d];if(!i||!i[e])return console.warn(`PixelDisplay BDF: No config for font ${d} at height ${e}`),null;let o=i[e],n=(async()=>{try{if(!await Te()||!ct||!ht)return null;let l=(t||Qt)(d,o.file),f={font:await ct(ht(l)),config:o};return G.set(s,f),f}catch(r){return console.warn(`PixelDisplay BDF: Failed to load font ${d} (${e}px):`,r),nt.delete(s),null}})();return nt.set(s,n),n}function Mt(d,e=16){let t=`${d}_${e}`;return G.has(t)}function Tt(d,e,t,s="#ff6600",i="#111",o="VCR_OSD_MONO"){let n=te(t),r=`${o}_${n}`,a=G.get(r);if(!a)return P(o,n),null;let{font:l,config:c}=a,f=new Array(e*t).fill(i);if(!d||d.trim()==="")return f;try{let h=l.draw(d,{direction:"lrtb",mode:1}),p=h.bindata,u=h.width(),g=h.height(),b=Math.floor((e-u)/2),m=Math.floor((t-g)/2)+(c.yOffset||0);for(let _=0;_<g;_++){let v=p[_]||"";for(let x=0;x<v.length;x++){let y=b+x,E=m+_;if(y>=0&&y<e&&E>=0&&E<t){let w=E*e+y;f[w]=v[x]==="1"?s:i}}}}catch(h){return console.warn("PixelDisplay BDF: Error rendering text:",h),null}return f}function Lt(d,e,t,s="#ff6600",i="#111",o="VCR_OSD_MONO"){let n=te(t),r=`${o}_${n}`,a=G.get(r);if(!a)return P(o,n),null;let{font:l,config:c}=a;if(!d||d.trim()===""){let f=e*3;return{pixels:new Array(f*t).fill(i),width:f}}try{let f=l.draw(d,{direction:"lrtb",mode:1}),h=f.bindata,p=f.width(),u=f.height(),g=e+p+e,b=new Array(g*t).fill(i),m=e,_=Math.floor((t-u)/2)+(c.yOffset||0);for(let v=0;v<u;v++){let x=h[v]||"";for(let y=0;y<x.length;y++){let E=m+y,w=_+v;if(E>=0&&E<g&&w>=0&&w<t){let k=w*g+E;b[k]=x[y]==="1"?s:i}}}return{pixels:b,width:g}}catch(f){return console.warn("PixelDisplay BDF: Error rendering scroll text:",f),null}}function ft(d){if(d.baseUrl){let e=d.baseUrl.replace(/\/+$/,"");wt(t=>`${e}/${t}.ttf`),Et((t,s)=>`${e}/${s||t}`)}d.ttfResolver&&wt(d.ttfResolver),d.bdfResolver&&Et(d.bdfResolver)}var $e=typeof window<"u"&&(typeof window.hassConnection<"u"||document.querySelector("home-assistant")!==null);if($e)ft({ttfResolver:d=>`/hacsfiles/ipixel_color/fonts/${d}.ttf`,bdfResolver:(d,e)=>`/hacsfiles/ipixel_color/fonts/${e||d}`});else if(typeof window<"u"){let d=window.location.pathname.substring(0,window.location.pathname.lastIndexOf("/")+1);ft({baseUrl:`${d}fonts`})}var pt=new Map,ut=class extends L{constructor(){super(),this._renderer=null,this._displayContainer=null,this._lastState=null,this._cachedResolution=null,this._rendererId=null,this._handleDisplayUpdate=e=>{this._updateDisplay(e.detail)},window.addEventListener("ipixel-display-update",this._handleDisplayUpdate)}connectedCallback(){this._rendererId||(this._rendererId=`renderer_${Date.now()}_${Math.random().toString(36).substr(2,9)}`),pt.has(this._rendererId)&&(this._renderer=pt.get(this._rendererId)),P("VCR_OSD_MONO",16).then(()=>{this._lastState&&this._updateDisplay(this._lastState)}),P("VCR_OSD_MONO",24),P("VCR_OSD_MONO",32),P("CUSONG",16),P("CUSONG",24),P("CUSONG",32),X("VCR_OSD_MONO"),X("CUSONG")}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("ipixel-display-update",this._handleDisplayUpdate),this._renderer&&this._rendererId&&(this._renderer.stop(),pt.set(this._rendererId,this._renderer))}_getResolutionCached(){let[e,t]=this.getResolution();if(e>0&&t>0){this._cachedResolution=[e,t];try{localStorage.setItem("iPIXEL_Resolution",JSON.stringify([e,t]))}catch{}return this._cachedResolution}try{let s=localStorage.getItem("iPIXEL_Resolution");if(s){let i=JSON.parse(s);if(Array.isArray(i)&&i.length===2&&i[0]>0&&i[1]>0)return this._cachedResolution=i,i}}catch{}return this._cachedResolution?this._cachedResolution:this._config?.width&&this._config?.height?[this._config.width,this._config.height]:[e||64,t||16]}_updateDisplay(e){if(!this._displayContainer)return;let[t,s]=this._getResolutionCached(),i=this.isOn();if(this._renderer?(this._renderer.setContainer(this._displayContainer),(this._renderer.width!==t||this._renderer.height!==s)&&this._renderer.setDimensions(t,s)):(this._renderer=new B(this._displayContainer,{width:t,height:s}),this._rendererId&&pt.set(this._rendererId,this._renderer)),!i){this._renderer.setData([]),this._renderer.setEffect("fixed",50),this._renderer.stop(),this._renderer.renderStatic();return}let o=e?.text||"",n=e?.effect||"fixed",r=e?.speed||50,a=e?.fgColor||"#ff6600",l=e?.bgColor||"#111",c=e?.mode||"text",f=e?.font||"VCR_OSD_MONO";this._lastState=e;let h=o,p=a;if(c==="clock"?(h=new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:!1}),p="#00ff88"):c==="gif"?(h="GIF",p="#ff44ff"):c==="rhythm"&&(h="***",p="#44aaff"),M[n]?.category==="ambient")this._renderer.setData([],[],t);else{let b=Y(s),m=f!=="LEGACY"&&Mt(f,b),_=f!=="LEGACY"&&J(f),v=(w,k,S,C,I)=>{if(m){let T=Tt(w,k,S,C,I,f);if(T)return T}if(_){let T=kt(w,k,S,C,I,f);if(T)return T}return St(w,k,S,C,I)},x=(w,k,S,C,I)=>{if(m){let T=Lt(w,k,S,C,I,f);if(T)return T}if(_){let T=Rt(w,k,S,C,I,f);if(T)return T}return It(w,k,S,C,I)},y=_?h.length*10:h.length*6;if((n==="scroll_ltr"||n==="scroll_rtl"||n==="bounce")&&y>t){let w=x(h,t,s,p,l),k=v(h,t,s,p,l);this._renderer.setData(k,w.pixels,w.width)}else{let w=v(h,t,s,p,l);this._renderer.setData(w)}}this._renderer.setEffect(n,r),n==="fixed"?(this._renderer.stop(),this._renderer.renderStatic()):this._renderer.start()}_getTestModeState(){let e=[{text:"iPIXEL",effect:"scroll_ltr",speed:40,fgColor:"#ff6600",bgColor:"#000000",mode:"text",font:"VCR_OSD_MONO"},{text:"Hello!",effect:"rainbow_cycle",speed:50,fgColor:"#00ff88",bgColor:"#000000",mode:"text",font:"VCR_OSD_MONO"},{text:"TEST",effect:"fixed",speed:50,fgColor:"#03a9f4",bgColor:"#111111",mode:"text",font:"VCR_OSD_MONO"},{text:"",effect:"rainbow",speed:60,fgColor:"#ffffff",bgColor:"#000000",mode:"ambient",font:"VCR_OSD_MONO"}],t=Math.floor(Date.now()/1e4)%e.length;return e[t]}render(){let e=this.isInTestMode();if(!this._hass&&!e)return;let[t,s]=this._getResolutionCached(),i=this.isOn(),o=this._config.name||this.getEntity()?.attributes?.friendly_name||"iPIXEL Display",n=et(),a=this.getEntity()?.state||"",c=this.getRelatedEntity("select","_mode")?.state||n.mode||"text",f=n.text||a||(e?"iPIXEL":""),h=n.effect||"fixed",p=n.speed||50,u=n.fgColor||"#ff6600",g=n.bgColor||"#111",b=n.font||"VCR_OSD_MONO",_=M[h]?.category==="ambient",v=jt(),x=z(),y="";if(e){let C=v.length>0?`<div class="test-mode-features">Missing: ${v.join(", ")}</div>`:"";y=`
+    `;
+      this._ctx = this._canvas.getContext("2d", { alpha: false });
+      this._wrapper.appendChild(this._canvas);
+      this._imageData = this._ctx.createImageData(canvasWidth, canvasHeight);
+      this._createPixelTemplate();
+      this._fillBackground();
+      if (this.container && this.container.isConnected !== false) {
+        this.container.innerHTML = "";
+        this.container.appendChild(this._wrapper);
+      }
+      this._canvasCreated = true;
+    }
+    _createPixelTemplate() {
+      const scale = this.scale;
+      const gap = Math.max(1, Math.floor(scale * this.pixelGap));
+      const pixelSize = scale - gap;
+      const radius = Math.max(1, Math.floor(scale * 0.15));
+      this._pixelTemplate = [];
+      for (let py = 0; py < scale; py++) {
+        for (let px = 0; px < scale; px++) {
+          let inside = false;
+          if (px < pixelSize && py < pixelSize) {
+            if (px < radius && py < radius) {
+              const dx = radius - px;
+              const dy = radius - py;
+              inside = dx * dx + dy * dy <= radius * radius;
+            } else if (px >= pixelSize - radius && py < radius) {
+              const dx = px - (pixelSize - radius - 1);
+              const dy = radius - py;
+              inside = dx * dx + dy * dy <= radius * radius;
+            } else if (px < radius && py >= pixelSize - radius) {
+              const dx = radius - px;
+              const dy = py - (pixelSize - radius - 1);
+              inside = dx * dx + dy * dy <= radius * radius;
+            } else if (px >= pixelSize - radius && py >= pixelSize - radius) {
+              const dx = px - (pixelSize - radius - 1);
+              const dy = py - (pixelSize - radius - 1);
+              inside = dx * dx + dy * dy <= radius * radius;
+            } else {
+              inside = true;
+            }
+          }
+          this._pixelTemplate.push(inside);
+        }
+      }
+    }
+    _fillBackground() {
+      if (!this._imageData)
+        return;
+      const data = this._imageData.data;
+      const bgR = 10, bgG = 10, bgB = 10;
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = bgR;
+        data[i + 1] = bgG;
+        data[i + 2] = bgB;
+        data[i + 3] = 255;
+      }
+    }
+    _ensureCanvasInContainer() {
+      if (!this.container)
+        return false;
+      if (this._wrapper && this._wrapper.parentNode === this.container)
+        return true;
+      if (this._wrapper && this.container.isConnected !== false) {
+        this.container.innerHTML = "";
+        this.container.appendChild(this._wrapper);
+        return true;
+      }
+      return false;
+    }
+    setPixel(x, y, color) {
+      if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+        const idx = y * this.width + x;
+        if (idx < this.buffer.length) {
+          this.buffer[idx] = color;
+        }
+      }
+    }
+    clear() {
+      for (let i = 0; i < this.buffer.length; i++) {
+        this.buffer[i] = [0, 0, 0];
+      }
+    }
+    flush() {
+      if (!this._canvasCreated) {
+        this._createCanvas();
+      } else if (!this._ensureCanvasInContainer()) {
+        this._createCanvas();
+      }
+      if (!this._imageData || !this._ctx || !this._pixelTemplate)
+        return;
+      const data = this._imageData.data;
+      const scale = this.scale;
+      const canvasWidth = this.width * scale;
+      const template = this._pixelTemplate;
+      const bgR = 10, bgG = 10, bgB = 10;
+      for (let ledY = 0; ledY < this.height; ledY++) {
+        for (let ledX = 0; ledX < this.width; ledX++) {
+          const bufferIdx = ledY * this.width + ledX;
+          const color = this.buffer[bufferIdx];
+          if (!color || !Array.isArray(color))
+            continue;
+          const r = Math.round(color[0]);
+          const g = Math.round(color[1]);
+          const b = Math.round(color[2]);
+          const baseX = ledX * scale;
+          const baseY = ledY * scale;
+          for (let py = 0; py < scale; py++) {
+            for (let px = 0; px < scale; px++) {
+              const templateIdx = py * scale + px;
+              const canvasIdx = ((baseY + py) * canvasWidth + (baseX + px)) * 4;
+              if (template[templateIdx]) {
+                data[canvasIdx] = r;
+                data[canvasIdx + 1] = g;
+                data[canvasIdx + 2] = b;
+                data[canvasIdx + 3] = 255;
+              } else {
+                data[canvasIdx] = bgR;
+                data[canvasIdx + 1] = bgG;
+                data[canvasIdx + 2] = bgB;
+                data[canvasIdx + 3] = 255;
+              }
+            }
+          }
+        }
+      }
+      this._ctx.putImageData(this._imageData, 0, 0);
+      if (this.glowEnabled && this._glowCtx) {
+        this._glowCtx.drawImage(this._canvas, 0, 0);
+      }
+    }
+    setData(pixels, extendedPixels = null, extendedWidth = null) {
+      this._colorPixels = pixels || [];
+      if (extendedPixels) {
+        this._extendedColorPixels = extendedPixels;
+        this.extendedWidth = extendedWidth || this.width;
+      } else {
+        this._extendedColorPixels = pixels || [];
+        this.extendedWidth = this.width;
+      }
+    }
+    setEffect(effect, speed = 50) {
+      const wasRunning = this._isRunning;
+      if (this.effect !== effect) {
+        this.effect = effect;
+        this.effectManager.initEffect(effect, { speed });
+      }
+      this.speed = speed;
+      if (wasRunning && effect !== "fixed") {
+        this.start();
+      }
+    }
+    start() {
+      if (this._isRunning)
+        return;
+      this._isRunning = true;
+      this.lastFrameTime = performance.now();
+      this._animate();
+    }
+    stop() {
+      this._isRunning = false;
+      if (this.animationId) {
+        cancelAnimationFrame(this.animationId);
+        this.animationId = null;
+      }
+    }
+    get isRunning() {
+      return this._isRunning;
+    }
+    _animate() {
+      if (!this._isRunning)
+        return;
+      const now = performance.now();
+      const frameInterval = 500 - (this.speed - 1) * 4.7;
+      if (now - this.lastFrameTime >= frameInterval) {
+        this.lastFrameTime = now;
+        this.effectManager.step();
+      }
+      this._renderFrame();
+      this.animationId = requestAnimationFrame(() => this._animate());
+    }
+    _renderFrame() {
+      this.effectManager.render(this._colorPixels, this._extendedColorPixels, this.extendedWidth);
+      this.flush();
+    }
+    renderStatic() {
+      if (!this._canvasCreated)
+        this._createCanvas();
+      this._renderFrame();
+    }
+    setDimensions(width, height) {
+      if (width !== this.width || height !== this.height) {
+        this.width = width;
+        this.height = height;
+        this.extendedWidth = width;
+        this._initBuffer();
+        this._canvasCreated = false;
+        this.effectManager = new EffectManager(this);
+        if (this.effect !== "fixed") {
+          this.effectManager.initEffect(this.effect, { speed: this.speed });
+        }
+      }
+    }
+    setContainer(container) {
+      if (container !== this.container) {
+        this.container = container;
+        if (this._wrapper && container) {
+          container.innerHTML = "";
+          container.appendChild(this._wrapper);
+        }
+      }
+    }
+    destroy() {
+      this.stop();
+      this._canvas = null;
+      this._ctx = null;
+      this._imageData = null;
+      this._glowCanvas = null;
+      this._glowCtx = null;
+      this._wrapper = null;
+      this._canvasCreated = false;
+      this._pixelTemplate = null;
+    }
+  };
+  var pixelFont = {
+    "A": [124, 18, 17, 18, 124],
+    "B": [127, 73, 73, 73, 54],
+    "C": [62, 65, 65, 65, 34],
+    "D": [127, 65, 65, 34, 28],
+    "E": [127, 73, 73, 73, 65],
+    "F": [127, 9, 9, 9, 1],
+    "G": [62, 65, 73, 73, 122],
+    "H": [127, 8, 8, 8, 127],
+    "I": [0, 65, 127, 65, 0],
+    "J": [32, 64, 65, 63, 1],
+    "K": [127, 8, 20, 34, 65],
+    "L": [127, 64, 64, 64, 64],
+    "M": [127, 2, 12, 2, 127],
+    "N": [127, 4, 8, 16, 127],
+    "O": [62, 65, 65, 65, 62],
+    "P": [127, 9, 9, 9, 6],
+    "Q": [62, 65, 81, 33, 94],
+    "R": [127, 9, 25, 41, 70],
+    "S": [70, 73, 73, 73, 49],
+    "T": [1, 1, 127, 1, 1],
+    "U": [63, 64, 64, 64, 63],
+    "V": [31, 32, 64, 32, 31],
+    "W": [63, 64, 56, 64, 63],
+    "X": [99, 20, 8, 20, 99],
+    "Y": [7, 8, 112, 8, 7],
+    "Z": [97, 81, 73, 69, 67],
+    "a": [32, 84, 84, 84, 120],
+    "b": [127, 72, 68, 68, 56],
+    "c": [56, 68, 68, 68, 32],
+    "d": [56, 68, 68, 72, 127],
+    "e": [56, 84, 84, 84, 24],
+    "f": [8, 126, 9, 1, 2],
+    "g": [12, 82, 82, 82, 62],
+    "h": [127, 8, 4, 4, 120],
+    "i": [0, 68, 125, 64, 0],
+    "j": [32, 64, 68, 61, 0],
+    "k": [127, 16, 40, 68, 0],
+    "l": [0, 65, 127, 64, 0],
+    "m": [124, 4, 24, 4, 120],
+    "n": [124, 8, 4, 4, 120],
+    "o": [56, 68, 68, 68, 56],
+    "p": [124, 20, 20, 20, 8],
+    "q": [8, 20, 20, 24, 124],
+    "r": [124, 8, 4, 4, 8],
+    "s": [72, 84, 84, 84, 32],
+    "t": [4, 63, 68, 64, 32],
+    "u": [60, 64, 64, 32, 124],
+    "v": [28, 32, 64, 32, 28],
+    "w": [60, 64, 48, 64, 60],
+    "x": [68, 40, 16, 40, 68],
+    "y": [12, 80, 80, 80, 60],
+    "z": [68, 100, 84, 76, 68],
+    "0": [62, 81, 73, 69, 62],
+    "1": [0, 66, 127, 64, 0],
+    "2": [66, 97, 81, 73, 70],
+    "3": [33, 65, 69, 75, 49],
+    "4": [24, 20, 18, 127, 16],
+    "5": [39, 69, 69, 69, 57],
+    "6": [60, 74, 73, 73, 48],
+    "7": [1, 113, 9, 5, 3],
+    "8": [54, 73, 73, 73, 54],
+    "9": [6, 73, 73, 41, 30],
+    " ": [0, 0, 0, 0, 0],
+    ".": [0, 96, 96, 0, 0],
+    ",": [0, 128, 96, 0, 0],
+    ":": [0, 54, 54, 0, 0],
+    ";": [0, 128, 54, 0, 0],
+    "!": [0, 0, 95, 0, 0],
+    "?": [2, 1, 81, 9, 6],
+    "-": [8, 8, 8, 8, 8],
+    "+": [8, 8, 62, 8, 8],
+    "=": [20, 20, 20, 20, 20],
+    "_": [64, 64, 64, 64, 64],
+    "/": [32, 16, 8, 4, 2],
+    "\\": [2, 4, 8, 16, 32],
+    "(": [0, 28, 34, 65, 0],
+    ")": [0, 65, 34, 28, 0],
+    "[": [0, 127, 65, 65, 0],
+    "]": [0, 65, 65, 127, 0],
+    "<": [8, 20, 34, 65, 0],
+    ">": [0, 65, 34, 20, 8],
+    "*": [20, 8, 62, 8, 20],
+    "#": [20, 127, 20, 127, 20],
+    "@": [62, 65, 93, 85, 30],
+    "&": [54, 73, 85, 34, 80],
+    "%": [35, 19, 8, 100, 98],
+    "$": [18, 42, 127, 42, 36],
+    "'": [0, 0, 7, 0, 0],
+    '"': [0, 7, 0, 7, 0],
+    "`": [0, 1, 2, 0, 0],
+    "^": [4, 2, 1, 2, 4],
+    "~": [8, 4, 8, 16, 8]
+  };
+  function textToPixels(text, width, height, fgColor = "#ff6600", bgColor = "#111") {
+    const pixels = [];
+    const charWidth = 6;
+    const charHeight = 7;
+    const startY = Math.floor((height - charHeight) / 2);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        pixels.push(bgColor);
+      }
+    }
+    const textWidth = text.length * charWidth - 1;
+    const startX = Math.max(1, Math.floor((width - textWidth) / 2));
+    let xOffset = startX;
+    for (const char of text) {
+      const charData = pixelFont[char] || pixelFont[" "];
+      for (let col = 0; col < 5; col++) {
+        for (let row = 0; row < 7; row++) {
+          const pixelOn = charData[col] >> row & 1;
+          const px = xOffset + col;
+          const py = startY + row;
+          if (px >= 0 && px < width && py < height && py >= 0) {
+            pixels[py * width + px] = pixelOn ? fgColor : bgColor;
+          }
+        }
+      }
+      xOffset += charWidth;
+    }
+    return pixels;
+  }
+  function textToScrollPixels(text, displayWidth, height, fgColor = "#ff6600", bgColor = "#111") {
+    const charWidth = 6;
+    const charHeight = 7;
+    const startY = Math.floor((height - charHeight) / 2);
+    const textPixelWidth = text.length * charWidth;
+    const extendedWidth = displayWidth + textPixelWidth + displayWidth;
+    const pixels = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < extendedWidth; x++) {
+        pixels.push(bgColor);
+      }
+    }
+    let xOffset = displayWidth;
+    for (const char of text) {
+      const charData = pixelFont[char] || pixelFont[" "];
+      for (let col = 0; col < 5; col++) {
+        for (let row = 0; row < 7; row++) {
+          const pixelOn = charData[col] >> row & 1;
+          const px = xOffset + col;
+          const py = startY + row;
+          if (px >= 0 && px < extendedWidth && py < height && py >= 0) {
+            pixels[py * extendedWidth + px] = pixelOn ? fgColor : bgColor;
+          }
+        }
+      }
+      xOffset += charWidth;
+    }
+    return { pixels, width: extendedWidth };
+  }
+  var FONT_METRICS = {
+    "VCR_OSD_MONO": {
+      16: { font_size: 16, offset: [0, 0], pixel_threshold: 70, var_width: true },
+      24: { font_size: 24, offset: [0, 0], pixel_threshold: 70, var_width: true },
+      32: { font_size: 28, offset: [-1, 2], pixel_threshold: 30, var_width: false }
+    },
+    "CUSONG": {
+      16: { font_size: 16, offset: [0, -1], pixel_threshold: 70, var_width: false },
+      24: { font_size: 24, offset: [0, 0], pixel_threshold: 70, var_width: false },
+      32: { font_size: 32, offset: [0, 0], pixel_threshold: 70, var_width: false }
+    }
+  };
+  var fontLoadState = {};
+  var fontLoadPromises$1 = {};
+  var defaultResolver$1 = (fontName) => {
+    if (typeof window === "undefined")
+      return `/fonts/${fontName}.ttf`;
+    const basePath = window.location.pathname.substring(
+      0,
+      window.location.pathname.lastIndexOf("/") + 1
+    );
+    return `${basePath}fonts/${fontName}.ttf`;
+  };
+  var _fontResolver$1 = defaultResolver$1;
+  function setFontResolver$1(resolver) {
+    _fontResolver$1 = resolver;
+  }
+  function getHeightKey$1(height) {
+    if (height <= 18)
+      return 16;
+    if (height <= 28)
+      return 24;
+    return 32;
+  }
+  async function loadFont(fontName, resolver) {
+    if (fontLoadState[fontName] === true)
+      return true;
+    if (fontLoadState[fontName] === false)
+      return false;
+    if (fontName in fontLoadPromises$1)
+      return fontLoadPromises$1[fontName];
+    fontLoadPromises$1[fontName] = (async () => {
+      if (typeof document === "undefined")
+        return false;
+      const resolveUrl = resolver || _fontResolver$1;
+      const fontUrl = resolveUrl(fontName);
+      try {
+        const font = new FontFace(fontName, `url(${fontUrl})`);
+        const loadedFont = await font.load();
+        document.fonts.add(loadedFont);
+        fontLoadState[fontName] = true;
+        return true;
+      } catch (e) {
+        console.warn(`PixelDisplay: Failed to load font ${fontName}:`, e);
+        fontLoadState[fontName] = false;
+        return false;
+      }
+    })();
+    return fontLoadPromises$1[fontName];
+  }
+  function isFontLoaded(fontName) {
+    return fontLoadState[fontName] === true;
+  }
+  function textToPixelsCanvas(text, width, height, fgColor = "#ff6600", bgColor = "#111", fontName = "VCR_OSD_MONO") {
+    if (typeof document === "undefined")
+      return null;
+    const fontMetrics = FONT_METRICS[fontName];
+    if (!fontMetrics)
+      return null;
+    if (!isFontLoaded(fontName)) {
+      loadFont(fontName);
+      return null;
+    }
+    const heightKey = getHeightKey$1(height);
+    const metrics = fontMetrics[heightKey];
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx)
+      return null;
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+    if (!text || text.trim() === "") {
+      const pixels2 = [];
+      for (let i = 0; i < width * height; i++)
+        pixels2.push(bgColor);
+      return pixels2;
+    }
+    ctx.font = `${metrics.font_size}px "${fontName}"`;
+    ctx.fillStyle = fgColor;
+    ctx.textBaseline = "top";
+    const textMetrics = ctx.measureText(text);
+    const textWidth = textMetrics.width;
+    const x = Math.floor((width - textWidth) / 2) + metrics.offset[0];
+    const y = Math.floor((height - metrics.font_size) / 2) + metrics.offset[1];
+    ctx.fillText(text, x, y);
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const pixels = [];
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const r = imageData.data[i];
+      const g = imageData.data[i + 1];
+      const b = imageData.data[i + 2];
+      const gray = (r + g + b) / 3;
+      pixels.push(gray >= metrics.pixel_threshold ? fgColor : bgColor);
+    }
+    return pixels;
+  }
+  function textToScrollPixelsCanvas(text, displayWidth, height, fgColor = "#ff6600", bgColor = "#111", fontName = "VCR_OSD_MONO") {
+    if (typeof document === "undefined")
+      return null;
+    const fontMetrics = FONT_METRICS[fontName];
+    if (!fontMetrics)
+      return null;
+    if (!isFontLoaded(fontName)) {
+      loadFont(fontName);
+      return null;
+    }
+    const heightKey = getHeightKey$1(height);
+    const metrics = fontMetrics[heightKey];
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+    if (!tempCtx)
+      return null;
+    tempCtx.font = `${metrics.font_size}px "${fontName}"`;
+    const textWidth = Math.ceil(tempCtx.measureText(text).width);
+    const extendedWidth = displayWidth + textWidth + displayWidth;
+    const canvas = document.createElement("canvas");
+    canvas.width = extendedWidth;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx)
+      return null;
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, extendedWidth, height);
+    if (!text || text.trim() === "") {
+      const pixels2 = [];
+      for (let i = 0; i < extendedWidth * height; i++)
+        pixels2.push(bgColor);
+      return { pixels: pixels2, width: extendedWidth };
+    }
+    ctx.font = `${metrics.font_size}px "${fontName}"`;
+    ctx.fillStyle = fgColor;
+    ctx.textBaseline = "top";
+    const x = displayWidth + metrics.offset[0];
+    const y = Math.floor((height - metrics.font_size) / 2) + metrics.offset[1];
+    ctx.fillText(text, x, y);
+    const imageData = ctx.getImageData(0, 0, extendedWidth, height);
+    const pixels = [];
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const r = imageData.data[i];
+      const g = imageData.data[i + 1];
+      const b = imageData.data[i + 2];
+      const gray = (r + g + b) / 3;
+      pixels.push(gray >= metrics.pixel_threshold ? fgColor : bgColor);
+    }
+    return { pixels, width: extendedWidth };
+  }
+  var $Font2 = null;
+  var $fetchline = null;
+  async function ensureBdfParser() {
+    if ($Font2 && $fetchline)
+      return true;
+    try {
+      const bdfparser = await Promise.resolve().then(() => (init_index_Ds5kwaZ(), index_Ds5kwaZ_exports));
+      const fetchline2 = await Promise.resolve().then(() => (init_index_Cl4FejWM(), index_Cl4FejWM_exports));
+      $Font2 = bdfparser.$Font;
+      const fl = fetchline2;
+      $fetchline = fl.default || fl.$fetchline || fetchline2;
+      return true;
+    } catch {
+      console.warn("PixelDisplay: bdfparser/fetchline packages not available. BDF font rendering disabled.");
+      return false;
+    }
+  }
+  var BDF_FONT_CONFIG = {
+    "VCR_OSD_MONO": {
+      16: { file: "VCR_OSD_MONO_16.bdf", yOffset: 0 },
+      24: { file: "VCR_OSD_MONO_24.bdf", yOffset: 0 },
+      32: { file: "VCR_OSD_MONO_32.bdf", yOffset: 2 }
+    },
+    "CUSONG": {
+      16: { file: "CUSONG_16.bdf", yOffset: -1 },
+      24: { file: "CUSONG_24.bdf", yOffset: 0 },
+      32: { file: "CUSONG_32.bdf", yOffset: 0 }
+    }
+  };
+  var fontCache = /* @__PURE__ */ new Map();
+  var fontLoadPromises = /* @__PURE__ */ new Map();
+  var defaultResolver = (_fontName, fileName) => {
+    if (typeof window === "undefined")
+      return `/fonts/${fileName || _fontName}`;
+    const basePath = window.location.pathname.substring(
+      0,
+      window.location.pathname.lastIndexOf("/") + 1
+    );
+    return `${basePath}fonts/${fileName || _fontName}`;
+  };
+  var _fontResolver = defaultResolver;
+  function setFontResolver(resolver) {
+    _fontResolver = resolver;
+  }
+  function getHeightKey(height) {
+    if (height <= 18)
+      return 16;
+    if (height <= 28)
+      return 24;
+    return 32;
+  }
+  async function loadBdfFont(fontName, heightKey = 16, resolver) {
+    const cacheKey = `${fontName}_${heightKey}`;
+    if (fontCache.has(cacheKey)) {
+      return fontCache.get(cacheKey);
+    }
+    if (fontLoadPromises.has(cacheKey)) {
+      return fontLoadPromises.get(cacheKey);
+    }
+    const fontConfig = BDF_FONT_CONFIG[fontName];
+    if (!fontConfig || !fontConfig[heightKey]) {
+      console.warn(`PixelDisplay BDF: No config for font ${fontName} at height ${heightKey}`);
+      return null;
+    }
+    const config = fontConfig[heightKey];
+    const loadPromise = (async () => {
+      try {
+        const parserAvailable = await ensureBdfParser();
+        if (!parserAvailable || !$Font2 || !$fetchline)
+          return null;
+        const resolveUrl = resolver || _fontResolver;
+        const fontUrl = resolveUrl(fontName, config.file);
+        const font = await $Font2($fetchline(fontUrl));
+        const result = { font, config };
+        fontCache.set(cacheKey, result);
+        return result;
+      } catch (e) {
+        console.warn(`PixelDisplay BDF: Failed to load font ${fontName} (${heightKey}px):`, e);
+        fontLoadPromises.delete(cacheKey);
+        return null;
+      }
+    })();
+    fontLoadPromises.set(cacheKey, loadPromise);
+    return loadPromise;
+  }
+  function isBdfFontLoaded(fontName, heightKey = 16) {
+    const cacheKey = `${fontName}_${heightKey}`;
+    return fontCache.has(cacheKey);
+  }
+  function textToPixelsBdf(text, width, height, fgColor = "#ff6600", bgColor = "#111", fontName = "VCR_OSD_MONO") {
+    const heightKey = getHeightKey(height);
+    const cacheKey = `${fontName}_${heightKey}`;
+    const cached = fontCache.get(cacheKey);
+    if (!cached) {
+      loadBdfFont(fontName, heightKey);
+      return null;
+    }
+    const { font, config } = cached;
+    const pixels = new Array(width * height).fill(bgColor);
+    if (!text || text.trim() === "")
+      return pixels;
+    try {
+      const bitmap = font.draw(text, { direction: "lrtb", mode: 1 });
+      const bindata = bitmap.bindata;
+      const textWidth = bitmap.width();
+      const textHeight = bitmap.height();
+      const xOffset = Math.floor((width - textWidth) / 2);
+      const yOffset = Math.floor((height - textHeight) / 2) + (config.yOffset || 0);
+      for (let row = 0; row < textHeight; row++) {
+        const rowData = bindata[row] || "";
+        for (let col = 0; col < rowData.length; col++) {
+          const px = xOffset + col;
+          const py = yOffset + row;
+          if (px >= 0 && px < width && py >= 0 && py < height) {
+            const idx = py * width + px;
+            pixels[idx] = rowData[col] === "1" ? fgColor : bgColor;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("PixelDisplay BDF: Error rendering text:", e);
+      return null;
+    }
+    return pixels;
+  }
+  function textToScrollPixelsBdf(text, displayWidth, height, fgColor = "#ff6600", bgColor = "#111", fontName = "VCR_OSD_MONO") {
+    const heightKey = getHeightKey(height);
+    const cacheKey = `${fontName}_${heightKey}`;
+    const cached = fontCache.get(cacheKey);
+    if (!cached) {
+      loadBdfFont(fontName, heightKey);
+      return null;
+    }
+    const { font, config } = cached;
+    if (!text || text.trim() === "") {
+      const extendedWidth = displayWidth * 3;
+      const pixels = new Array(extendedWidth * height).fill(bgColor);
+      return { pixels, width: extendedWidth };
+    }
+    try {
+      const bitmap = font.draw(text, { direction: "lrtb", mode: 1 });
+      const bindata = bitmap.bindata;
+      const textWidth = bitmap.width();
+      const textHeight = bitmap.height();
+      const extendedWidth = displayWidth + textWidth + displayWidth;
+      const pixels = new Array(extendedWidth * height).fill(bgColor);
+      const xStart = displayWidth;
+      const yOffset = Math.floor((height - textHeight) / 2) + (config.yOffset || 0);
+      for (let row = 0; row < textHeight; row++) {
+        const rowData = bindata[row] || "";
+        for (let col = 0; col < rowData.length; col++) {
+          const px = xStart + col;
+          const py = yOffset + row;
+          if (px >= 0 && px < extendedWidth && py >= 0 && py < height) {
+            const idx = py * extendedWidth + px;
+            pixels[idx] = rowData[col] === "1" ? fgColor : bgColor;
+          }
+        }
+      }
+      return { pixels, width: extendedWidth };
+    } catch (e) {
+      console.warn("PixelDisplay BDF: Error rendering scroll text:", e);
+      return null;
+    }
+  }
+  function configureFonts(options) {
+    if (options.baseUrl) {
+      const base = options.baseUrl.replace(/\/+$/, "");
+      setFontResolver$1((name) => `${base}/${name}.ttf`);
+      setFontResolver((_name, file) => `${base}/${file || _name}`);
+    }
+    if (options.ttfResolver)
+      setFontResolver$1(options.ttfResolver);
+    if (options.bdfResolver)
+      setFontResolver(options.bdfResolver);
+  }
+
+  // src/cards/display-card.js
+  var isHA = typeof window !== "undefined" && (typeof window.hassConnection !== "undefined" || document.querySelector("home-assistant") !== null);
+  if (isHA) {
+    configureFonts({
+      ttfResolver: (name) => `/hacsfiles/ipixel_color/fonts/${name}.ttf`,
+      bdfResolver: (_name, file) => `/hacsfiles/ipixel_color/fonts/${file || _name}`
+    });
+  } else if (typeof window !== "undefined") {
+    const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
+    configureFonts({ baseUrl: `${basePath}fonts` });
+  }
+  var rendererCache = /* @__PURE__ */ new Map();
+  var iPIXELDisplayCard = class extends iPIXELCardBase {
+    constructor() {
+      super();
+      this._renderer = null;
+      this._displayContainer = null;
+      this._lastState = null;
+      this._cachedResolution = null;
+      this._rendererId = null;
+      this._handleDisplayUpdate = (e) => {
+        this._updateDisplay(e.detail);
+      };
+      window.addEventListener("ipixel-display-update", this._handleDisplayUpdate);
+    }
+    connectedCallback() {
+      if (!this._rendererId) {
+        this._rendererId = `renderer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+      if (rendererCache.has(this._rendererId)) {
+        this._renderer = rendererCache.get(this._rendererId);
+      }
+      loadBdfFont("VCR_OSD_MONO", 16).then(() => {
+        if (this._lastState)
+          this._updateDisplay(this._lastState);
+      });
+      loadBdfFont("VCR_OSD_MONO", 24);
+      loadBdfFont("VCR_OSD_MONO", 32);
+      loadBdfFont("CUSONG", 16);
+      loadBdfFont("CUSONG", 24);
+      loadBdfFont("CUSONG", 32);
+      loadFont("VCR_OSD_MONO");
+      loadFont("CUSONG");
+    }
+    disconnectedCallback() {
+      super.disconnectedCallback();
+      window.removeEventListener("ipixel-display-update", this._handleDisplayUpdate);
+      if (this._renderer && this._rendererId) {
+        this._renderer.stop();
+        rendererCache.set(this._rendererId, this._renderer);
+      }
+    }
+    /**
+     * Get resolution with caching and fallback
+     */
+    _getResolutionCached() {
+      const [sensorWidth, sensorHeight] = this.getResolution();
+      if (sensorWidth > 0 && sensorHeight > 0) {
+        this._cachedResolution = [sensorWidth, sensorHeight];
+        try {
+          localStorage.setItem("iPIXEL_Resolution", JSON.stringify([sensorWidth, sensorHeight]));
+        } catch (e) {
+        }
+        return this._cachedResolution;
+      }
+      try {
+        const saved = localStorage.getItem("iPIXEL_Resolution");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length === 2 && parsed[0] > 0 && parsed[1] > 0) {
+            this._cachedResolution = parsed;
+            return parsed;
+          }
+        }
+      } catch (e) {
+      }
+      if (this._cachedResolution) {
+        return this._cachedResolution;
+      }
+      if (this._config?.width && this._config?.height) {
+        return [this._config.width, this._config.height];
+      }
+      return [sensorWidth || 64, sensorHeight || 16];
+    }
+    /**
+     * Update the display with new state
+     */
+    _updateDisplay(state) {
+      if (!this._displayContainer)
+        return;
+      const [width, height] = this._getResolutionCached();
+      const isOn = this.isOn();
+      if (!this._renderer) {
+        this._renderer = new ImageDataLEDRenderer(this._displayContainer, { width, height });
+        if (this._rendererId) {
+          rendererCache.set(this._rendererId, this._renderer);
+        }
+      } else {
+        this._renderer.setContainer(this._displayContainer);
+        if (this._renderer.width !== width || this._renderer.height !== height) {
+          this._renderer.setDimensions(width, height);
+        }
+      }
+      if (!isOn) {
+        this._renderer.setData([]);
+        this._renderer.setEffect("fixed", 50);
+        this._renderer.stop();
+        this._renderer.renderStatic();
+        return;
+      }
+      const text = state?.text || "";
+      const effect = state?.effect || "fixed";
+      const speed = state?.speed || 50;
+      const fgColor = state?.fgColor || "#ff6600";
+      const bgColor = state?.bgColor || "#111";
+      const mode = state?.mode || "text";
+      const font = state?.font || "VCR_OSD_MONO";
+      this._lastState = state;
+      let displayText = text;
+      let displayFg = fgColor;
+      if (mode === "clock") {
+        const now = /* @__PURE__ */ new Date();
+        displayText = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+        displayFg = "#00ff88";
+      } else if (mode === "gif") {
+        displayText = "GIF";
+        displayFg = "#ff44ff";
+      } else if (mode === "rhythm") {
+        displayText = "***";
+        displayFg = "#44aaff";
+      }
+      const effectInfo = EFFECTS[effect];
+      const isAmbient = effectInfo?.category === "ambient";
+      if (isAmbient) {
+        this._renderer.setData([], [], width);
+      } else {
+        const heightKey = getHeightKey$1(height);
+        const useBdfFont = font !== "LEGACY" && isBdfFontLoaded(font, heightKey);
+        const useCanvasFont = font !== "LEGACY" && isFontLoaded(font);
+        const getPixels = (text2, w, h, fg, bg) => {
+          if (useBdfFont) {
+            const bdfPixels = textToPixelsBdf(text2, w, h, fg, bg, font);
+            if (bdfPixels)
+              return bdfPixels;
+          }
+          if (useCanvasFont) {
+            const canvasPixels = textToPixelsCanvas(text2, w, h, fg, bg, font);
+            if (canvasPixels)
+              return canvasPixels;
+          }
+          return textToPixels(text2, w, h, fg, bg);
+        };
+        const getScrollPixels = (text2, displayW, h, fg, bg) => {
+          if (useBdfFont) {
+            const bdfResult = textToScrollPixelsBdf(text2, displayW, h, fg, bg, font);
+            if (bdfResult)
+              return bdfResult;
+          }
+          if (useCanvasFont) {
+            const canvasResult = textToScrollPixelsCanvas(text2, displayW, h, fg, bg, font);
+            if (canvasResult)
+              return canvasResult;
+          }
+          return textToScrollPixels(text2, displayW, h, fg, bg);
+        };
+        const textPixelWidth = useCanvasFont ? displayText.length * 10 : displayText.length * 6;
+        const needsScroll = (effect === "scroll_ltr" || effect === "scroll_rtl" || effect === "bounce") && textPixelWidth > width;
+        if (needsScroll) {
+          const scrollResult = getScrollPixels(displayText, width, height, displayFg, bgColor);
+          const displayPixels = getPixels(displayText, width, height, displayFg, bgColor);
+          this._renderer.setData(displayPixels, scrollResult.pixels, scrollResult.width);
+        } else {
+          const pixels = getPixels(displayText, width, height, displayFg, bgColor);
+          this._renderer.setData(pixels);
+        }
+      }
+      this._renderer.setEffect(effect, speed);
+      if (effect === "fixed") {
+        this._renderer.stop();
+        this._renderer.renderStatic();
+      } else {
+        this._renderer.start();
+      }
+    }
+    /**
+     * Get sample state for test mode demo display
+     */
+    _getTestModeState() {
+      const demos = [
+        { text: "iPIXEL", effect: "scroll_ltr", speed: 40, fgColor: "#ff6600", bgColor: "#000000", mode: "text", font: "VCR_OSD_MONO" },
+        { text: "Hello!", effect: "rainbow_cycle", speed: 50, fgColor: "#00ff88", bgColor: "#000000", mode: "text", font: "VCR_OSD_MONO" },
+        { text: "TEST", effect: "fixed", speed: 50, fgColor: "#03a9f4", bgColor: "#111111", mode: "text", font: "VCR_OSD_MONO" },
+        { text: "", effect: "rainbow", speed: 60, fgColor: "#ffffff", bgColor: "#000000", mode: "ambient", font: "VCR_OSD_MONO" }
+      ];
+      const idx = Math.floor(Date.now() / 1e4) % demos.length;
+      return demos[idx];
+    }
+    render() {
+      const testMode = this.isInTestMode();
+      if (!this._hass && !testMode)
+        return;
+      const [width, height] = this._getResolutionCached();
+      const isOn = this.isOn();
+      const name = this._config.name || this.getEntity()?.attributes?.friendly_name || "iPIXEL Display";
+      const sharedState = getDisplayState();
+      const textEntity = this.getEntity();
+      const entityText = textEntity?.state || "";
+      const modeEntity = this.getRelatedEntity("select", "_mode");
+      const currentMode = modeEntity?.state || sharedState.mode || "text";
+      const currentText = sharedState.text || entityText || (testMode ? "iPIXEL" : "");
+      const currentEffect = sharedState.effect || "fixed";
+      const currentSpeed = sharedState.speed || 50;
+      const fgColor = sharedState.fgColor || "#ff6600";
+      const bgColor = sharedState.bgColor || "#111";
+      const currentFont = sharedState.font || "VCR_OSD_MONO";
+      const effectInfo = EFFECTS[currentEffect];
+      const isAmbient = effectInfo?.category === "ambient";
+      const missingFeatures = detectMissingFeatures();
+      const testModeEnabled = isTestMode();
+      let testModeBanner = "";
+      if (testMode) {
+        const featureWarnings = missingFeatures.length > 0 ? `<div class="test-mode-features">Missing: ${missingFeatures.join(", ")}</div>` : "";
+        testModeBanner = `
         <div class="test-mode-banner">
           <div class="test-mode-header">
             <span class="test-mode-label">Test Mode</span>
-            <button class="test-mode-toggle ${x?"active":""}" id="test-mode-toggle">
-              ${x?"ON":"OFF"}
+            <button class="test-mode-toggle ${testModeEnabled ? "active" : ""}" id="test-mode-toggle">
+              ${testModeEnabled ? "ON" : "OFF"}
             </button>
           </div>
           <div class="test-mode-desc">Preview display without a device</div>
-          ${C}
-        </div>`}else y=`
+          ${featureWarnings}
+        </div>`;
+      } else {
+        testModeBanner = `
         <div class="test-mode-hint">
           <button class="test-mode-hint-btn" id="test-mode-toggle" title="Enable test mode for preview without a device">
             <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15Z"/></svg>
             Test
           </button>
-        </div>`;let E=Object.entries(M).filter(([C,I])=>I.category==="text").map(([C,I])=>`<option value="${C}">${I.name}</option>`).join(""),w=Object.entries(M).filter(([C,I])=>I.category==="ambient").map(([C,I])=>`<option value="${C}">${I.name}</option>`).join(""),k=Object.entries(M).filter(([C,I])=>I.category==="color").map(([C,I])=>`<option value="${C}">${I.name}</option>`).join("");this.shadowRoot.innerHTML=`
-      <style>${$}
+        </div>`;
+      }
+      const textEffects = Object.entries(EFFECTS).filter(([_, info]) => info.category === "text").map(([name2, info]) => `<option value="${name2}">${info.name}</option>`).join("");
+      const ambientEffects = Object.entries(EFFECTS).filter(([_, info]) => info.category === "ambient").map(([name2, info]) => `<option value="${name2}">${info.name}</option>`).join("");
+      const colorEffects = Object.entries(EFFECTS).filter(([_, info]) => info.category === "color").map(([name2, info]) => `<option value="${name2}">${info.name}</option>`).join("");
+      this.shadowRoot.innerHTML = `
+      <style>${iPIXELCardStyles}
         .display-container { background: #000; border-radius: 8px; padding: 8px; border: 2px solid #222; }
         .display-screen {
           background: #000;
@@ -347,28 +4131,28 @@
       </style>
       <ha-card>
         <div class="card-content">
-          ${y}
+          ${testModeBanner}
           <div class="card-header">
             <div class="card-title">
-              <span class="status-dot ${i?"":"off"}"></span>
-              ${o}
-              ${e?'<span class="test-mode-badge">Demo</span>':""}
+              <span class="status-dot ${isOn ? "" : "off"}"></span>
+              ${name}
+              ${testMode ? '<span class="test-mode-badge">Demo</span>' : ""}
             </div>
-            <button class="icon-btn ${i?"active":""}" id="power-btn">
+            <button class="icon-btn ${isOn ? "active" : ""}" id="power-btn">
               <svg viewBox="0 0 24 24"><path d="M13,3H11V13H13V3M17.83,5.17L16.41,6.59C18.05,7.91 19,9.9 19,12A7,7 0 0,1 12,19A7,7 0 0,1 5,12C5,9.9 5.95,7.91 7.59,6.59L6.17,5.17C4.23,6.82 3,9.26 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12C21,9.26 19.77,6.82 17.83,5.17Z"/></svg>
             </button>
           </div>
           <div class="display-container">
             <div class="display-screen" id="display-screen"></div>
             <div class="display-footer">
-              <span>${t} x ${s}</span>
+              <span>${width} x ${height}</span>
               <span>
-                <span class="mode-badge">${i?c:"Off"}</span>
-                ${i&&h!=="fixed"?`<span class="effect-badge">${M[h]?.name||h}</span>`:""}
+                <span class="mode-badge">${isOn ? currentMode : "Off"}</span>
+                ${isOn && currentEffect !== "fixed" ? `<span class="effect-badge">${EFFECTS[currentEffect]?.name || currentEffect}</span>` : ""}
               </span>
             </div>
           </div>
-          ${e?`
+          ${testMode ? `
           <div class="demo-controls">
             <button class="demo-btn" data-demo="text">Text</button>
             <button class="demo-btn" data-demo="scroll">Scroll</button>
@@ -376,10 +4160,126 @@
             <button class="demo-btn" data-demo="clock">Clock</button>
             <button class="demo-btn" data-demo="fire">Fire</button>
             <button class="demo-btn" data-demo="stars">Stars</button>
-          </div>`:""}
+          </div>` : ""}
         </div>
-      </ha-card>`,this._displayContainer=this.shadowRoot.getElementById("display-screen");let S=e&&!n.text&&n.effect==="fixed"?this._getTestModeState():{text:f,effect:h,speed:p,fgColor:u,bgColor:g,mode:c,font:b};this._updateDisplay(S),this._attachPowerButton(),this._attachTestModeListeners()}_attachPowerButton(){this.shadowRoot.getElementById("power-btn")?.addEventListener("click",()=>{if(this.isInTestMode()){this._testPowerState=!this._testPowerState,this.render();return}let e=this._switchEntityId;if(!e){let t=this.getRelatedEntity("switch");t&&(this._switchEntityId=t.entity_id,e=t.entity_id)}if(e&&this._hass?.states[e])this._hass.callService("switch","toggle",{entity_id:e});else{let t=Object.keys(this._hass?.states||{}).filter(o=>o.startsWith("switch.")),s=this._config.entity?.replace(/^[^.]+\./,"").replace(/_?(text|display|gif_url)$/i,"")||"",i=t.find(o=>o.includes(s.substring(0,10)));i?(this._switchEntityId=i,this._hass.callService("switch","toggle",{entity_id:i})):console.warn("iPIXEL: No switch found. Entity:",this._config.entity,"Available:",t)}})}_attachTestModeListeners(){this.shadowRoot.getElementById("test-mode-toggle")?.addEventListener("click",()=>{Vt(!z())}),this.shadowRoot.querySelectorAll("[data-demo]").forEach(e=>{e.addEventListener("click",t=>{let s=t.currentTarget.dataset.demo,o={text:{text:"iPIXEL",effect:"fixed",speed:50,fgColor:"#ff6600",bgColor:"#000000",mode:"text",font:"VCR_OSD_MONO"},scroll:{text:"Hello World!",effect:"scroll_ltr",speed:40,fgColor:"#00ff88",bgColor:"#000000",mode:"text",font:"VCR_OSD_MONO"},rainbow:{text:"",effect:"rainbow",speed:60,fgColor:"#ffffff",bgColor:"#000000",mode:"ambient",font:"VCR_OSD_MONO"},clock:{text:"",effect:"fixed",speed:50,fgColor:"#00ff88",bgColor:"#000000",mode:"clock",font:"VCR_OSD_MONO"},fire:{text:"",effect:"fire",speed:50,fgColor:"#ffffff",bgColor:"#000000",mode:"ambient",font:"VCR_OSD_MONO"},stars:{text:"",effect:"stars",speed:40,fgColor:"#ffffff",bgColor:"#000000",mode:"ambient",font:"VCR_OSD_MONO"}}[s];o&&(R(o),this.shadowRoot.querySelectorAll("[data-demo]").forEach(n=>n.classList.remove("active")),t.currentTarget.classList.add("active"))})})}static getConfigElement(){return document.createElement("ipixel-simple-editor")}static getStubConfig(){return{entity:""}}};var Pe=[{value:1,name:"Style 1 (Digital)"},{value:2,name:"Style 2 (Minimal)"},{value:3,name:"Style 3 (Bold)"},{value:4,name:"Style 4 (Retro)"},{value:5,name:"Style 5 (Neon)"},{value:6,name:"Style 6 (Matrix)"},{value:7,name:"Style 7 (Classic)"},{value:8,name:"Style 8 (Modern)"}],Oe=[{value:0,name:"Static"},{value:1,name:"Scroll Left"},{value:2,name:"Scroll Right"},{value:3,name:"Scroll Up"},{value:4,name:"Scroll Down"},{value:5,name:"Flash"},{value:6,name:"Fade In/Out"},{value:7,name:"Bounce"}],gt=class extends L{constructor(){super(),this._clockStyle=1,this._is24Hour=!0,this._showDate=!1,this._upsideDown=!1,this._animationMode=0}render(){let e=this.isInTestMode();if(!this._hass&&!e)return;let t=this.isOn(),s=this.getRelatedEntity("switch","_upside_down");s&&(this._upsideDown=s.state==="on"),this.shadowRoot.innerHTML=`
-      <style>${$}
+      </ha-card>`;
+      this._displayContainer = this.shadowRoot.getElementById("display-screen");
+      const displayState = testMode && !sharedState.text && sharedState.effect === "fixed" ? this._getTestModeState() : {
+        text: currentText,
+        effect: currentEffect,
+        speed: currentSpeed,
+        fgColor,
+        bgColor,
+        mode: currentMode,
+        font: currentFont
+      };
+      this._updateDisplay(displayState);
+      this._attachPowerButton();
+      this._attachTestModeListeners();
+    }
+    _attachPowerButton() {
+      this.shadowRoot.getElementById("power-btn")?.addEventListener("click", () => {
+        if (this.isInTestMode()) {
+          this._testPowerState = !this._testPowerState;
+          this.render();
+          return;
+        }
+        let switchId = this._switchEntityId;
+        if (!switchId) {
+          const sw = this.getRelatedEntity("switch");
+          if (sw) {
+            this._switchEntityId = sw.entity_id;
+            switchId = sw.entity_id;
+          }
+        }
+        if (switchId && this._hass?.states[switchId]) {
+          this._hass.callService("switch", "toggle", { entity_id: switchId });
+        } else {
+          const allSwitches = Object.keys(this._hass?.states || {}).filter((e) => e.startsWith("switch."));
+          const baseName = this._config.entity?.replace(/^[^.]+\./, "").replace(/_?(text|display|gif_url)$/i, "") || "";
+          const match = allSwitches.find((s) => s.includes(baseName.substring(0, 10)));
+          if (match) {
+            this._switchEntityId = match;
+            this._hass.callService("switch", "toggle", { entity_id: match });
+          } else {
+            console.warn("iPIXEL: No switch found. Entity:", this._config.entity, "Available:", allSwitches);
+          }
+        }
+      });
+    }
+    _attachTestModeListeners() {
+      this.shadowRoot.getElementById("test-mode-toggle")?.addEventListener("click", () => {
+        setTestMode(!isTestMode());
+      });
+      this.shadowRoot.querySelectorAll("[data-demo]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const demo = e.currentTarget.dataset.demo;
+          const demoStates = {
+            text: { text: "iPIXEL", effect: "fixed", speed: 50, fgColor: "#ff6600", bgColor: "#000000", mode: "text", font: "VCR_OSD_MONO" },
+            scroll: { text: "Hello World!", effect: "scroll_ltr", speed: 40, fgColor: "#00ff88", bgColor: "#000000", mode: "text", font: "VCR_OSD_MONO" },
+            rainbow: { text: "", effect: "rainbow", speed: 60, fgColor: "#ffffff", bgColor: "#000000", mode: "ambient", font: "VCR_OSD_MONO" },
+            clock: { text: "", effect: "fixed", speed: 50, fgColor: "#00ff88", bgColor: "#000000", mode: "clock", font: "VCR_OSD_MONO" },
+            fire: { text: "", effect: "fire", speed: 50, fgColor: "#ffffff", bgColor: "#000000", mode: "ambient", font: "VCR_OSD_MONO" },
+            stars: { text: "", effect: "stars", speed: 40, fgColor: "#ffffff", bgColor: "#000000", mode: "ambient", font: "VCR_OSD_MONO" }
+          };
+          const state = demoStates[demo];
+          if (state) {
+            updateDisplayState(state);
+            this.shadowRoot.querySelectorAll("[data-demo]").forEach((b) => b.classList.remove("active"));
+            e.currentTarget.classList.add("active");
+          }
+        });
+      });
+    }
+    static getConfigElement() {
+      return document.createElement("ipixel-simple-editor");
+    }
+    static getStubConfig() {
+      return { entity: "" };
+    }
+  };
+
+  // src/cards/controls-card.js
+  var CLOCK_STYLES = [
+    { value: 1, name: "Style 1 (Digital)" },
+    { value: 2, name: "Style 2 (Minimal)" },
+    { value: 3, name: "Style 3 (Bold)" },
+    { value: 4, name: "Style 4 (Retro)" },
+    { value: 5, name: "Style 5 (Neon)" },
+    { value: 6, name: "Style 6 (Matrix)" },
+    { value: 7, name: "Style 7 (Classic)" },
+    { value: 8, name: "Style 8 (Modern)" }
+  ];
+  var ANIMATION_MODES = [
+    { value: 0, name: "Static" },
+    { value: 1, name: "Scroll Left" },
+    { value: 2, name: "Scroll Right" },
+    { value: 3, name: "Scroll Up" },
+    { value: 4, name: "Scroll Down" },
+    { value: 5, name: "Flash" },
+    { value: 6, name: "Fade In/Out" },
+    { value: 7, name: "Bounce" }
+  ];
+  var iPIXELControlsCard = class extends iPIXELCardBase {
+    constructor() {
+      super();
+      this._clockStyle = 1;
+      this._is24Hour = true;
+      this._showDate = false;
+      this._upsideDown = false;
+      this._animationMode = 0;
+    }
+    render() {
+      const testMode = this.isInTestMode();
+      if (!this._hass && !testMode)
+        return;
+      const isOn = this.isOn();
+      const upsideDownEntity = this.getRelatedEntity("switch", "_upside_down");
+      if (upsideDownEntity) {
+        this._upsideDown = upsideDownEntity.state === "on";
+      }
+      this.shadowRoot.innerHTML = `
+      <style>${iPIXELCardStyles}
         .toggle-row {
           display: flex;
           align-items: center;
@@ -473,7 +4373,7 @@
           <div class="section-title">Quick Actions</div>
           <div class="control-row">
             <div class="button-grid button-grid-4">
-              <button class="icon-btn ${t?"active":""}" data-action="power" title="Power">
+              <button class="icon-btn ${isOn ? "active" : ""}" data-action="power" title="Power">
                 <svg viewBox="0 0 24 24"><path d="M13,3H11V13H13V3M17.83,5.17L16.41,6.59C18.05,7.91 19,9.9 19,12A7,7 0 0,1 12,19A7,7 0 0,1 5,12C5,9.9 5.95,7.91 7.59,6.59L6.17,5.17C4.23,6.82 3,9.26 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12C21,9.26 19.77,6.82 17.83,5.17Z"/></svg>
               </button>
               <button class="icon-btn" data-action="clear" title="Clear">
@@ -511,24 +4411,24 @@
           <div class="subsection">
             <div class="compact-row" style="margin-bottom: 12px;">
               <select class="dropdown" id="clock-style">
-                ${Pe.map(i=>`<option value="${i.value}"${i.value===this._clockStyle?" selected":""}>${i.name}</option>`).join("")}
+                ${CLOCK_STYLES.map((s) => `<option value="${s.value}"${s.value === this._clockStyle ? " selected" : ""}>${s.name}</option>`).join("")}
               </select>
               <button class="btn btn-primary" id="apply-clock-btn">Apply</button>
             </div>
             <div class="toggle-row">
               <span class="toggle-label">24-Hour Format</span>
-              <div class="toggle-switch ${this._is24Hour?"active":""}" id="toggle-24h"></div>
+              <div class="toggle-switch ${this._is24Hour ? "active" : ""}" id="toggle-24h"></div>
             </div>
             <div class="toggle-row">
               <span class="toggle-label">Show Date</span>
-              <div class="toggle-switch ${this._showDate?"active":""}" id="toggle-date"></div>
+              <div class="toggle-switch ${this._showDate ? "active" : ""}" id="toggle-date"></div>
             </div>
           </div>
 
           <div class="section-title">Text Animation</div>
           <div class="control-row">
             <select class="dropdown" id="animation-mode">
-              ${Oe.map(i=>`<option value="${i.value}"${i.value===this._animationMode?" selected":""}>${i.name}</option>`).join("")}
+              ${ANIMATION_MODES.map((m) => `<option value="${m.value}"${m.value === this._animationMode ? " selected" : ""}>${m.name}</option>`).join("")}
             </select>
           </div>
 
@@ -545,7 +4445,7 @@
               <div class="subsection-title">Flip</div>
               <div class="toggle-row" style="padding: 4px 0;">
                 <span class="toggle-label">Upside Down</span>
-                <div class="toggle-switch ${this._upsideDown?"active":""}" id="toggle-upside-down"></div>
+                <div class="toggle-switch ${this._upsideDown ? "active" : ""}" id="toggle-upside-down"></div>
               </div>
             </div>
           </div>
@@ -554,21 +4454,24 @@
           <div class="subsection">
             <div class="subsection-title">Show Saved Slot</div>
             <div class="screen-grid" style="margin-bottom: 12px;">
-              ${[1,2,3,4,5,6,7,8,9].map(i=>{let o=this._getSavedSlot(i);return`<button class="screen-btn${o?" saved":""}" data-show-slot="${i}" title="${o?o.name:"Empty"}">${i}${o?"*":""}</button>`}).join("")}
+              ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => {
+        const saved = this._getSavedSlot(n);
+        return `<button class="screen-btn${saved ? " saved" : ""}" data-show-slot="${n}" title="${saved ? saved.name : "Empty"}">${n}${saved ? "*" : ""}</button>`;
+      }).join("")}
             </div>
             <div class="subsection-title">Auto-Cycle Slots</div>
             <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
-              <input type="text" class="text-input" id="program-slots" placeholder="e.g. 1,2,3" style="flex: 1;" value="${this._programSlots||""}">
+              <input type="text" class="text-input" id="program-slots" placeholder="e.g. 1,2,3" style="flex: 1;" value="${this._programSlots || ""}">
               <button class="btn btn-secondary" id="program-mode-btn">Cycle</button>
             </div>
             <div class="subsection-title">Select Screen Buffer (1-9)</div>
             <div class="screen-grid" style="margin-bottom: 12px;">
-              ${[1,2,3,4,5,6,7,8,9].map(i=>`<button class="screen-btn" data-screen="${i}">${i}</button>`).join("")}
+              ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button class="screen-btn" data-screen="${n}">${n}</button>`).join("")}
             </div>
             <div class="subsection-title">Save Effect to Slot</div>
             <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
               <select class="dropdown" id="save-slot" style="width: 70px;">
-                ${[1,2,3,4,5,6,7,8,9].map(i=>`<option value="${i}">Slot ${i}</option>`).join("")}
+                ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<option value="${n}">Slot ${n}</option>`).join("")}
               </select>
               <select class="dropdown" id="save-type" style="flex: 1;">
                 <option value="gif">Animation (GIF)</option>
@@ -585,7 +4488,7 @@
             <div id="save-progress" style="display: none; font-size: 0.8em; color: var(--primary-color, #03a9f4); margin-bottom: 12px;"></div>
             <div class="subsection-title">Delete Screen</div>
             <div class="screen-grid">
-              ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<button class="screen-btn delete" data-delete="${i}">\xD7${i}</button>`).join("")}
+              ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => `<button class="screen-btn delete" data-delete="${n}">\xD7${n}</button>`).join("")}
             </div>
           </div>
 
@@ -625,29 +4528,364 @@
             </div>
           </div>
         </div>
-      </ha-card>`,this._attachControlListeners()}_attachControlListeners(){this.shadowRoot.querySelectorAll("[data-action]").forEach(t=>{t.addEventListener("click",s=>{let i=s.currentTarget.dataset.action;if(i==="power"){let o=this.getRelatedEntity("switch");o&&this._hass.callService("switch","toggle",{entity_id:o.entity_id})}else i==="clear"?(R({text:"",mode:"text",effect:"fixed",speed:50,fgColor:"#ff6600",bgColor:"#000000"}),this.callService("ipixel_color","clear_pixels")):i==="clock"?this._applyClockSettings():i==="sync"&&this.callService("ipixel_color","sync_time")})});let e=this.shadowRoot.getElementById("brightness");e&&(e.style.setProperty("--value",`${e.value}%`),e.addEventListener("input",t=>{t.target.style.setProperty("--value",`${t.target.value}%`),this.shadowRoot.getElementById("brightness-val").textContent=`${t.target.value}%`}),e.addEventListener("change",t=>{this.callService("ipixel_color","set_brightness",{level:parseInt(t.target.value)})})),this.shadowRoot.querySelectorAll("[data-mode]").forEach(t=>{t.addEventListener("click",s=>{let i=s.currentTarget.dataset.mode,o=this.getRelatedEntity("select","_mode");o&&this._hass.callService("select","select_option",{entity_id:o.entity_id,option:i}),R({mode:i,fgColor:{text:"#ff6600",textimage:"#ff6600",clock:"#00ff88",gif:"#ff44ff",rhythm:"#44aaff"}[i]||"#ff6600",text:i==="clock"?"":window.iPIXELDisplayState?.text||""}),this.shadowRoot.querySelectorAll("[data-mode]").forEach(r=>r.classList.remove("active")),s.currentTarget.classList.add("active")})}),this.shadowRoot.getElementById("clock-style")?.addEventListener("change",t=>{this._clockStyle=parseInt(t.target.value)}),this.shadowRoot.getElementById("apply-clock-btn")?.addEventListener("click",()=>{this._applyClockSettings()}),this.shadowRoot.getElementById("toggle-24h")?.addEventListener("click",t=>{this._is24Hour=!this._is24Hour,t.currentTarget.classList.toggle("active",this._is24Hour)}),this.shadowRoot.getElementById("toggle-date")?.addEventListener("click",t=>{this._showDate=!this._showDate,t.currentTarget.classList.toggle("active",this._showDate)}),this.shadowRoot.getElementById("animation-mode")?.addEventListener("change",t=>{this._animationMode=parseInt(t.target.value),R({animationMode:this._animationMode}),this.callService("ipixel_color","set_animation_mode",{mode:this._animationMode})}),this.shadowRoot.getElementById("orientation")?.addEventListener("change",t=>{let s=parseInt(t.target.value);this.callService("ipixel_color","set_orientation",{orientation:s})}),this.shadowRoot.getElementById("toggle-upside-down")?.addEventListener("click",t=>{this._upsideDown=!this._upsideDown,t.currentTarget.classList.toggle("active",this._upsideDown);let s=this.getRelatedEntity("switch","_upside_down");s?this._hass.callService("switch",this._upsideDown?"turn_on":"turn_off",{entity_id:s.entity_id}):this.callService("ipixel_color","set_upside_down",{enabled:this._upsideDown})}),this.shadowRoot.querySelectorAll("[data-show-slot]").forEach(t=>{t.addEventListener("click",s=>{let i=parseInt(s.currentTarget.dataset.showSlot);this.callService("ipixel_color","show_slot",{slot:i}),this.shadowRoot.querySelectorAll("[data-show-slot]").forEach(o=>o.classList.remove("active")),s.currentTarget.classList.add("active")})}),this.shadowRoot.getElementById("program-mode-btn")?.addEventListener("click",()=>{let t=this.shadowRoot.getElementById("program-slots")?.value||"",s=t.split(/[,\s]+/).map(Number).filter(i=>i>=1&&i<=255);s.length&&(this._programSlots=t,this.callService("ipixel_color","program_mode",{slots:s}))}),this.shadowRoot.querySelectorAll("[data-screen]").forEach(t=>{t.addEventListener("click",s=>{let i=parseInt(s.currentTarget.dataset.screen);this.callService("ipixel_color","set_screen",{screen:i}),this.shadowRoot.querySelectorAll("[data-screen]").forEach(o=>o.classList.remove("active")),s.currentTarget.classList.add("active")})}),this.shadowRoot.querySelectorAll("[data-delete]").forEach(t=>{t.addEventListener("click",s=>{let i=parseInt(s.currentTarget.dataset.delete);confirm(`Delete screen slot ${i}?`)&&(this.callService("ipixel_color","delete_screen",{slot:i}),this._removeSavedSlot(i),this.render())})}),this.shadowRoot.getElementById("save-type")?.addEventListener("change",t=>{let s=this.shadowRoot.getElementById("save-gif-options");s&&(s.style.display=t.target.value==="gif"?"flex":"none")}),this.shadowRoot.getElementById("save-to-slot-btn")?.addEventListener("click",async()=>{let t=parseInt(this.shadowRoot.getElementById("save-slot")?.value||"1"),s=this.shadowRoot.getElementById("save-type")?.value||"gif",i=parseInt(this.shadowRoot.getElementById("save-frames")?.value||"30"),o=parseInt(this.shadowRoot.getElementById("save-delay")?.value||"100"),n=this.shadowRoot.getElementById("save-progress"),r=this.shadowRoot.getElementById("save-to-slot-btn");n&&(n.style.display="block",n.textContent="Starting..."),r&&(r.disabled=!0);try{await this.callService("ipixel_color","save_to_slot",{slot:t,type:s,frames:i,delay:o});let a=window.iPIXELDisplayState||{};this._setSavedSlot(t,{name:a.text||a.effect||s,type:s,frames:s==="gif"?i:1,savedAt:new Date().toISOString()}),n&&(n.textContent="Saved!"),setTimeout(()=>this.render(),1500)}catch(a){n&&(n.textContent="Error: "+a.message)}finally{r&&(r.disabled=!1)}}),this.shadowRoot.getElementById("font-size")?.addEventListener("change",t=>{let s=parseInt(t.target.value);R({fontSize:s}),this.callService("ipixel_color","set_font_size",{size:s})}),this.shadowRoot.getElementById("font-offset-x")?.addEventListener("change",()=>{this._updateFontOffset()}),this.shadowRoot.getElementById("font-offset-y")?.addEventListener("change",()=>{this._updateFontOffset()}),this.shadowRoot.getElementById("diy-mode")?.addEventListener("change",t=>{let s=t.target.value;s!==""&&(this.callService("ipixel_color","set_diy_mode",{mode:s}),setTimeout(()=>{t.target.value=""},500))}),this.shadowRoot.getElementById("send-raw-btn")?.addEventListener("click",()=>{let t=this.shadowRoot.getElementById("raw-command")?.value;t&&t.trim()&&this.callService("ipixel_color","send_raw_command",{hex_data:t.trim()})}),this.shadowRoot.getElementById("raw-command")?.addEventListener("keypress",t=>{if(t.key==="Enter"){let s=t.target.value;s&&s.trim()&&this.callService("ipixel_color","send_raw_command",{hex_data:s.trim()})}})}_applyClockSettings(){R({text:"",mode:"clock",effect:"fixed",speed:50,fgColor:"#00ff88",bgColor:"#000000",clockStyle:this._clockStyle,is24Hour:this._is24Hour,showDate:this._showDate}),this.callService("ipixel_color","set_clock_mode",{style:this._clockStyle,format_24h:this._is24Hour,show_date:this._showDate})}_updateFontOffset(){let e=parseInt(this.shadowRoot.getElementById("font-offset-x")?.value||"0"),t=parseInt(this.shadowRoot.getElementById("font-offset-y")?.value||"0");R({fontOffsetX:e,fontOffsetY:t}),this.callService("ipixel_color","set_font_offset",{x:e,y:t})}_getSavedSlots(){try{return JSON.parse(localStorage.getItem("iPIXEL_SavedSlots")||"{}")}catch{return{}}}_getSavedSlot(e){return this._getSavedSlots()[String(e)]||null}_setSavedSlot(e,t){let s=this._getSavedSlots();s[String(e)]=t,localStorage.setItem("iPIXEL_SavedSlots",JSON.stringify(s))}_removeSavedSlot(e){let t=this._getSavedSlots();delete t[String(e)],localStorage.setItem("iPIXEL_SavedSlots",JSON.stringify(t))}static getConfigElement(){return document.createElement("ipixel-simple-editor")}static getStubConfig(){return{entity:""}}};var Ae=[{value:0,name:"None"},{value:1,name:"Rainbow Wave"},{value:2,name:"Rainbow Cycle"},{value:3,name:"Rainbow Pulse"},{value:4,name:"Rainbow Fade"},{value:5,name:"Rainbow Chase"},{value:6,name:"Rainbow Sparkle"},{value:7,name:"Rainbow Gradient"},{value:8,name:"Rainbow Theater"},{value:9,name:"Rainbow Fire"}],Be=[{value:0,name:"Classic Bars"},{value:1,name:"Mirrored Bars"},{value:2,name:"Center Out"},{value:3,name:"Wave Style"},{value:4,name:"Particle Style"}],mt=class extends L{constructor(){super(),this._activeTab="text",this._rhythmLevels=[0,0,0,0,0,0,0,0,0,0,0],this._selectedRhythmStyle=0,this._selectedAmbient="rainbow"}_buildTextEffectOptions(){let e=Object.entries(M).filter(([s,i])=>i.category===N.TEXT).map(([s,i])=>`<option value="${s}">${i.name}</option>`).join(""),t=Object.entries(M).filter(([s,i])=>i.category===N.COLOR).map(([s,i])=>`<option value="${s}">${i.name}</option>`).join("");return`
+      </ha-card>`;
+      this._attachControlListeners();
+    }
+    _attachControlListeners() {
+      this.shadowRoot.querySelectorAll("[data-action]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const action = e.currentTarget.dataset.action;
+          if (action === "power") {
+            const sw = this.getRelatedEntity("switch");
+            if (sw) {
+              this._hass.callService("switch", "toggle", { entity_id: sw.entity_id });
+            }
+          } else if (action === "clear") {
+            updateDisplayState({ text: "", mode: "text", effect: "fixed", speed: 50, fgColor: "#ff6600", bgColor: "#000000" });
+            this.callService("ipixel_color", "clear_pixels");
+          } else if (action === "clock") {
+            this._applyClockSettings();
+          } else if (action === "sync") {
+            this.callService("ipixel_color", "sync_time");
+          }
+        });
+      });
+      const slider = this.shadowRoot.getElementById("brightness");
+      if (slider) {
+        slider.style.setProperty("--value", `${slider.value}%`);
+        slider.addEventListener("input", (e) => {
+          e.target.style.setProperty("--value", `${e.target.value}%`);
+          this.shadowRoot.getElementById("brightness-val").textContent = `${e.target.value}%`;
+        });
+        slider.addEventListener("change", (e) => {
+          this.callService("ipixel_color", "set_brightness", { level: parseInt(e.target.value) });
+        });
+      }
+      this.shadowRoot.querySelectorAll("[data-mode]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const mode = e.currentTarget.dataset.mode;
+          const modeEntity = this.getRelatedEntity("select", "_mode");
+          if (modeEntity) {
+            this._hass.callService("select", "select_option", { entity_id: modeEntity.entity_id, option: mode });
+          }
+          const modeColors = {
+            "text": "#ff6600",
+            "textimage": "#ff6600",
+            "clock": "#00ff88",
+            "gif": "#ff44ff",
+            "rhythm": "#44aaff"
+          };
+          updateDisplayState({
+            mode,
+            fgColor: modeColors[mode] || "#ff6600",
+            text: mode === "clock" ? "" : window.iPIXELDisplayState?.text || ""
+          });
+          this.shadowRoot.querySelectorAll("[data-mode]").forEach((b) => b.classList.remove("active"));
+          e.currentTarget.classList.add("active");
+        });
+      });
+      this.shadowRoot.getElementById("clock-style")?.addEventListener("change", (e) => {
+        this._clockStyle = parseInt(e.target.value);
+      });
+      this.shadowRoot.getElementById("apply-clock-btn")?.addEventListener("click", () => {
+        this._applyClockSettings();
+      });
+      this.shadowRoot.getElementById("toggle-24h")?.addEventListener("click", (e) => {
+        this._is24Hour = !this._is24Hour;
+        e.currentTarget.classList.toggle("active", this._is24Hour);
+      });
+      this.shadowRoot.getElementById("toggle-date")?.addEventListener("click", (e) => {
+        this._showDate = !this._showDate;
+        e.currentTarget.classList.toggle("active", this._showDate);
+      });
+      this.shadowRoot.getElementById("animation-mode")?.addEventListener("change", (e) => {
+        this._animationMode = parseInt(e.target.value);
+        updateDisplayState({ animationMode: this._animationMode });
+        this.callService("ipixel_color", "set_animation_mode", { mode: this._animationMode });
+      });
+      this.shadowRoot.getElementById("orientation")?.addEventListener("change", (e) => {
+        const orientation = parseInt(e.target.value);
+        this.callService("ipixel_color", "set_orientation", { orientation });
+      });
+      this.shadowRoot.getElementById("toggle-upside-down")?.addEventListener("click", (e) => {
+        this._upsideDown = !this._upsideDown;
+        e.currentTarget.classList.toggle("active", this._upsideDown);
+        const upsideDownEntity = this.getRelatedEntity("switch", "_upside_down");
+        if (upsideDownEntity) {
+          this._hass.callService("switch", this._upsideDown ? "turn_on" : "turn_off", {
+            entity_id: upsideDownEntity.entity_id
+          });
+        } else {
+          this.callService("ipixel_color", "set_upside_down", { enabled: this._upsideDown });
+        }
+      });
+      this.shadowRoot.querySelectorAll("[data-show-slot]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const slot = parseInt(e.currentTarget.dataset.showSlot);
+          this.callService("ipixel_color", "show_slot", { slot });
+          this.shadowRoot.querySelectorAll("[data-show-slot]").forEach((b) => b.classList.remove("active"));
+          e.currentTarget.classList.add("active");
+        });
+      });
+      this.shadowRoot.getElementById("program-mode-btn")?.addEventListener("click", () => {
+        const input = this.shadowRoot.getElementById("program-slots")?.value || "";
+        const slots = input.split(/[,\s]+/).map(Number).filter((n) => n >= 1 && n <= 255);
+        if (slots.length) {
+          this._programSlots = input;
+          this.callService("ipixel_color", "program_mode", { slots });
+        }
+      });
+      this.shadowRoot.querySelectorAll("[data-screen]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const screen = parseInt(e.currentTarget.dataset.screen);
+          this.callService("ipixel_color", "set_screen", { screen });
+          this.shadowRoot.querySelectorAll("[data-screen]").forEach((b) => b.classList.remove("active"));
+          e.currentTarget.classList.add("active");
+        });
+      });
+      this.shadowRoot.querySelectorAll("[data-delete]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const slot = parseInt(e.currentTarget.dataset.delete);
+          if (confirm(`Delete screen slot ${slot}?`)) {
+            this.callService("ipixel_color", "delete_screen", { slot });
+            this._removeSavedSlot(slot);
+            this.render();
+          }
+        });
+      });
+      this.shadowRoot.getElementById("save-type")?.addEventListener("change", (e) => {
+        const gifOpts = this.shadowRoot.getElementById("save-gif-options");
+        if (gifOpts)
+          gifOpts.style.display = e.target.value === "gif" ? "flex" : "none";
+      });
+      this.shadowRoot.getElementById("save-to-slot-btn")?.addEventListener("click", async () => {
+        const slot = parseInt(this.shadowRoot.getElementById("save-slot")?.value || "1");
+        const type = this.shadowRoot.getElementById("save-type")?.value || "gif";
+        const frames = parseInt(this.shadowRoot.getElementById("save-frames")?.value || "30");
+        const delay = parseInt(this.shadowRoot.getElementById("save-delay")?.value || "100");
+        const progress = this.shadowRoot.getElementById("save-progress");
+        const btn = this.shadowRoot.getElementById("save-to-slot-btn");
+        if (progress) {
+          progress.style.display = "block";
+          progress.textContent = "Starting...";
+        }
+        if (btn)
+          btn.disabled = true;
+        try {
+          await this.callService("ipixel_color", "save_to_slot", {
+            slot,
+            type,
+            frames,
+            delay
+          });
+          const state = window.iPIXELDisplayState || {};
+          this._setSavedSlot(slot, {
+            name: state.text || state.effect || type,
+            type,
+            frames: type === "gif" ? frames : 1,
+            savedAt: (/* @__PURE__ */ new Date()).toISOString()
+          });
+          if (progress)
+            progress.textContent = "Saved!";
+          setTimeout(() => this.render(), 1500);
+        } catch (err) {
+          if (progress)
+            progress.textContent = "Error: " + err.message;
+        } finally {
+          if (btn)
+            btn.disabled = false;
+        }
+      });
+      this.shadowRoot.getElementById("font-size")?.addEventListener("change", (e) => {
+        const size = parseInt(e.target.value);
+        updateDisplayState({ fontSize: size });
+        this.callService("ipixel_color", "set_font_size", { size });
+      });
+      this.shadowRoot.getElementById("font-offset-x")?.addEventListener("change", () => {
+        this._updateFontOffset();
+      });
+      this.shadowRoot.getElementById("font-offset-y")?.addEventListener("change", () => {
+        this._updateFontOffset();
+      });
+      this.shadowRoot.getElementById("diy-mode")?.addEventListener("change", (e) => {
+        const mode = e.target.value;
+        if (mode !== "") {
+          this.callService("ipixel_color", "set_diy_mode", { mode });
+          setTimeout(() => {
+            e.target.value = "";
+          }, 500);
+        }
+      });
+      this.shadowRoot.getElementById("send-raw-btn")?.addEventListener("click", () => {
+        const hexData = this.shadowRoot.getElementById("raw-command")?.value;
+        if (hexData && hexData.trim()) {
+          this.callService("ipixel_color", "send_raw_command", { hex_data: hexData.trim() });
+        }
+      });
+      this.shadowRoot.getElementById("raw-command")?.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          const hexData = e.target.value;
+          if (hexData && hexData.trim()) {
+            this.callService("ipixel_color", "send_raw_command", { hex_data: hexData.trim() });
+          }
+        }
+      });
+    }
+    _applyClockSettings() {
+      updateDisplayState({
+        text: "",
+        mode: "clock",
+        effect: "fixed",
+        speed: 50,
+        fgColor: "#00ff88",
+        bgColor: "#000000",
+        clockStyle: this._clockStyle,
+        is24Hour: this._is24Hour,
+        showDate: this._showDate
+      });
+      this.callService("ipixel_color", "set_clock_mode", {
+        style: this._clockStyle,
+        format_24h: this._is24Hour,
+        show_date: this._showDate
+      });
+    }
+    _updateFontOffset() {
+      const x = parseInt(this.shadowRoot.getElementById("font-offset-x")?.value || "0");
+      const y = parseInt(this.shadowRoot.getElementById("font-offset-y")?.value || "0");
+      updateDisplayState({ fontOffsetX: x, fontOffsetY: y });
+      this.callService("ipixel_color", "set_font_offset", { x, y });
+    }
+    // Slot tracking via localStorage
+    _getSavedSlots() {
+      try {
+        return JSON.parse(localStorage.getItem("iPIXEL_SavedSlots") || "{}");
+      } catch {
+        return {};
+      }
+    }
+    _getSavedSlot(n) {
+      return this._getSavedSlots()[String(n)] || null;
+    }
+    _setSavedSlot(n, info) {
+      const slots = this._getSavedSlots();
+      slots[String(n)] = info;
+      localStorage.setItem("iPIXEL_SavedSlots", JSON.stringify(slots));
+    }
+    _removeSavedSlot(n) {
+      const slots = this._getSavedSlots();
+      delete slots[String(n)];
+      localStorage.setItem("iPIXEL_SavedSlots", JSON.stringify(slots));
+    }
+    static getConfigElement() {
+      return document.createElement("ipixel-simple-editor");
+    }
+    static getStubConfig() {
+      return { entity: "" };
+    }
+  };
+
+  // src/cards/text-card.js
+  var RAINBOW_MODES = [
+    { value: 0, name: "None" },
+    { value: 1, name: "Rainbow Wave" },
+    { value: 2, name: "Rainbow Cycle" },
+    { value: 3, name: "Rainbow Pulse" },
+    { value: 4, name: "Rainbow Fade" },
+    { value: 5, name: "Rainbow Chase" },
+    { value: 6, name: "Rainbow Sparkle" },
+    { value: 7, name: "Rainbow Gradient" },
+    { value: 8, name: "Rainbow Theater" },
+    { value: 9, name: "Rainbow Fire" }
+  ];
+  var RHYTHM_STYLES = [
+    { value: 0, name: "Classic Bars" },
+    { value: 1, name: "Mirrored Bars" },
+    { value: 2, name: "Center Out" },
+    { value: 3, name: "Wave Style" },
+    { value: 4, name: "Particle Style" }
+  ];
+  var iPIXELTextCard = class extends iPIXELCardBase {
+    constructor() {
+      super();
+      this._activeTab = "text";
+      this._rhythmLevels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      this._selectedRhythmStyle = 0;
+      this._selectedAmbient = "rainbow";
+    }
+    /**
+     * Generate text effect options (text + color effects)
+     */
+    _buildTextEffectOptions() {
+      const textEffects = Object.entries(EFFECTS).filter(([_, info]) => info.category === EFFECT_CATEGORIES.TEXT).map(([name, info]) => `<option value="${name}">${info.name}</option>`).join("");
+      const colorEffects = Object.entries(EFFECTS).filter(([_, info]) => info.category === EFFECT_CATEGORIES.COLOR).map(([name, info]) => `<option value="${name}">${info.name}</option>`).join("");
+      return `
       <optgroup label="Text Effects">
-        ${e}
+        ${textEffects}
       </optgroup>
       <optgroup label="Color Effects">
-        ${t}
+        ${colorEffects}
       </optgroup>
-    `}_buildAmbientEffectOptions(){return Object.entries(M).filter(([e,t])=>t.category===N.AMBIENT).map(([e,t])=>`<option value="${e}">${t.name}</option>`).join("")}_buildAmbientGrid(){let e=this._selectedAmbient||"rainbow";return Object.entries(M).filter(([t,s])=>s.category===N.AMBIENT).map(([t,s])=>`
-        <button class="effect-btn ${t===e?"active":""}" data-effect="${t}">
-          ${s.name}
+    `;
+    }
+    /**
+     * Generate ambient effect options
+     */
+    _buildAmbientEffectOptions() {
+      return Object.entries(EFFECTS).filter(([_, info]) => info.category === EFFECT_CATEGORIES.AMBIENT).map(([name, info]) => `<option value="${name}">${info.name}</option>`).join("");
+    }
+    /**
+     * Build ambient effects as a button grid
+     */
+    _buildAmbientGrid() {
+      const selected = this._selectedAmbient || "rainbow";
+      return Object.entries(EFFECTS).filter(([_, info]) => info.category === EFFECT_CATEGORIES.AMBIENT).map(([name, info]) => `
+        <button class="effect-btn ${name === selected ? "active" : ""}" data-effect="${name}">
+          ${info.name}
         </button>
-      `).join("")}_buildRainbowOptions(){return Ae.map(e=>`<option value="${e.value}">${e.name}</option>`).join("")}_buildRhythmStyleGrid(){let e=this._selectedRhythmStyle||0;return Be.map(t=>`
-      <button class="style-btn ${t.value===e?"active":""}" data-style="${t.value}">
-        ${t.name}
+      `).join("");
+    }
+    /**
+     * Build rainbow mode options for dropdown
+     */
+    _buildRainbowOptions() {
+      return RAINBOW_MODES.map(
+        (mode) => `<option value="${mode.value}">${mode.name}</option>`
+      ).join("");
+    }
+    /**
+     * Build rhythm style grid
+     */
+    _buildRhythmStyleGrid() {
+      const selected = this._selectedRhythmStyle || 0;
+      return RHYTHM_STYLES.map((style) => `
+      <button class="style-btn ${style.value === selected ? "active" : ""}" data-style="${style.value}">
+        ${style.name}
       </button>
-    `).join("")}_buildRhythmLevelSliders(){let e=["32Hz","64Hz","125Hz","250Hz","500Hz","1kHz","2kHz","4kHz","8kHz","12kHz","16kHz"];return this._rhythmLevels.map((t,s)=>`
+    `).join("");
+    }
+    /**
+     * Build rhythm level sliders (11 frequency bands)
+     */
+    _buildRhythmLevelSliders() {
+      const labels = ["32Hz", "64Hz", "125Hz", "250Hz", "500Hz", "1kHz", "2kHz", "4kHz", "8kHz", "12kHz", "16kHz"];
+      return this._rhythmLevels.map((level, i) => `
       <div class="rhythm-band">
-        <label>${e[s]}</label>
-        <input type="range" class="rhythm-slider" data-band="${s}" min="0" max="15" value="${t}">
-        <span class="rhythm-val">${t}</span>
+        <label>${labels[i]}</label>
+        <input type="range" class="rhythm-slider" data-band="${i}" min="0" max="15" value="${level}">
+        <span class="rhythm-val">${level}</span>
       </div>
-    `).join("")}render(){let e=this.isInTestMode();if(!this._hass&&!e)return;let t=this._activeTab==="text",s=this._activeTab==="ambient",i=this._activeTab==="rhythm",o=this._activeTab==="advanced";this.shadowRoot.innerHTML=`
-      <style>${$}
+    `).join("");
+    }
+    render() {
+      const testMode = this.isInTestMode();
+      if (!this._hass && !testMode)
+        return;
+      const isTextTab = this._activeTab === "text";
+      const isAmbientTab = this._activeTab === "ambient";
+      const isRhythmTab = this._activeTab === "rhythm";
+      const isAdvancedTab = this._activeTab === "advanced";
+      this.shadowRoot.innerHTML = `
+      <style>${iPIXELCardStyles}
         .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
         .tab {
           flex: 1;
@@ -746,14 +4984,14 @@
       <ha-card>
         <div class="card-content">
           <div class="tabs">
-            <button class="tab ${t?"active":""}" id="tab-text">Text</button>
-            <button class="tab ${s?"active":""}" id="tab-ambient">Ambient</button>
-            <button class="tab ${i?"active":""}" id="tab-rhythm">Rhythm</button>
-            <button class="tab ${o?"active":""}" id="tab-advanced">GFX</button>
+            <button class="tab ${isTextTab ? "active" : ""}" id="tab-text">Text</button>
+            <button class="tab ${isAmbientTab ? "active" : ""}" id="tab-ambient">Ambient</button>
+            <button class="tab ${isRhythmTab ? "active" : ""}" id="tab-rhythm">Rhythm</button>
+            <button class="tab ${isAdvancedTab ? "active" : ""}" id="tab-advanced">GFX</button>
           </div>
 
           <!-- Text Tab -->
-          <div class="tab-content ${t?"active":""}" id="content-text">
+          <div class="tab-content ${isTextTab ? "active" : ""}" id="content-text">
             <div class="section-title">Display Text</div>
             <div class="input-row">
               <input type="text" class="text-input" id="text-input" placeholder="Enter text to display...">
@@ -804,7 +5042,7 @@
           </div>
 
           <!-- Ambient Tab -->
-          <div class="tab-content ${s?"active":""}" id="content-ambient">
+          <div class="tab-content ${isAmbientTab ? "active" : ""}" id="content-ambient">
             <div class="section-title">Ambient Effect</div>
             <div class="effect-grid" id="ambient-grid">
               ${this._buildAmbientGrid()}
@@ -820,7 +5058,7 @@
           </div>
 
           <!-- Rhythm Tab -->
-          <div class="tab-content ${i?"active":""}" id="content-rhythm">
+          <div class="tab-content ${isRhythmTab ? "active" : ""}" id="content-rhythm">
             <div class="section-title">Visualization Style</div>
             <div class="style-grid" id="rhythm-style-grid">
               ${this._buildRhythmStyleGrid()}
@@ -833,7 +5071,7 @@
           </div>
 
           <!-- Advanced/GFX Tab -->
-          <div class="tab-content ${o?"active":""}" id="content-advanced">
+          <div class="tab-content ${isAdvancedTab ? "active" : ""}" id="content-advanced">
             <div class="section-title">GFX JSON Data</div>
             <textarea class="gfx-textarea" id="gfx-json" placeholder='Enter GFX JSON data...
 Example:
@@ -856,8 +5094,293 @@ Example:
             <button class="btn btn-primary" id="apply-multicolor-btn" style="width: 100%; margin-top: 8px;">Send Multicolor Text</button>
           </div>
         </div>
-      </ha-card>`,this._attachListeners()}_getTextFormValues(){return{text:this.shadowRoot.getElementById("text-input")?.value||"",effect:this.shadowRoot.getElementById("text-effect")?.value||"fixed",rainbowMode:parseInt(this.shadowRoot.getElementById("rainbow-mode")?.value||"0"),speed:parseInt(this.shadowRoot.getElementById("text-speed")?.value||"50"),fgColor:this.shadowRoot.getElementById("text-color")?.value||"#ff6600",bgColor:this.shadowRoot.getElementById("bg-color")?.value||"#000000",font:this.shadowRoot.getElementById("font-select")?.value||"VCR_OSD_MONO"}}_getRhythmFormValues(){return{style:this._selectedRhythmStyle||0,levels:[...this._rhythmLevels]}}_getGfxFormValues(){let e=this.shadowRoot.getElementById("gfx-json")?.value||"";try{return JSON.parse(e)}catch{return null}}_getMulticolorFormValues(){let e=this.shadowRoot.getElementById("multicolor-text")?.value||"",s=(this.shadowRoot.getElementById("multicolor-colors")?.value||"").split(",").map(i=>i.trim()).filter(i=>i);return{text:e,colors:s}}_getAmbientFormValues(){return{effect:this._selectedAmbient||"rainbow",speed:parseInt(this.shadowRoot.getElementById("ambient-speed")?.value||"50")}}_updateTextPreview(){let{text:e,effect:t,speed:s,fgColor:i,bgColor:o,font:n}=this._getTextFormValues();R({text:e||"Preview",mode:"text",effect:t,speed:s,fgColor:i,bgColor:o,font:n})}_updateAmbientPreview(){let{effect:e,speed:t}=this._getAmbientFormValues();R({text:"",mode:"ambient",effect:e,speed:t,fgColor:"#ffffff",bgColor:"#000000"})}_attachListeners(){this.shadowRoot.getElementById("tab-text")?.addEventListener("click",()=>{this._activeTab="text",this.render()}),this.shadowRoot.getElementById("tab-ambient")?.addEventListener("click",()=>{this._activeTab="ambient",this.render()}),this.shadowRoot.getElementById("tab-rhythm")?.addEventListener("click",()=>{this._activeTab="rhythm",this.render()}),this.shadowRoot.getElementById("tab-advanced")?.addEventListener("click",()=>{this._activeTab="advanced",this.render()});let e=this.shadowRoot.getElementById("text-speed");e&&(e.style.setProperty("--value",`${e.value}%`),e.addEventListener("input",s=>{s.target.style.setProperty("--value",`${s.target.value}%`),this.shadowRoot.getElementById("text-speed-val").textContent=s.target.value,this._updateTextPreview()})),this.shadowRoot.getElementById("text-effect")?.addEventListener("change",()=>{this._updateTextPreview()}),this.shadowRoot.getElementById("rainbow-mode")?.addEventListener("change",()=>{this._updateTextPreview()}),this.shadowRoot.getElementById("font-select")?.addEventListener("change",()=>{this._updateTextPreview()}),this.shadowRoot.getElementById("text-color")?.addEventListener("input",()=>{this._updateTextPreview()}),this.shadowRoot.getElementById("bg-color")?.addEventListener("input",()=>{this._updateTextPreview()}),this.shadowRoot.getElementById("text-input")?.addEventListener("input",()=>{this._updateTextPreview()}),this.shadowRoot.getElementById("send-btn")?.addEventListener("click",()=>{let{text:s,effect:i,rainbowMode:o,speed:n,fgColor:r,bgColor:a,font:l}=this._getTextFormValues();if(s){if(R({text:s,mode:"text",effect:i,speed:n,fgColor:r,bgColor:a,font:l,rainbowMode:o}),this.isInTestMode())return;this._config.entity&&this._hass&&this._hass.callService("text","set_value",{entity_id:this._config.entity,value:s});let c=l==="LEGACY"?"CUSONG":l;this.callService("ipixel_color","display_text",{text:s,effect:i,speed:n,color_fg:this.hexToRgb(r),color_bg:this.hexToRgb(a),font:c,rainbow_mode:o})}}),this.shadowRoot.querySelectorAll(".effect-btn").forEach(s=>{s.addEventListener("click",i=>{let o=i.target.dataset.effect;this._selectedAmbient=o,this.shadowRoot.querySelectorAll(".effect-btn").forEach(n=>n.classList.remove("active")),i.target.classList.add("active"),this._updateAmbientPreview()})});let t=this.shadowRoot.getElementById("ambient-speed");t&&(t.style.setProperty("--value",`${t.value}%`),t.addEventListener("input",s=>{s.target.style.setProperty("--value",`${s.target.value}%`),this.shadowRoot.getElementById("ambient-speed-val").textContent=s.target.value,this._updateAmbientPreview()})),this.shadowRoot.getElementById("apply-ambient-btn")?.addEventListener("click",()=>{let{effect:s,speed:i}=this._getAmbientFormValues();R({text:"",mode:"ambient",effect:s,speed:i,fgColor:"#ffffff",bgColor:"#000000"})}),this.shadowRoot.querySelectorAll(".style-btn").forEach(s=>{s.addEventListener("click",i=>{let o=parseInt(i.target.dataset.style);this._selectedRhythmStyle=o,this.shadowRoot.querySelectorAll(".style-btn").forEach(n=>n.classList.remove("active")),i.target.classList.add("active")})}),this.shadowRoot.querySelectorAll(".rhythm-slider").forEach(s=>{s.addEventListener("input",i=>{let o=parseInt(i.target.dataset.band),n=parseInt(i.target.value);this._rhythmLevels[o]=n,i.target.nextElementSibling.textContent=n})}),this.shadowRoot.getElementById("apply-rhythm-btn")?.addEventListener("click",()=>{let{style:s,levels:i}=this._getRhythmFormValues();R({text:"",mode:"rhythm",rhythmStyle:s,rhythmLevels:i}),this.callService("ipixel_color","set_rhythm_level",{style:s,levels:i})}),this.shadowRoot.getElementById("apply-gfx-btn")?.addEventListener("click",()=>{let s=this._getGfxFormValues();if(!s){console.warn("iPIXEL: Invalid GFX JSON");return}R({text:"",mode:"gfx",gfxData:s}),this.callService("ipixel_color","render_gfx",{data:s})}),this.shadowRoot.getElementById("apply-multicolor-btn")?.addEventListener("click",()=>{let{text:s,colors:i}=this._getMulticolorFormValues();s&&i.length>0&&(R({text:s,mode:"multicolor",colors:i}),this.callService("ipixel_color","display_multicolor_text",{text:s,colors:i.map(o=>this.hexToRgb(o))}))})}static getConfigElement(){return document.createElement("ipixel-simple-editor")}static getStubConfig(){return{entity:""}}};var ee="iPIXEL_Presets",bt=class extends L{constructor(){super(),this._presets=this._loadPresets(),this._editingPreset=null,this._selectedIcon="\u{1F4FA}"}_loadPresets(){try{let e=localStorage.getItem(ee);return e?JSON.parse(e):[]}catch{return[]}}_savePresets(){try{localStorage.setItem(ee,JSON.stringify(this._presets))}catch(e){console.warn("iPIXEL: Failed to save presets",e)}}render(){let e=this.isInTestMode();!this._hass&&!e||(this.shadowRoot.innerHTML=`
-      <style>${$}
+      </ha-card>`;
+      this._attachListeners();
+    }
+    /**
+     * Get text tab form values
+     */
+    _getTextFormValues() {
+      return {
+        text: this.shadowRoot.getElementById("text-input")?.value || "",
+        effect: this.shadowRoot.getElementById("text-effect")?.value || "fixed",
+        rainbowMode: parseInt(this.shadowRoot.getElementById("rainbow-mode")?.value || "0"),
+        speed: parseInt(this.shadowRoot.getElementById("text-speed")?.value || "50"),
+        fgColor: this.shadowRoot.getElementById("text-color")?.value || "#ff6600",
+        bgColor: this.shadowRoot.getElementById("bg-color")?.value || "#000000",
+        font: this.shadowRoot.getElementById("font-select")?.value || "VCR_OSD_MONO"
+      };
+    }
+    /**
+     * Get rhythm tab form values
+     */
+    _getRhythmFormValues() {
+      return {
+        style: this._selectedRhythmStyle || 0,
+        levels: [...this._rhythmLevels]
+      };
+    }
+    /**
+     * Get GFX/advanced tab form values
+     */
+    _getGfxFormValues() {
+      const jsonText = this.shadowRoot.getElementById("gfx-json")?.value || "";
+      try {
+        return JSON.parse(jsonText);
+      } catch (e) {
+        return null;
+      }
+    }
+    /**
+     * Get multicolor text form values
+     */
+    _getMulticolorFormValues() {
+      const text = this.shadowRoot.getElementById("multicolor-text")?.value || "";
+      const colorsStr = this.shadowRoot.getElementById("multicolor-colors")?.value || "";
+      const colors = colorsStr.split(",").map((c) => c.trim()).filter((c) => c);
+      return { text, colors };
+    }
+    /**
+     * Get ambient tab form values
+     */
+    _getAmbientFormValues() {
+      return {
+        effect: this._selectedAmbient || "rainbow",
+        speed: parseInt(this.shadowRoot.getElementById("ambient-speed")?.value || "50")
+      };
+    }
+    /**
+     * Update text preview (without sending to device)
+     */
+    _updateTextPreview() {
+      const { text, effect, speed, fgColor, bgColor, font } = this._getTextFormValues();
+      updateDisplayState({
+        text: text || "Preview",
+        mode: "text",
+        effect,
+        speed,
+        fgColor,
+        bgColor,
+        font
+      });
+    }
+    /**
+     * Update ambient preview
+     */
+    _updateAmbientPreview() {
+      const { effect, speed } = this._getAmbientFormValues();
+      updateDisplayState({
+        text: "",
+        mode: "ambient",
+        effect,
+        speed,
+        fgColor: "#ffffff",
+        bgColor: "#000000"
+      });
+    }
+    _attachListeners() {
+      this.shadowRoot.getElementById("tab-text")?.addEventListener("click", () => {
+        this._activeTab = "text";
+        this.render();
+      });
+      this.shadowRoot.getElementById("tab-ambient")?.addEventListener("click", () => {
+        this._activeTab = "ambient";
+        this.render();
+      });
+      this.shadowRoot.getElementById("tab-rhythm")?.addEventListener("click", () => {
+        this._activeTab = "rhythm";
+        this.render();
+      });
+      this.shadowRoot.getElementById("tab-advanced")?.addEventListener("click", () => {
+        this._activeTab = "advanced";
+        this.render();
+      });
+      const textSpeed = this.shadowRoot.getElementById("text-speed");
+      if (textSpeed) {
+        textSpeed.style.setProperty("--value", `${textSpeed.value}%`);
+        textSpeed.addEventListener("input", (e) => {
+          e.target.style.setProperty("--value", `${e.target.value}%`);
+          this.shadowRoot.getElementById("text-speed-val").textContent = e.target.value;
+          this._updateTextPreview();
+        });
+      }
+      this.shadowRoot.getElementById("text-effect")?.addEventListener("change", () => {
+        this._updateTextPreview();
+      });
+      this.shadowRoot.getElementById("rainbow-mode")?.addEventListener("change", () => {
+        this._updateTextPreview();
+      });
+      this.shadowRoot.getElementById("font-select")?.addEventListener("change", () => {
+        this._updateTextPreview();
+      });
+      this.shadowRoot.getElementById("text-color")?.addEventListener("input", () => {
+        this._updateTextPreview();
+      });
+      this.shadowRoot.getElementById("bg-color")?.addEventListener("input", () => {
+        this._updateTextPreview();
+      });
+      this.shadowRoot.getElementById("text-input")?.addEventListener("input", () => {
+        this._updateTextPreview();
+      });
+      this.shadowRoot.getElementById("send-btn")?.addEventListener("click", () => {
+        const { text, effect, rainbowMode, speed, fgColor, bgColor, font } = this._getTextFormValues();
+        if (text) {
+          updateDisplayState({
+            text,
+            mode: "text",
+            effect,
+            speed,
+            fgColor,
+            bgColor,
+            font,
+            rainbowMode
+          });
+          if (this.isInTestMode())
+            return;
+          if (this._config.entity && this._hass) {
+            this._hass.callService("text", "set_value", {
+              entity_id: this._config.entity,
+              value: text
+            });
+          }
+          const backendFont = font === "LEGACY" ? "CUSONG" : font;
+          this.callService("ipixel_color", "display_text", {
+            text,
+            effect,
+            speed,
+            color_fg: this.hexToRgb(fgColor),
+            color_bg: this.hexToRgb(bgColor),
+            font: backendFont,
+            rainbow_mode: rainbowMode
+          });
+        }
+      });
+      this.shadowRoot.querySelectorAll(".effect-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const effect = e.target.dataset.effect;
+          this._selectedAmbient = effect;
+          this.shadowRoot.querySelectorAll(".effect-btn").forEach((b) => b.classList.remove("active"));
+          e.target.classList.add("active");
+          this._updateAmbientPreview();
+        });
+      });
+      const ambientSpeed = this.shadowRoot.getElementById("ambient-speed");
+      if (ambientSpeed) {
+        ambientSpeed.style.setProperty("--value", `${ambientSpeed.value}%`);
+        ambientSpeed.addEventListener("input", (e) => {
+          e.target.style.setProperty("--value", `${e.target.value}%`);
+          this.shadowRoot.getElementById("ambient-speed-val").textContent = e.target.value;
+          this._updateAmbientPreview();
+        });
+      }
+      this.shadowRoot.getElementById("apply-ambient-btn")?.addEventListener("click", () => {
+        const { effect, speed } = this._getAmbientFormValues();
+        updateDisplayState({
+          text: "",
+          mode: "ambient",
+          effect,
+          speed,
+          fgColor: "#ffffff",
+          bgColor: "#000000"
+        });
+      });
+      this.shadowRoot.querySelectorAll(".style-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const style = parseInt(e.target.dataset.style);
+          this._selectedRhythmStyle = style;
+          this.shadowRoot.querySelectorAll(".style-btn").forEach((b) => b.classList.remove("active"));
+          e.target.classList.add("active");
+        });
+      });
+      this.shadowRoot.querySelectorAll(".rhythm-slider").forEach((slider) => {
+        slider.addEventListener("input", (e) => {
+          const band = parseInt(e.target.dataset.band);
+          const value = parseInt(e.target.value);
+          this._rhythmLevels[band] = value;
+          e.target.nextElementSibling.textContent = value;
+        });
+      });
+      this.shadowRoot.getElementById("apply-rhythm-btn")?.addEventListener("click", () => {
+        const { style, levels } = this._getRhythmFormValues();
+        updateDisplayState({
+          text: "",
+          mode: "rhythm",
+          rhythmStyle: style,
+          rhythmLevels: levels
+        });
+        this.callService("ipixel_color", "set_rhythm_level", {
+          style,
+          levels
+        });
+      });
+      this.shadowRoot.getElementById("apply-gfx-btn")?.addEventListener("click", () => {
+        const gfxData = this._getGfxFormValues();
+        if (!gfxData) {
+          console.warn("iPIXEL: Invalid GFX JSON");
+          return;
+        }
+        updateDisplayState({
+          text: "",
+          mode: "gfx",
+          gfxData
+        });
+        this.callService("ipixel_color", "render_gfx", {
+          data: gfxData
+        });
+      });
+      this.shadowRoot.getElementById("apply-multicolor-btn")?.addEventListener("click", () => {
+        const { text, colors } = this._getMulticolorFormValues();
+        if (text && colors.length > 0) {
+          updateDisplayState({
+            text,
+            mode: "multicolor",
+            colors
+          });
+          this.callService("ipixel_color", "display_multicolor_text", {
+            text,
+            colors: colors.map((c) => this.hexToRgb(c))
+          });
+        }
+      });
+    }
+    static getConfigElement() {
+      return document.createElement("ipixel-simple-editor");
+    }
+    static getStubConfig() {
+      return { entity: "" };
+    }
+  };
+
+  // src/cards/playlist-card.js
+  var PRESETS_STORAGE_KEY = "iPIXEL_Presets";
+  var iPIXELPlaylistCard = class extends iPIXELCardBase {
+    constructor() {
+      super();
+      this._presets = this._loadPresets();
+      this._editingPreset = null;
+      this._selectedIcon = "\u{1F4FA}";
+    }
+    _loadPresets() {
+      try {
+        const saved = localStorage.getItem(PRESETS_STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    _savePresets() {
+      try {
+        localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(this._presets));
+      } catch (e) {
+        console.warn("iPIXEL: Failed to save presets", e);
+      }
+    }
+    render() {
+      const testMode = this.isInTestMode();
+      if (!this._hass && !testMode)
+        return;
+      this.shadowRoot.innerHTML = `
+      <style>${iPIXELCardStyles}
         .preset-list {
           display: flex;
           flex-direction: column;
@@ -1000,26 +5523,26 @@ Example:
           </div>
 
           <div class="preset-list" id="preset-list">
-            ${this._presets.length===0?`
+            ${this._presets.length === 0 ? `
               <div class="empty-state">
                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19,20H5V4H7V7H17V4H19M12,2A1,1 0 0,1 13,3A1,1 0 0,1 12,4A1,1 0 0,1 11,3A1,1 0 0,1 12,2M19,2H14.82C14.4,0.84 13.3,0 12,0C10.7,0 9.6,0.84 9.18,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2Z"/></svg>
                 <div>No presets saved</div>
                 <div style="font-size: 0.85em; margin-top: 4px;">Click + to save current display</div>
               </div>
-            `:this._presets.map((t,s)=>`
-              <div class="preset-item" data-index="${s}">
-                <div class="preset-icon" style="background: ${t.fgColor||"#ff6600"}20; color: ${t.fgColor||"#ff6600"}">
-                  ${t.icon||"\u{1F4FA}"}
+            ` : this._presets.map((preset, i) => `
+              <div class="preset-item" data-index="${i}">
+                <div class="preset-icon" style="background: ${preset.fgColor || "#ff6600"}20; color: ${preset.fgColor || "#ff6600"}">
+                  ${preset.icon || "\u{1F4FA}"}
                 </div>
                 <div class="preset-info">
-                  <div class="preset-name">${this._escapeHtml(t.name)}</div>
-                  <div class="preset-desc">${t.mode} \xB7 ${t.effect||"fixed"}${t.text?' \xB7 "'+t.text.substring(0,15)+(t.text.length>15?"...":"")+'"':""}</div>
+                  <div class="preset-name">${this._escapeHtml(preset.name)}</div>
+                  <div class="preset-desc">${preset.mode} \xB7 ${preset.effect || "fixed"}${preset.text ? ' \xB7 "' + preset.text.substring(0, 15) + (preset.text.length > 15 ? "..." : "") + '"' : ""}</div>
                 </div>
                 <div class="preset-actions">
-                  <button class="edit" data-action="edit" data-index="${s}" title="Edit">
+                  <button class="edit" data-action="edit" data-index="${i}" title="Edit">
                     <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
                   </button>
-                  <button class="delete" data-action="delete" data-index="${s}" title="Delete">
+                  <button class="delete" data-action="delete" data-index="${i}" title="Delete">
                     <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
                   </button>
                 </div>
@@ -1035,8 +5558,8 @@ Example:
             <div class="form-row">
               <label>Icon</label>
               <div class="icon-grid" id="icon-grid">
-                ${["\u{1F4FA}","\u{1F4AC}","\u23F0","\u{1F3B5}","\u{1F3A8}","\u2B50","\u2764\uFE0F","\u{1F525}","\u{1F4A1}","\u{1F308}","\u{1F3AE}","\u{1F4E2}","\u{1F3E0}","\u{1F514}","\u2728","\u{1F389}"].map(t=>`
-                  <button type="button" class="icon-option${t===this._selectedIcon?" selected":""}" data-icon="${t}">${t}</button>
+                ${["\u{1F4FA}", "\u{1F4AC}", "\u23F0", "\u{1F3B5}", "\u{1F3A8}", "\u2B50", "\u2764\uFE0F", "\u{1F525}", "\u{1F4A1}", "\u{1F308}", "\u{1F3AE}", "\u{1F4E2}", "\u{1F3E0}", "\u{1F514}", "\u2728", "\u{1F389}"].map((icon) => `
+                  <button type="button" class="icon-option${icon === this._selectedIcon ? " selected" : ""}" data-icon="${icon}">${icon}</button>
                 `).join("")}
               </div>
             </div>
@@ -1046,12 +5569,232 @@ Example:
             </div>
           </div>
         </div>
-      </ha-card>`,this._attachListeners())}_escapeHtml(e){let t=document.createElement("div");return t.textContent=e,t.innerHTML}_attachListeners(){this.shadowRoot.getElementById("add-preset-btn")?.addEventListener("click",()=>{this._editingPreset=null,this._selectedIcon="\u{1F4FA}",this.shadowRoot.getElementById("preset-form").style.display="block",this.shadowRoot.getElementById("preset-name").value="",this.shadowRoot.querySelectorAll(".icon-option").forEach(e=>e.classList.remove("selected")),this.shadowRoot.querySelector(".icon-option")?.classList.add("selected")}),this.shadowRoot.getElementById("cancel-preset-btn")?.addEventListener("click",()=>{this.shadowRoot.getElementById("preset-form").style.display="none",this._editingPreset=null}),this.shadowRoot.getElementById("save-preset-btn")?.addEventListener("click",()=>{let e=this.shadowRoot.getElementById("preset-name").value.trim()||"Preset",s=this.shadowRoot.querySelector(".icon-option.selected")?.dataset.icon||"\u{1F4FA}",i=et(),o={name:e,icon:s,text:i.text||"",mode:i.mode||"text",effect:i.effect||"fixed",speed:i.speed||50,fgColor:i.fgColor||"#ff6600",bgColor:i.bgColor||"#000000",font:i.font||"VCR_OSD_MONO",rainbowMode:i.rainbowMode||0,createdAt:Date.now()};this._editingPreset!==null?this._presets[this._editingPreset]=o:this._presets.push(o),this._savePresets(),this.shadowRoot.getElementById("preset-form").style.display="none",this._editingPreset=null,this.render()}),this.shadowRoot.querySelectorAll(".icon-option").forEach(e=>{e.addEventListener("click",t=>{this.shadowRoot.querySelectorAll(".icon-option").forEach(s=>s.classList.remove("selected")),t.currentTarget.classList.add("selected"),this._selectedIcon=t.currentTarget.dataset.icon})}),this.shadowRoot.querySelectorAll(".preset-item").forEach(e=>{e.addEventListener("click",t=>{if(t.target.closest(".preset-actions"))return;let s=parseInt(e.dataset.index),i=this._presets[s];i&&(R({text:i.text,mode:i.mode,effect:i.effect,speed:i.speed,fgColor:i.fgColor,bgColor:i.bgColor,font:i.font,rainbowMode:i.rainbowMode}),i.mode==="text"&&i.text&&this.callService("ipixel_color","display_text",{text:i.text,effect:i.effect,speed:i.speed,color_fg:this.hexToRgb(i.fgColor),color_bg:this.hexToRgb(i.bgColor),font:i.font,rainbow_mode:i.rainbowMode}),this.shadowRoot.querySelectorAll(".preset-item").forEach(o=>o.classList.remove("active")),e.classList.add("active"))})}),this.shadowRoot.querySelectorAll('[data-action="edit"]').forEach(e=>{e.addEventListener("click",t=>{t.stopPropagation();let s=parseInt(t.currentTarget.dataset.index),i=this._presets[s];i&&(this._editingPreset=s,this._selectedIcon=i.icon||"\u{1F4FA}",this.shadowRoot.getElementById("preset-form").style.display="block",this.shadowRoot.getElementById("preset-name").value=i.name,this.shadowRoot.querySelectorAll(".icon-option").forEach(o=>{o.classList.toggle("selected",o.dataset.icon===i.icon)}))})}),this.shadowRoot.querySelectorAll('[data-action="delete"]').forEach(e=>{e.addEventListener("click",t=>{t.stopPropagation();let s=parseInt(t.currentTarget.dataset.index);confirm("Delete this preset?")&&(this._presets.splice(s,1),this._savePresets(),this.render())})})}static getConfigElement(){return document.createElement("ipixel-simple-editor")}static getStubConfig(){return{entity:""}}};var ie="iPIXEL_Schedules",vt=class extends L{constructor(){super(),this._schedules=this._loadSchedules(),this._powerSchedule=this._loadPowerSchedule(),this._editingSlot=null,this._checkInterval=null}connectedCallback(){this._checkInterval=setInterval(()=>this._checkSchedules(),6e4),this._checkSchedules()}disconnectedCallback(){super.disconnectedCallback(),this._checkInterval&&clearInterval(this._checkInterval)}_loadSchedules(){try{let e=localStorage.getItem(ie);return e?JSON.parse(e):[]}catch{return[]}}_saveSchedules(){try{localStorage.setItem(ie,JSON.stringify(this._schedules))}catch(e){console.warn("iPIXEL: Failed to save schedules",e)}}_loadPowerSchedule(){try{let e=localStorage.getItem("iPIXEL_PowerSchedule");return e?JSON.parse(e):{enabled:!1,onTime:"07:00",offTime:"22:00"}}catch{return{enabled:!1,onTime:"07:00",offTime:"22:00"}}}_savePowerSchedule(){try{localStorage.setItem("iPIXEL_PowerSchedule",JSON.stringify(this._powerSchedule))}catch(e){console.warn("iPIXEL: Failed to save power schedule",e)}}_checkSchedules(){let e=new Date,t=`${e.getHours().toString().padStart(2,"0")}:${e.getMinutes().toString().padStart(2,"0")}`,s=e.getDay();for(let i of this._schedules)i.enabled&&(i.days&&!i.days.includes(s)||i.startTime===t&&(R({text:i.text||"",mode:i.mode||"text",effect:i.effect||"fixed",fgColor:i.fgColor||"#ff6600",bgColor:i.bgColor||"#000000"}),i.mode==="text"&&i.text?this.callService("ipixel_color","display_text",{text:i.text,effect:i.effect,color_fg:this.hexToRgb(i.fgColor),color_bg:this.hexToRgb(i.bgColor)}):i.mode==="clock"&&this.callService("ipixel_color","set_clock_mode",{style:1})))}render(){let e=this.isInTestMode();if(!this._hass&&!e)return;let t=new Date,s=(t.getHours()*60+t.getMinutes())/1440*100,i=`${t.getHours().toString().padStart(2,"0")}:${t.getMinutes().toString().padStart(2,"0")}`,o=this._schedules.filter(r=>r.enabled).map(r=>{let a=this._timeToMinutes(r.startTime),l=r.endTime?this._timeToMinutes(r.endTime):a+60,c=a/1440*100,f=(l-a)/1440*100;return`<div class="timeline-block" style="left: ${c}%; width: ${f}%; background: ${r.fgColor||"#03a9f4"}40;" title="${r.name||"Schedule"}"></div>`}).join(""),n=["Su","Mo","Tu","We","Th","Fr","Sa"];this.shadowRoot.innerHTML=`
-      <style>${$}
+      </ha-card>`;
+      this._attachListeners();
+    }
+    _escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    _attachListeners() {
+      this.shadowRoot.getElementById("add-preset-btn")?.addEventListener("click", () => {
+        this._editingPreset = null;
+        this._selectedIcon = "\u{1F4FA}";
+        this.shadowRoot.getElementById("preset-form").style.display = "block";
+        this.shadowRoot.getElementById("preset-name").value = "";
+        this.shadowRoot.querySelectorAll(".icon-option").forEach((o) => o.classList.remove("selected"));
+        this.shadowRoot.querySelector(".icon-option")?.classList.add("selected");
+      });
+      this.shadowRoot.getElementById("cancel-preset-btn")?.addEventListener("click", () => {
+        this.shadowRoot.getElementById("preset-form").style.display = "none";
+        this._editingPreset = null;
+      });
+      this.shadowRoot.getElementById("save-preset-btn")?.addEventListener("click", () => {
+        const name = this.shadowRoot.getElementById("preset-name").value.trim() || "Preset";
+        const selectedIcon = this.shadowRoot.querySelector(".icon-option.selected");
+        const icon = selectedIcon?.dataset.icon || "\u{1F4FA}";
+        const currentState = getDisplayState();
+        const preset = {
+          name,
+          icon,
+          text: currentState.text || "",
+          mode: currentState.mode || "text",
+          effect: currentState.effect || "fixed",
+          speed: currentState.speed || 50,
+          fgColor: currentState.fgColor || "#ff6600",
+          bgColor: currentState.bgColor || "#000000",
+          font: currentState.font || "VCR_OSD_MONO",
+          rainbowMode: currentState.rainbowMode || 0,
+          createdAt: Date.now()
+        };
+        if (this._editingPreset !== null) {
+          this._presets[this._editingPreset] = preset;
+        } else {
+          this._presets.push(preset);
+        }
+        this._savePresets();
+        this.shadowRoot.getElementById("preset-form").style.display = "none";
+        this._editingPreset = null;
+        this.render();
+      });
+      this.shadowRoot.querySelectorAll(".icon-option").forEach((opt) => {
+        opt.addEventListener("click", (e) => {
+          this.shadowRoot.querySelectorAll(".icon-option").forEach((o) => o.classList.remove("selected"));
+          e.currentTarget.classList.add("selected");
+          this._selectedIcon = e.currentTarget.dataset.icon;
+        });
+      });
+      this.shadowRoot.querySelectorAll(".preset-item").forEach((item) => {
+        item.addEventListener("click", (e) => {
+          if (e.target.closest(".preset-actions"))
+            return;
+          const index = parseInt(item.dataset.index);
+          const preset = this._presets[index];
+          if (preset) {
+            updateDisplayState({
+              text: preset.text,
+              mode: preset.mode,
+              effect: preset.effect,
+              speed: preset.speed,
+              fgColor: preset.fgColor,
+              bgColor: preset.bgColor,
+              font: preset.font,
+              rainbowMode: preset.rainbowMode
+            });
+            if (preset.mode === "text" && preset.text) {
+              this.callService("ipixel_color", "display_text", {
+                text: preset.text,
+                effect: preset.effect,
+                speed: preset.speed,
+                color_fg: this.hexToRgb(preset.fgColor),
+                color_bg: this.hexToRgb(preset.bgColor),
+                font: preset.font,
+                rainbow_mode: preset.rainbowMode
+              });
+            }
+            this.shadowRoot.querySelectorAll(".preset-item").forEach((p) => p.classList.remove("active"));
+            item.classList.add("active");
+          }
+        });
+      });
+      this.shadowRoot.querySelectorAll('[data-action="edit"]').forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const index = parseInt(e.currentTarget.dataset.index);
+          const preset = this._presets[index];
+          if (preset) {
+            this._editingPreset = index;
+            this._selectedIcon = preset.icon || "\u{1F4FA}";
+            this.shadowRoot.getElementById("preset-form").style.display = "block";
+            this.shadowRoot.getElementById("preset-name").value = preset.name;
+            this.shadowRoot.querySelectorAll(".icon-option").forEach((o) => {
+              o.classList.toggle("selected", o.dataset.icon === preset.icon);
+            });
+          }
+        });
+      });
+      this.shadowRoot.querySelectorAll('[data-action="delete"]').forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const index = parseInt(e.currentTarget.dataset.index);
+          if (confirm("Delete this preset?")) {
+            this._presets.splice(index, 1);
+            this._savePresets();
+            this.render();
+          }
+        });
+      });
+    }
+    static getConfigElement() {
+      return document.createElement("ipixel-simple-editor");
+    }
+    static getStubConfig() {
+      return { entity: "" };
+    }
+  };
+
+  // src/cards/schedule-card.js
+  var SCHEDULES_STORAGE_KEY = "iPIXEL_Schedules";
+  var iPIXELScheduleCard = class extends iPIXELCardBase {
+    constructor() {
+      super();
+      this._schedules = this._loadSchedules();
+      this._powerSchedule = this._loadPowerSchedule();
+      this._editingSlot = null;
+      this._checkInterval = null;
+    }
+    connectedCallback() {
+      this._checkInterval = setInterval(() => this._checkSchedules(), 6e4);
+      this._checkSchedules();
+    }
+    disconnectedCallback() {
+      super.disconnectedCallback();
+      if (this._checkInterval) {
+        clearInterval(this._checkInterval);
+      }
+    }
+    _loadSchedules() {
+      try {
+        const saved = localStorage.getItem(SCHEDULES_STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    _saveSchedules() {
+      try {
+        localStorage.setItem(SCHEDULES_STORAGE_KEY, JSON.stringify(this._schedules));
+      } catch (e) {
+        console.warn("iPIXEL: Failed to save schedules", e);
+      }
+    }
+    _loadPowerSchedule() {
+      try {
+        const saved = localStorage.getItem("iPIXEL_PowerSchedule");
+        return saved ? JSON.parse(saved) : { enabled: false, onTime: "07:00", offTime: "22:00" };
+      } catch (e) {
+        return { enabled: false, onTime: "07:00", offTime: "22:00" };
+      }
+    }
+    _savePowerSchedule() {
+      try {
+        localStorage.setItem("iPIXEL_PowerSchedule", JSON.stringify(this._powerSchedule));
+      } catch (e) {
+        console.warn("iPIXEL: Failed to save power schedule", e);
+      }
+    }
+    _checkSchedules() {
+      const now = /* @__PURE__ */ new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+      const currentDay = now.getDay();
+      for (const schedule of this._schedules) {
+        if (!schedule.enabled)
+          continue;
+        if (schedule.days && !schedule.days.includes(currentDay))
+          continue;
+        if (schedule.startTime === currentTime) {
+          updateDisplayState({
+            text: schedule.text || "",
+            mode: schedule.mode || "text",
+            effect: schedule.effect || "fixed",
+            fgColor: schedule.fgColor || "#ff6600",
+            bgColor: schedule.bgColor || "#000000"
+          });
+          if (schedule.mode === "text" && schedule.text) {
+            this.callService("ipixel_color", "display_text", {
+              text: schedule.text,
+              effect: schedule.effect,
+              color_fg: this.hexToRgb(schedule.fgColor),
+              color_bg: this.hexToRgb(schedule.bgColor)
+            });
+          } else if (schedule.mode === "clock") {
+            this.callService("ipixel_color", "set_clock_mode", { style: 1 });
+          }
+        }
+      }
+    }
+    render() {
+      const testMode = this.isInTestMode();
+      if (!this._hass && !testMode)
+        return;
+      const now = /* @__PURE__ */ new Date();
+      const nowPos = (now.getHours() * 60 + now.getMinutes()) / 1440 * 100;
+      const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+      const scheduleBlocks = this._schedules.filter((s) => s.enabled).map((s) => {
+        const startMins = this._timeToMinutes(s.startTime);
+        const endMins = s.endTime ? this._timeToMinutes(s.endTime) : startMins + 60;
+        const startPos = startMins / 1440 * 100;
+        const width = (endMins - startMins) / 1440 * 100;
+        return `<div class="timeline-block" style="left: ${startPos}%; width: ${width}%; background: ${s.fgColor || "#03a9f4"}40;" title="${s.name || "Schedule"}"></div>`;
+      }).join("");
+      const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+      this.shadowRoot.innerHTML = `
+      <style>${iPIXELCardStyles}
         .timeline { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
         .timeline-header { display: flex; justify-content: space-between; font-size: 0.7em; opacity: 0.5; margin-bottom: 6px; }
         .timeline-bar { height: 32px; background: rgba(255,255,255,0.1); border-radius: 4px; position: relative; overflow: hidden; }
-        .timeline-now { position: absolute; width: 2px; height: 100%; background: #f44336; left: ${s}%; z-index: 2; }
+        .timeline-now { position: absolute; width: 2px; height: 100%; background: #f44336; left: ${nowPos}%; z-index: 2; }
         .timeline-block { position: absolute; height: 100%; border-radius: 2px; z-index: 1; }
         .power-section { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
         .power-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -1156,7 +5899,7 @@ Example:
       </style>
       <ha-card>
         <div class="card-content">
-          <div class="current-time">Current: ${i}</div>
+          <div class="current-time">Current: ${currentTime}</div>
 
           <div class="section-title">Timeline</div>
           <div class="timeline">
@@ -1164,7 +5907,7 @@ Example:
               <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
             </div>
             <div class="timeline-bar">
-              ${o}
+              ${scheduleBlocks}
               <div class="timeline-now"></div>
             </div>
           </div>
@@ -1172,7 +5915,7 @@ Example:
           <div class="section-title">Power Schedule</div>
           <div class="power-section">
             <div class="power-row">
-              <div class="schedule-toggle ${this._powerSchedule.enabled?"active":""}" id="power-toggle"></div>
+              <div class="schedule-toggle ${this._powerSchedule.enabled ? "active" : ""}" id="power-toggle"></div>
               <label>On:</label>
               <input type="time" id="power-on" value="${this._powerSchedule.onTime}">
               <label>Off:</label>
@@ -1183,26 +5926,26 @@ Example:
 
           <div class="section-title">Content Schedules</div>
           <div class="schedule-list" id="schedule-list">
-            ${this._schedules.length===0?`
+            ${this._schedules.length === 0 ? `
               <div class="empty-state" style="padding: 20px; text-align: center; opacity: 0.5;">
                 No schedules configured
               </div>
-            `:this._schedules.map((r,a)=>`
-              <div class="schedule-item" data-index="${a}">
-                <div class="schedule-toggle ${r.enabled?"active":""}" data-action="toggle" data-index="${a}"></div>
+            ` : this._schedules.map((slot, i) => `
+              <div class="schedule-item" data-index="${i}">
+                <div class="schedule-toggle ${slot.enabled ? "active" : ""}" data-action="toggle" data-index="${i}"></div>
                 <div class="schedule-info">
-                  <div class="schedule-name">${this._escapeHtml(r.name||"Schedule "+(a+1))}</div>
+                  <div class="schedule-name">${this._escapeHtml(slot.name || "Schedule " + (i + 1))}</div>
                   <div class="schedule-time">
-                    ${r.startTime}${r.endTime?" - "+r.endTime:""} \xB7
-                    ${r.days?r.days.map(l=>n[l]).join(", "):"Daily"} \xB7
-                    ${r.mode||"text"}
+                    ${slot.startTime}${slot.endTime ? " - " + slot.endTime : ""} \xB7
+                    ${slot.days ? slot.days.map((d) => dayNames[d]).join(", ") : "Daily"} \xB7
+                    ${slot.mode || "text"}
                   </div>
                 </div>
                 <div class="schedule-actions">
-                  <button data-action="edit" data-index="${a}" title="Edit">
+                  <button data-action="edit" data-index="${i}" title="Edit">
                     <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
                   </button>
-                  <button data-action="delete" data-index="${a}" title="Delete">
+                  <button data-action="delete" data-index="${i}" title="Delete">
                     <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
                   </button>
                 </div>
@@ -1230,8 +5973,8 @@ Example:
             <div class="form-row">
               <label>Days</label>
               <div class="day-selector" id="day-selector">
-                ${n.map((r,a)=>`
-                  <button type="button" class="day-btn selected" data-day="${a}">${r}</button>
+                ${dayNames.map((name, i) => `
+                  <button type="button" class="day-btn selected" data-day="${i}">${name}</button>
                 `).join("")}
               </div>
             </div>
@@ -1274,9 +6017,235 @@ Example:
             </div>
           </div>
         </div>
-      </ha-card>`,this._attachListeners()}_timeToMinutes(e){let[t,s]=e.split(":").map(Number);return t*60+s}_escapeHtml(e){let t=document.createElement("div");return t.textContent=e,t.innerHTML}_attachListeners(){this.shadowRoot.getElementById("power-toggle")?.addEventListener("click",e=>{this._powerSchedule.enabled=!this._powerSchedule.enabled,e.currentTarget.classList.toggle("active",this._powerSchedule.enabled)}),this.shadowRoot.getElementById("save-power")?.addEventListener("click",()=>{this._powerSchedule.onTime=this.shadowRoot.getElementById("power-on")?.value||"07:00",this._powerSchedule.offTime=this.shadowRoot.getElementById("power-off")?.value||"22:00",this._savePowerSchedule(),this.callService("ipixel_color","set_power_schedule",{enabled:this._powerSchedule.enabled,on_time:this._powerSchedule.onTime,off_time:this._powerSchedule.offTime})}),this.shadowRoot.getElementById("add-slot")?.addEventListener("click",()=>{this._editingSlot=null,this._resetSlotForm(),this.shadowRoot.getElementById("slot-form").style.display="block"}),this.shadowRoot.getElementById("cancel-slot")?.addEventListener("click",()=>{this.shadowRoot.getElementById("slot-form").style.display="none",this._editingSlot=null}),this.shadowRoot.querySelectorAll(".day-btn").forEach(e=>{e.addEventListener("click",t=>{t.currentTarget.classList.toggle("selected")})}),this.shadowRoot.getElementById("slot-mode")?.addEventListener("change",e=>{let t=this.shadowRoot.getElementById("text-row");t&&(t.style.display=e.target.value==="text"?"block":"none")}),this.shadowRoot.getElementById("save-slot")?.addEventListener("click",()=>{let e=Array.from(this.shadowRoot.querySelectorAll(".day-btn.selected")).map(s=>parseInt(s.dataset.day)),t={name:this.shadowRoot.getElementById("slot-name")?.value||"Schedule",startTime:this.shadowRoot.getElementById("slot-start")?.value||"08:00",endTime:this.shadowRoot.getElementById("slot-end")?.value||"",days:e.length===7?null:e,mode:this.shadowRoot.getElementById("slot-mode")?.value||"text",effect:this.shadowRoot.getElementById("slot-effect")?.value||"fixed",text:this.shadowRoot.getElementById("slot-text")?.value||"",fgColor:this.shadowRoot.getElementById("slot-fg-color")?.value||"#ff6600",bgColor:this.shadowRoot.getElementById("slot-bg-color")?.value||"#000000",enabled:!0};this._editingSlot!==null?this._schedules[this._editingSlot]=t:this._schedules.push(t),this._saveSchedules(),this.shadowRoot.getElementById("slot-form").style.display="none",this._editingSlot=null,this.render()}),this.shadowRoot.querySelectorAll('[data-action="toggle"]').forEach(e=>{e.addEventListener("click",t=>{let s=parseInt(t.currentTarget.dataset.index);this._schedules[s].enabled=!this._schedules[s].enabled,this._saveSchedules(),t.currentTarget.classList.toggle("active",this._schedules[s].enabled)})}),this.shadowRoot.querySelectorAll('[data-action="edit"]').forEach(e=>{e.addEventListener("click",t=>{let s=parseInt(t.currentTarget.dataset.index),i=this._schedules[s];i&&(this._editingSlot=s,this._fillSlotForm(i),this.shadowRoot.getElementById("slot-form").style.display="block")})}),this.shadowRoot.querySelectorAll('[data-action="delete"]').forEach(e=>{e.addEventListener("click",t=>{let s=parseInt(t.currentTarget.dataset.index);confirm("Delete this schedule?")&&(this._schedules.splice(s,1),this._saveSchedules(),this.render())})})}_resetSlotForm(){this.shadowRoot.getElementById("slot-name").value="",this.shadowRoot.getElementById("slot-start").value="08:00",this.shadowRoot.getElementById("slot-end").value="",this.shadowRoot.getElementById("slot-mode").value="text",this.shadowRoot.getElementById("slot-effect").value="fixed",this.shadowRoot.getElementById("slot-text").value="",this.shadowRoot.getElementById("slot-fg-color").value="#ff6600",this.shadowRoot.getElementById("slot-bg-color").value="#000000",this.shadowRoot.querySelectorAll(".day-btn").forEach(e=>e.classList.add("selected")),this.shadowRoot.getElementById("text-row").style.display="block"}_fillSlotForm(e){this.shadowRoot.getElementById("slot-name").value=e.name||"",this.shadowRoot.getElementById("slot-start").value=e.startTime||"08:00",this.shadowRoot.getElementById("slot-end").value=e.endTime||"",this.shadowRoot.getElementById("slot-mode").value=e.mode||"text",this.shadowRoot.getElementById("slot-effect").value=e.effect||"fixed",this.shadowRoot.getElementById("slot-text").value=e.text||"",this.shadowRoot.getElementById("slot-fg-color").value=e.fgColor||"#ff6600",this.shadowRoot.getElementById("slot-bg-color").value=e.bgColor||"#000000";let t=e.days||[0,1,2,3,4,5,6];this.shadowRoot.querySelectorAll(".day-btn").forEach(s=>{s.classList.toggle("selected",t.includes(parseInt(s.dataset.day)))}),this.shadowRoot.getElementById("text-row").style.display=e.mode==="text"?"block":"none"}static getConfigElement(){return document.createElement("ipixel-simple-editor")}static getStubConfig(){return{entity:""}}};var De=["#FFFFFF","#000000","#FF0000","#00FF00","#0080FF","#FFFF00","#FF00FF","#00FFFF","#FF8000","#8000FF","#2EC4FF","#0010A0","#A0FF00","#FF80C0","#808080","#C0C0C0"],Fe=[{value:"16x16",label:"16\xD716"},{value:"32x8",label:"32\xD78"},{value:"32x16",label:"32\xD716"},{value:"32x32",label:"32\xD732"},{value:"64x16",label:"64\xD716"},{value:"64x20",label:"64\xD720"},{value:"64x64",label:"64\xD764"},{value:"96x16",label:"96\xD716"},{value:"128x16",label:"128\xD716"},{value:"192x16",label:"192\xD716"}],V={r:25,g:25,b:25},_t=class extends L{constructor(){super(),this._width=64,this._height=16,this._tool="pen",this._drawing=!1,this._gridOn=!0,this._currentColor="#ff6600",this._scale=8,this._sending=!1,this._logicalCanvas=document.createElement("canvas"),this._ctx=this._logicalCanvas.getContext("2d"),this._displayCanvas=null,this._dctx=null,this._initialized=!1}setConfig(e){if(!e.entity&&!this.isInTestMode()){this._config=e;return}this._config=e}set hass(e){let t=!!this._hass;this._hass=e;let[s,i]=this.getResolution();t?(s!==this._width||i!==this._height)&&(this._width=s,this._height=i,this._logicalCanvas.width=s,this._logicalCanvas.height=i,this.render()):(this._width=s,this._height=i,this._logicalCanvas.width=s,this._logicalCanvas.height=i,this.render())}render(){let e=this.isInTestMode();if(!this._hass&&!e)return;let t=this.getEntity(),s=this.isOn(),[i,o]=this.getResolution(),n=`${this._width}x${this._height}`,r=Fe.map(l=>`<button class="preset-btn ${l.value===n?"active":""}" data-res="${l.value}">${l.label}</button>`).join(""),a=De.map(l=>`<div class="color-swatch ${l.toLowerCase()===this._currentColor.toLowerCase()?"active":""}" data-color="${l}" style="background:${l}"></div>`).join("");this.shadowRoot.innerHTML=`
+      </ha-card>`;
+      this._attachListeners();
+    }
+    _timeToMinutes(time) {
+      const [h, m] = time.split(":").map(Number);
+      return h * 60 + m;
+    }
+    _escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    _attachListeners() {
+      this.shadowRoot.getElementById("power-toggle")?.addEventListener("click", (e) => {
+        this._powerSchedule.enabled = !this._powerSchedule.enabled;
+        e.currentTarget.classList.toggle("active", this._powerSchedule.enabled);
+      });
+      this.shadowRoot.getElementById("save-power")?.addEventListener("click", () => {
+        this._powerSchedule.onTime = this.shadowRoot.getElementById("power-on")?.value || "07:00";
+        this._powerSchedule.offTime = this.shadowRoot.getElementById("power-off")?.value || "22:00";
+        this._savePowerSchedule();
+        this.callService("ipixel_color", "set_power_schedule", {
+          enabled: this._powerSchedule.enabled,
+          on_time: this._powerSchedule.onTime,
+          off_time: this._powerSchedule.offTime
+        });
+      });
+      this.shadowRoot.getElementById("add-slot")?.addEventListener("click", () => {
+        this._editingSlot = null;
+        this._resetSlotForm();
+        this.shadowRoot.getElementById("slot-form").style.display = "block";
+      });
+      this.shadowRoot.getElementById("cancel-slot")?.addEventListener("click", () => {
+        this.shadowRoot.getElementById("slot-form").style.display = "none";
+        this._editingSlot = null;
+      });
+      this.shadowRoot.querySelectorAll(".day-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.currentTarget.classList.toggle("selected");
+        });
+      });
+      this.shadowRoot.getElementById("slot-mode")?.addEventListener("change", (e) => {
+        const textRow = this.shadowRoot.getElementById("text-row");
+        if (textRow) {
+          textRow.style.display = e.target.value === "text" ? "block" : "none";
+        }
+      });
+      this.shadowRoot.getElementById("save-slot")?.addEventListener("click", () => {
+        const selectedDays = Array.from(this.shadowRoot.querySelectorAll(".day-btn.selected")).map((btn) => parseInt(btn.dataset.day));
+        const slot = {
+          name: this.shadowRoot.getElementById("slot-name")?.value || "Schedule",
+          startTime: this.shadowRoot.getElementById("slot-start")?.value || "08:00",
+          endTime: this.shadowRoot.getElementById("slot-end")?.value || "",
+          days: selectedDays.length === 7 ? null : selectedDays,
+          mode: this.shadowRoot.getElementById("slot-mode")?.value || "text",
+          effect: this.shadowRoot.getElementById("slot-effect")?.value || "fixed",
+          text: this.shadowRoot.getElementById("slot-text")?.value || "",
+          fgColor: this.shadowRoot.getElementById("slot-fg-color")?.value || "#ff6600",
+          bgColor: this.shadowRoot.getElementById("slot-bg-color")?.value || "#000000",
+          enabled: true
+        };
+        if (this._editingSlot !== null) {
+          this._schedules[this._editingSlot] = slot;
+        } else {
+          this._schedules.push(slot);
+        }
+        this._saveSchedules();
+        this.shadowRoot.getElementById("slot-form").style.display = "none";
+        this._editingSlot = null;
+        this.render();
+      });
+      this.shadowRoot.querySelectorAll('[data-action="toggle"]').forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const index = parseInt(e.currentTarget.dataset.index);
+          this._schedules[index].enabled = !this._schedules[index].enabled;
+          this._saveSchedules();
+          e.currentTarget.classList.toggle("active", this._schedules[index].enabled);
+        });
+      });
+      this.shadowRoot.querySelectorAll('[data-action="edit"]').forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const index = parseInt(e.currentTarget.dataset.index);
+          const slot = this._schedules[index];
+          if (slot) {
+            this._editingSlot = index;
+            this._fillSlotForm(slot);
+            this.shadowRoot.getElementById("slot-form").style.display = "block";
+          }
+        });
+      });
+      this.shadowRoot.querySelectorAll('[data-action="delete"]').forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const index = parseInt(e.currentTarget.dataset.index);
+          if (confirm("Delete this schedule?")) {
+            this._schedules.splice(index, 1);
+            this._saveSchedules();
+            this.render();
+          }
+        });
+      });
+    }
+    _resetSlotForm() {
+      this.shadowRoot.getElementById("slot-name").value = "";
+      this.shadowRoot.getElementById("slot-start").value = "08:00";
+      this.shadowRoot.getElementById("slot-end").value = "";
+      this.shadowRoot.getElementById("slot-mode").value = "text";
+      this.shadowRoot.getElementById("slot-effect").value = "fixed";
+      this.shadowRoot.getElementById("slot-text").value = "";
+      this.shadowRoot.getElementById("slot-fg-color").value = "#ff6600";
+      this.shadowRoot.getElementById("slot-bg-color").value = "#000000";
+      this.shadowRoot.querySelectorAll(".day-btn").forEach((btn) => btn.classList.add("selected"));
+      this.shadowRoot.getElementById("text-row").style.display = "block";
+    }
+    _fillSlotForm(slot) {
+      this.shadowRoot.getElementById("slot-name").value = slot.name || "";
+      this.shadowRoot.getElementById("slot-start").value = slot.startTime || "08:00";
+      this.shadowRoot.getElementById("slot-end").value = slot.endTime || "";
+      this.shadowRoot.getElementById("slot-mode").value = slot.mode || "text";
+      this.shadowRoot.getElementById("slot-effect").value = slot.effect || "fixed";
+      this.shadowRoot.getElementById("slot-text").value = slot.text || "";
+      this.shadowRoot.getElementById("slot-fg-color").value = slot.fgColor || "#ff6600";
+      this.shadowRoot.getElementById("slot-bg-color").value = slot.bgColor || "#000000";
+      const selectedDays = slot.days || [0, 1, 2, 3, 4, 5, 6];
+      this.shadowRoot.querySelectorAll(".day-btn").forEach((btn) => {
+        btn.classList.toggle("selected", selectedDays.includes(parseInt(btn.dataset.day)));
+      });
+      this.shadowRoot.getElementById("text-row").style.display = slot.mode === "text" ? "block" : "none";
+    }
+    static getConfigElement() {
+      return document.createElement("ipixel-simple-editor");
+    }
+    static getStubConfig() {
+      return { entity: "" };
+    }
+  };
+
+  // src/cards/editor-card.js
+  var PALETTE_COLORS = [
+    "#FFFFFF",
+    "#000000",
+    "#FF0000",
+    "#00FF00",
+    "#0080FF",
+    "#FFFF00",
+    "#FF00FF",
+    "#00FFFF",
+    "#FF8000",
+    "#8000FF",
+    "#2EC4FF",
+    "#0010A0",
+    "#A0FF00",
+    "#FF80C0",
+    "#808080",
+    "#C0C0C0"
+  ];
+  var RESOLUTION_PRESETS = [
+    { value: "16x16", label: "16\xD716" },
+    { value: "32x8", label: "32\xD78" },
+    { value: "32x16", label: "32\xD716" },
+    { value: "32x32", label: "32\xD732" },
+    { value: "64x16", label: "64\xD716" },
+    { value: "64x20", label: "64\xD720" },
+    { value: "64x64", label: "64\xD764" },
+    { value: "96x16", label: "96\xD716" },
+    { value: "128x16", label: "128\xD716" },
+    { value: "192x16", label: "192\xD716" }
+  ];
+  var BG_COLOR = { r: 25, g: 25, b: 25 };
+  var iPIXELEditorCard = class extends iPIXELCardBase {
+    constructor() {
+      super();
+      this._width = 64;
+      this._height = 16;
+      this._tool = "pen";
+      this._drawing = false;
+      this._gridOn = true;
+      this._currentColor = "#ff6600";
+      this._scale = 8;
+      this._sending = false;
+      this._logicalCanvas = document.createElement("canvas");
+      this._ctx = this._logicalCanvas.getContext("2d");
+      this._displayCanvas = null;
+      this._dctx = null;
+      this._initialized = false;
+    }
+    setConfig(config) {
+      if (!config.entity && !this.isInTestMode()) {
+        this._config = config;
+        return;
+      }
+      this._config = config;
+    }
+    set hass(hass) {
+      const hadHass = !!this._hass;
+      this._hass = hass;
+      const [w, h] = this.getResolution();
+      if (!hadHass) {
+        this._width = w;
+        this._height = h;
+        this._logicalCanvas.width = w;
+        this._logicalCanvas.height = h;
+        this.render();
+      } else if (w !== this._width || h !== this._height) {
+        this._width = w;
+        this._height = h;
+        this._logicalCanvas.width = w;
+        this._logicalCanvas.height = h;
+        this.render();
+      }
+    }
+    render() {
+      const testMode = this.isInTestMode();
+      if (!this._hass && !testMode)
+        return;
+      const entity = this.getEntity();
+      const isOn = this.isOn();
+      const [deviceWidth, deviceHeight] = this.getResolution();
+      const currentRes = `${this._width}x${this._height}`;
+      const presetButtons = RESOLUTION_PRESETS.map((opt) => {
+        const active = opt.value === currentRes ? "active" : "";
+        return `<button class="preset-btn ${active}" data-res="${opt.value}">${opt.label}</button>`;
+      }).join("");
+      const paletteSwatches = PALETTE_COLORS.map((color) => {
+        const active = color.toLowerCase() === this._currentColor.toLowerCase() ? "active" : "";
+        return `<div class="color-swatch ${active}" data-color="${color}" style="background:${color}"></div>`;
+      }).join("");
+      this.shadowRoot.innerHTML = `
       <style>
-        ${$}
+        ${iPIXELCardStyles}
 
         .editor-toolbar {
           display: flex;
@@ -1404,23 +6373,23 @@ Example:
         <div class="card-content">
           <div class="card-header">
             <div class="card-title">
-              <span class="status-dot ${s?"":"off"}"></span>
-              ${this._config.name||"Pixel Editor"}
+              <span class="status-dot ${isOn ? "" : "off"}"></span>
+              ${this._config.name || "Pixel Editor"}
             </div>
           </div>
 
           <!-- Toolbar -->
           <div class="editor-toolbar">
             <div class="tool-group">
-              <button class="icon-btn ${this._tool==="pen"?"active":""}" id="pen-tool" title="Pen Tool">
+              <button class="icon-btn ${this._tool === "pen" ? "active" : ""}" id="pen-tool" title="Pen Tool">
                 <span class="tool-icon">&#9998;</span>
               </button>
-              <button class="icon-btn ${this._tool==="eraser"?"active":""}" id="eraser-tool" title="Eraser Tool">
+              <button class="icon-btn ${this._tool === "eraser" ? "active" : ""}" id="eraser-tool" title="Eraser Tool">
                 <span class="tool-icon">&#9746;</span>
               </button>
             </div>
             <input type="color" class="color-picker" id="color-picker" value="${this._currentColor}" title="Pick Color">
-            <button class="icon-btn ${this._gridOn?"active":""}" id="grid-toggle" title="Toggle LED Grid">
+            <button class="icon-btn ${this._gridOn ? "active" : ""}" id="grid-toggle" title="Toggle LED Grid">
               <span class="tool-icon">&#9638;</span>
             </button>
             <div class="resolution-inputs">
@@ -1432,12 +6401,12 @@ Example:
 
           <!-- Resolution Presets -->
           <div class="resolution-presets" id="res-presets">
-            ${r}
+            ${presetButtons}
           </div>
 
           <!-- Color Palette -->
           <div class="color-palette" id="palette">
-            ${a}
+            ${paletteSwatches}
           </div>
 
           <!-- Canvas -->
@@ -1447,16 +6416,16 @@ Example:
 
           <!-- Info -->
           <div class="info-row">
-            <span>Tool: ${this._tool} | Grid: ${this._gridOn?"LED":"Flat"}</span>
-            <span>Device: ${i}\xD7${o}</span>
+            <span>Tool: ${this._tool} | Grid: ${this._gridOn ? "LED" : "Flat"}</span>
+            <span>Device: ${deviceWidth}\xD7${deviceHeight}</span>
           </div>
 
           <!-- Actions -->
           <div class="button-grid button-grid-3">
             <button class="btn btn-secondary" id="clear-btn">Clear</button>
             <button class="btn btn-secondary" id="import-btn">Import</button>
-            <button class="btn btn-primary send-btn" id="send-btn" ${this._sending?"disabled":""}>
-              ${this._sending?"Sending...":e?"Preview Only":"Send to Device"}
+            <button class="btn btn-primary send-btn" id="send-btn" ${this._sending ? "disabled" : ""}>
+              ${this._sending ? "Sending..." : testMode ? "Preview Only" : "Send to Device"}
             </button>
           </div>
 
@@ -1464,8 +6433,538 @@ Example:
           <input type="file" id="file-input" accept="image/png,image/gif,image/jpeg" style="display:none">
         </div>
       </ha-card>
-    `,this._initCanvas(),this._attachListeners()}_initCanvas(){this._displayCanvas=this.shadowRoot.getElementById("editor-canvas"),this._displayCanvas&&(this._dctx=this._displayCanvas.getContext("2d"),(this._logicalCanvas.width!==this._width||this._logicalCanvas.height!==this._height)&&(this._logicalCanvas.width=this._width,this._logicalCanvas.height=this._height),this._updateDisplaySize(),this._renderDisplay(),this._initialized=!0)}_updateDisplaySize(){this._displayCanvas&&(this._displayCanvas.width=this._width*this._scale,this._displayCanvas.height=this._height*this._scale)}_renderDisplay(){if(!this._dctx||!this._ctx)return;this._updateDisplaySize(),this._dctx.fillStyle="#050608",this._dctx.fillRect(0,0,this._displayCanvas.width,this._displayCanvas.height);let e=this._ctx.getImageData(0,0,this._width,this._height).data,t=this._scale,s=t*.38;for(let i=0;i<this._height;i++)for(let o=0;o<this._width;o++){let n=(i*this._width+o)*4,r=e[n],a=e[n+1],l=e[n+2],f=e[n+3]===0,h=o*t,p=i*t,u=h+t/2,g=p+t/2;if(this._dctx.fillStyle=`rgb(${V.r},${V.g},${V.b})`,this._dctx.fillRect(h,p,t,t),this._gridOn)if(f)this._dctx.fillStyle="rgb(5,5,5)",this._dctx.beginPath(),this._dctx.arc(u,g,s,0,Math.PI*2),this._dctx.fill();else{let b=this._dctx.createRadialGradient(u,g,s*.3,u,g,s*1.8);b.addColorStop(0,`rgba(${r},${a},${l},0.4)`),b.addColorStop(1,`rgba(${r},${a},${l},0)`),this._dctx.fillStyle=b,this._dctx.beginPath(),this._dctx.arc(u,g,s*1.8,0,Math.PI*2),this._dctx.fill(),this._dctx.fillStyle=`rgb(${r},${a},${l})`,this._dctx.beginPath(),this._dctx.arc(u,g,s,0,Math.PI*2),this._dctx.fill()}else f?this._dctx.fillStyle=`rgb(${V.r},${V.g},${V.b})`:this._dctx.fillStyle=`rgb(${r},${a},${l})`,this._dctx.fillRect(h,p,t,t)}}_getPixelPos(e){if(!this._displayCanvas)return null;let t=this._displayCanvas.getBoundingClientRect(),s=t.width/this._width,i=t.height/this._height,o=e.touches?e.touches[0].clientX:e.clientX,n=e.touches?e.touches[0].clientY:e.clientY,r=Math.floor((o-t.left)/s),a=Math.floor((n-t.top)/i);return r<0||a<0||r>=this._width||a>=this._height?null:{x:r,y:a}}_drawAt(e){let t=this._getPixelPos(e);t&&(this._tool==="pen"?(this._ctx.fillStyle=this._currentColor,this._ctx.fillRect(t.x,t.y,1,1)):this._ctx.clearRect(t.x,t.y,1,1),this._renderDisplay())}_attachListeners(){let e=this.shadowRoot.getElementById("editor-canvas");if(!e)return;e.addEventListener("mousedown",s=>{s.preventDefault(),this._drawing=!0,this._drawAt(s)}),e.addEventListener("mousemove",s=>{this._drawing&&this._drawAt(s)}),window.addEventListener("mouseup",()=>{this._drawing=!1}),e.addEventListener("touchstart",s=>{s.preventDefault(),this._drawing=!0,this._drawAt(s)},{passive:!1}),e.addEventListener("touchmove",s=>{s.preventDefault(),this._drawing&&this._drawAt(s)},{passive:!1}),e.addEventListener("touchend",()=>{this._drawing=!1}),this.shadowRoot.getElementById("pen-tool")?.addEventListener("click",()=>{this._tool="pen",this.render()}),this.shadowRoot.getElementById("eraser-tool")?.addEventListener("click",()=>{this._tool="eraser",this.render()}),this.shadowRoot.getElementById("color-picker")?.addEventListener("input",s=>{this._currentColor=s.target.value,this._updatePaletteSelection()}),this.shadowRoot.querySelectorAll(".color-swatch").forEach(s=>{s.addEventListener("click",()=>{this._currentColor=s.dataset.color,this.shadowRoot.getElementById("color-picker").value=this._currentColor,this._updatePaletteSelection()})}),this.shadowRoot.getElementById("grid-toggle")?.addEventListener("click",()=>{this._gridOn=!this._gridOn,this.render()});let t=()=>{let s=parseInt(this.shadowRoot.getElementById("res-width")?.value,10),i=parseInt(this.shadowRoot.getElementById("res-height")?.value,10);s>0&&i>0&&(s!==this._width||i!==this._height)&&this._resizeCanvas(s,i)};this.shadowRoot.getElementById("res-width")?.addEventListener("change",t),this.shadowRoot.getElementById("res-height")?.addEventListener("change",t),this.shadowRoot.querySelectorAll(".preset-btn").forEach(s=>{s.addEventListener("click",()=>{let[i,o]=s.dataset.res.split("x").map(a=>parseInt(a,10));this._resizeCanvas(i,o);let n=this.shadowRoot.getElementById("res-width"),r=this.shadowRoot.getElementById("res-height");n&&(n.value=i),r&&(r.value=o)})}),this.shadowRoot.getElementById("clear-btn")?.addEventListener("click",()=>{this._clearCanvas()}),this.shadowRoot.getElementById("import-btn")?.addEventListener("click",()=>{this.shadowRoot.getElementById("file-input")?.click()}),this.shadowRoot.getElementById("file-input")?.addEventListener("change",s=>{let i=s.target.files?.[0];i&&this._handleImport(i)}),this.shadowRoot.getElementById("send-btn")?.addEventListener("click",()=>{this._sendToDevice()})}_updatePaletteSelection(){this.shadowRoot.querySelectorAll(".color-swatch").forEach(e=>{e.dataset.color.toLowerCase()===this._currentColor.toLowerCase()?e.classList.add("active"):e.classList.remove("active")})}_resizeCanvas(e,t){let s=this._ctx.getImageData(0,0,this._width,this._height);this._width=e,this._height=t,this._logicalCanvas.width=e,this._logicalCanvas.height=t,this._ctx.putImageData(s,0,0),this._updateDisplaySize(),this._renderDisplay();let i=this.shadowRoot.querySelector(".info-row span:first-child");i&&(i.textContent=`Tool: ${this._tool} | Grid: ${this._gridOn?"LED":"Flat"}`)}_clearCanvas(){this._ctx.clearRect(0,0,this._width,this._height),this._renderDisplay()}_handleImport(e){let t=new FileReader;t.onload=s=>{let i=new Image;i.onload=()=>{this._ctx.clearRect(0,0,this._width,this._height),this._ctx.imageSmoothingEnabled=!1,this._ctx.drawImage(i,0,0,this._width,this._height),this._renderDisplay()},i.src=s.target.result},t.readAsDataURL(e)}async _sendToDevice(){if(!this._sending){this._sending=!0,this.render();try{let e=this._ctx.getImageData(0,0,this._width,this._height).data,t=[];for(let s=0;s<this._height;s++)for(let i=0;i<this._width;i++){let o=(s*this._width+i)*4,n=e[o],r=e[o+1],a=e[o+2];e[o+3]>0&&t.push({x:i,y:s,color:this._rgbToHex(n,r,a)})}t.length>0&&await this.callService("ipixel_color","set_pixels",{pixels:t})}catch(e){console.error("Failed to send pixels to device:",e)}finally{this._sending=!1,this.render()}}}_rgbToHex(e,t,s){return(e<<16|t<<8|s).toString(16).padStart(6,"0")}static getConfigElement(){return document.createElement("ipixel-simple-editor")}static getStubConfig(){return{entity:""}}getCardSize(){return 4}};var Li=B.prototype.playFrames,oe=typeof window<"u"&&(typeof window.hassConnection<"u"||document.querySelector("home-assistant")!==null),$t=oe?"/ipixel_color/gallery":`${window.location.pathname.substring(0,window.location.pathname.lastIndexOf("/")+1)}gallery`,se="iPIXEL_UserGIFs",xt=class extends L{constructor(){super(),this._manifest=null,this._loading=!1,this._selectedSize=null,this._filter="all",this._sending=null,this._slotMode=!1,this._targetSlot=1,this._dragOver=!1}connectedCallback(){this._loadManifest()}async _loadManifest(){if(!this._manifest){this._loading=!0,this.render();try{let e=await fetch(`${$t}/manifest.json`);this._manifest=await e.json(),this._autoSelectSize()}catch(e){console.error("iPIXEL Gallery: Failed to load manifest",e),this._manifest={}}this._loading=!1,this.render()}}_autoSelectSize(){if(!this._manifest)return;let[e,t]=this.getResolution(),s=`${e}x${t}`;if(this._manifest[s])this._selectedSize=s;else{let i=Object.keys(this._manifest);this._selectedSize=i.length>0?i[0]:null}}_getSortedSizes(){return this._manifest?Object.keys(this._manifest).sort((e,t)=>{let[s,i]=e.split("x").map(Number),[o,n]=t.split("x").map(Number);return i-n||s-o}):[]}_getUserGifs(){try{return JSON.parse(localStorage.getItem(se)||"[]")}catch{return[]}}_saveUserGifs(e){localStorage.setItem(se,JSON.stringify(e))}_addUserGif(e,t){let s=this._getUserGifs(),i=s.findIndex(o=>o.name===e);i>=0?s[i]={name:e,dataUrl:t,addedAt:Date.now()}:s.push({name:e,dataUrl:t,addedAt:Date.now()}),this._saveUserGifs(s)}_removeUserGif(e){let t=this._getUserGifs().filter(s=>s.name!==e);this._saveUserGifs(t)}_getItems(){if(!this._manifest||!this._selectedSize)return this._filter==="user"||this._filter==="all"?this._getUserGifs().map(i=>({...i,type:"user"})):[];let e=this._manifest[this._selectedSize],t=[];return this._filter!=="user"&&((this._filter==="all"||this._filter==="animations")&&(e?.animations||[]).forEach(i=>t.push({...i,type:"bundled"})),(this._filter==="all"||this._filter==="eyes")&&(e?.eyes||[]).forEach(i=>t.push({...i,type:"bundled"}))),[...this._filter==="all"||this._filter==="user"?this._getUserGifs().map(i=>({...i,type:"user"})):[],...t]}async _playGifOnPreview(e){let s=document.querySelector("ipixel-display-card")?._renderer;if(!s){console.warn("iPIXEL Gallery: No display renderer found for preview");return}let i=120,o=s.width,n=s.height;console.info("iPIXEL Gallery: Decoding GIF for preview",{url:e.slice(-40),w:o,h:n});try{let a=await(await fetch(e)).blob(),l=[],c=100;if(typeof ImageDecoder<"u"){let f=new ImageDecoder({data:await a.arrayBuffer(),type:"image/gif"});await f.tracks.ready;let h=Math.min(f.tracks.selectedTrack.frameCount,i),u=new OffscreenCanvas(o,n).getContext("2d",{willReadFrequently:!0});for(let g=0;g<h;g++){let b=await f.decode({frameIndex:g});u.imageSmoothingEnabled=!1,u.clearRect(0,0,o,n),u.drawImage(b.image,0,0,o,n),g===0&&b.image.duration&&(c=b.image.duration/1e3);let m=u.getImageData(0,0,o,n).data,_=[];for(let v=0;v<o*n;v++){let x=m[v*4],y=m[v*4+1],E=m[v*4+2],w=m[v*4+3];_.push(w<128?"#000000":"#"+x.toString(16).padStart(2,"0")+y.toString(16).padStart(2,"0")+E.toString(16).padStart(2,"0"))}l.push(_),b.image.close()}f.close()}else{let f=new Image;f.src=URL.createObjectURL(a),await new Promise((b,m)=>{f.onload=b,f.onerror=m});let h=document.createElement("canvas");h.width=o,h.height=n;let p=h.getContext("2d");p.imageSmoothingEnabled=!1,p.drawImage(f,0,0,o,n);let u=p.getImageData(0,0,o,n).data,g=[];for(let b=0;b<o*n;b++){let m=u[b*4],_=u[b*4+1],v=u[b*4+2],x=u[b*4+3];g.push(x<128?"#000000":"#"+m.toString(16).padStart(2,"0")+_.toString(16).padStart(2,"0")+v.toString(16).padStart(2,"0"))}l.push(g),URL.revokeObjectURL(f.src)}console.info("iPIXEL Gallery: Decoded",l.length,"frames, delay:",c),s.stopFrames?.(),s.stop(),l.length>1&&s.playFrames?s.playFrames(l,Math.max(20,c)):l.length>0&&(s.setData(l[0]),s.setEffect("fixed",50),s.renderStatic())}catch(r){console.error("iPIXEL Gallery: GIF preview failed",r)}}async _sendToDevice(e){this._sending=e.name||e.file,this.render();let t=e.type==="user"?e.dataUrl:`${$t}/${this._selectedSize}/${e.file}`;(e.type==="user"||oe)&&this._playGifOnPreview(t);try{if(e.type==="user"){let i=await(await fetch(e.dataUrl)).blob();if(window.iPIXEL_BLE&&window.iPIXEL_BLE.isConnected()){let o=await i.arrayBuffer(),n=new Uint8Array(o),r=this._slotMode?this._targetSlot:1;await window.iPIXEL_BLE.saveGifToSlot(r,n)}else{console.warn("iPIXEL Gallery: User GIF send requires BLE connection or HA backend support");let o={gif_url:e.dataUrl};this._slotMode&&(o.buffer_slot=this._targetSlot),await this.callService("ipixel_color","upload_gif",o)}}else{let s={size:this._selectedSize,filename:e.file};this._slotMode&&(s.buffer_slot=this._targetSlot),await this.callService("ipixel_color","display_local_gallery",s)}}catch(s){console.error("iPIXEL Gallery: Send failed",s)}this._sending=null,this.render()}_handleFiles(e){for(let t of e){if(!t.type.startsWith("image/"))continue;let s=new FileReader;s.onload=()=>{this._addUserGif(t.name,s.result),this.render()},s.readAsDataURL(t)}}render(){let e=this.isInTestMode();if(!this._hass&&!e)return;let t=this._getSortedSizes(),s=this._getItems(),i=this._manifest?.[this._selectedSize],o=(i?.animations?.length||0)>0,n=(i?.eyes?.length||0)>0,r=this._getUserGifs(),a=r.length>0;this.shadowRoot.innerHTML=`
-      <style>${$}
+    `;
+      this._initCanvas();
+      this._attachListeners();
+    }
+    _initCanvas() {
+      this._displayCanvas = this.shadowRoot.getElementById("editor-canvas");
+      if (!this._displayCanvas)
+        return;
+      this._dctx = this._displayCanvas.getContext("2d");
+      if (this._logicalCanvas.width !== this._width || this._logicalCanvas.height !== this._height) {
+        this._logicalCanvas.width = this._width;
+        this._logicalCanvas.height = this._height;
+      }
+      this._updateDisplaySize();
+      this._renderDisplay();
+      this._initialized = true;
+    }
+    _updateDisplaySize() {
+      if (!this._displayCanvas)
+        return;
+      this._displayCanvas.width = this._width * this._scale;
+      this._displayCanvas.height = this._height * this._scale;
+    }
+    _renderDisplay() {
+      if (!this._dctx || !this._ctx)
+        return;
+      this._updateDisplaySize();
+      this._dctx.fillStyle = "#050608";
+      this._dctx.fillRect(0, 0, this._displayCanvas.width, this._displayCanvas.height);
+      const imgData = this._ctx.getImageData(0, 0, this._width, this._height).data;
+      const cellSize = this._scale;
+      const ledRadius = cellSize * 0.38;
+      for (let y = 0; y < this._height; y++) {
+        for (let x = 0; x < this._width; x++) {
+          const idx = (y * this._width + x) * 4;
+          const r = imgData[idx];
+          const g = imgData[idx + 1];
+          const b = imgData[idx + 2];
+          const a = imgData[idx + 3];
+          const isOffPixel = a === 0;
+          const sx = x * cellSize;
+          const sy = y * cellSize;
+          const cx = sx + cellSize / 2;
+          const cy = sy + cellSize / 2;
+          this._dctx.fillStyle = `rgb(${BG_COLOR.r},${BG_COLOR.g},${BG_COLOR.b})`;
+          this._dctx.fillRect(sx, sy, cellSize, cellSize);
+          if (this._gridOn) {
+            if (!isOffPixel) {
+              const grad = this._dctx.createRadialGradient(
+                cx,
+                cy,
+                ledRadius * 0.3,
+                cx,
+                cy,
+                ledRadius * 1.8
+              );
+              grad.addColorStop(0, `rgba(${r},${g},${b},0.4)`);
+              grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+              this._dctx.fillStyle = grad;
+              this._dctx.beginPath();
+              this._dctx.arc(cx, cy, ledRadius * 1.8, 0, Math.PI * 2);
+              this._dctx.fill();
+              this._dctx.fillStyle = `rgb(${r},${g},${b})`;
+              this._dctx.beginPath();
+              this._dctx.arc(cx, cy, ledRadius, 0, Math.PI * 2);
+              this._dctx.fill();
+            } else {
+              this._dctx.fillStyle = "rgb(5,5,5)";
+              this._dctx.beginPath();
+              this._dctx.arc(cx, cy, ledRadius, 0, Math.PI * 2);
+              this._dctx.fill();
+            }
+          } else {
+            if (!isOffPixel) {
+              this._dctx.fillStyle = `rgb(${r},${g},${b})`;
+            } else {
+              this._dctx.fillStyle = `rgb(${BG_COLOR.r},${BG_COLOR.g},${BG_COLOR.b})`;
+            }
+            this._dctx.fillRect(sx, sy, cellSize, cellSize);
+          }
+        }
+      }
+    }
+    _getPixelPos(evt) {
+      if (!this._displayCanvas)
+        return null;
+      const rect = this._displayCanvas.getBoundingClientRect();
+      const cellW = rect.width / this._width;
+      const cellH = rect.height / this._height;
+      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+      const x = Math.floor((clientX - rect.left) / cellW);
+      const y = Math.floor((clientY - rect.top) / cellH);
+      if (x < 0 || y < 0 || x >= this._width || y >= this._height)
+        return null;
+      return { x, y };
+    }
+    _drawAt(evt) {
+      const p = this._getPixelPos(evt);
+      if (!p)
+        return;
+      if (this._tool === "pen") {
+        this._ctx.fillStyle = this._currentColor;
+        this._ctx.fillRect(p.x, p.y, 1, 1);
+      } else {
+        this._ctx.clearRect(p.x, p.y, 1, 1);
+      }
+      this._renderDisplay();
+    }
+    _attachListeners() {
+      const canvas = this.shadowRoot.getElementById("editor-canvas");
+      if (!canvas)
+        return;
+      canvas.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        this._drawing = true;
+        this._drawAt(e);
+      });
+      canvas.addEventListener("mousemove", (e) => {
+        if (this._drawing)
+          this._drawAt(e);
+      });
+      window.addEventListener("mouseup", () => {
+        this._drawing = false;
+      });
+      canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        this._drawing = true;
+        this._drawAt(e);
+      }, { passive: false });
+      canvas.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        if (this._drawing)
+          this._drawAt(e);
+      }, { passive: false });
+      canvas.addEventListener("touchend", () => {
+        this._drawing = false;
+      });
+      this.shadowRoot.getElementById("pen-tool")?.addEventListener("click", () => {
+        this._tool = "pen";
+        this.render();
+      });
+      this.shadowRoot.getElementById("eraser-tool")?.addEventListener("click", () => {
+        this._tool = "eraser";
+        this.render();
+      });
+      this.shadowRoot.getElementById("color-picker")?.addEventListener("input", (e) => {
+        this._currentColor = e.target.value;
+        this._updatePaletteSelection();
+      });
+      this.shadowRoot.querySelectorAll(".color-swatch").forEach((swatch) => {
+        swatch.addEventListener("click", () => {
+          this._currentColor = swatch.dataset.color;
+          this.shadowRoot.getElementById("color-picker").value = this._currentColor;
+          this._updatePaletteSelection();
+        });
+      });
+      this.shadowRoot.getElementById("grid-toggle")?.addEventListener("click", () => {
+        this._gridOn = !this._gridOn;
+        this.render();
+      });
+      const applyResInputs = () => {
+        const w = parseInt(this.shadowRoot.getElementById("res-width")?.value, 10);
+        const h = parseInt(this.shadowRoot.getElementById("res-height")?.value, 10);
+        if (w > 0 && h > 0 && (w !== this._width || h !== this._height)) {
+          this._resizeCanvas(w, h);
+        }
+      };
+      this.shadowRoot.getElementById("res-width")?.addEventListener("change", applyResInputs);
+      this.shadowRoot.getElementById("res-height")?.addEventListener("change", applyResInputs);
+      this.shadowRoot.querySelectorAll(".preset-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const [w, h] = btn.dataset.res.split("x").map((v) => parseInt(v, 10));
+          this._resizeCanvas(w, h);
+          const widthInput = this.shadowRoot.getElementById("res-width");
+          const heightInput = this.shadowRoot.getElementById("res-height");
+          if (widthInput)
+            widthInput.value = w;
+          if (heightInput)
+            heightInput.value = h;
+        });
+      });
+      this.shadowRoot.getElementById("clear-btn")?.addEventListener("click", () => {
+        this._clearCanvas();
+      });
+      this.shadowRoot.getElementById("import-btn")?.addEventListener("click", () => {
+        this.shadowRoot.getElementById("file-input")?.click();
+      });
+      this.shadowRoot.getElementById("file-input")?.addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (file)
+          this._handleImport(file);
+      });
+      this.shadowRoot.getElementById("send-btn")?.addEventListener("click", () => {
+        this._sendToDevice();
+      });
+    }
+    _updatePaletteSelection() {
+      this.shadowRoot.querySelectorAll(".color-swatch").forEach((swatch) => {
+        if (swatch.dataset.color.toLowerCase() === this._currentColor.toLowerCase()) {
+          swatch.classList.add("active");
+        } else {
+          swatch.classList.remove("active");
+        }
+      });
+    }
+    _resizeCanvas(w, h) {
+      const oldData = this._ctx.getImageData(0, 0, this._width, this._height);
+      this._width = w;
+      this._height = h;
+      this._logicalCanvas.width = w;
+      this._logicalCanvas.height = h;
+      this._ctx.putImageData(oldData, 0, 0);
+      this._updateDisplaySize();
+      this._renderDisplay();
+      const infoRow = this.shadowRoot.querySelector(".info-row span:first-child");
+      if (infoRow) {
+        infoRow.textContent = `Tool: ${this._tool} | Grid: ${this._gridOn ? "LED" : "Flat"}`;
+      }
+    }
+    _clearCanvas() {
+      this._ctx.clearRect(0, 0, this._width, this._height);
+      this._renderDisplay();
+    }
+    _handleImport(file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          this._ctx.clearRect(0, 0, this._width, this._height);
+          this._ctx.imageSmoothingEnabled = false;
+          this._ctx.drawImage(img, 0, 0, this._width, this._height);
+          this._renderDisplay();
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    async _sendToDevice() {
+      if (this._sending)
+        return;
+      this._sending = true;
+      this.render();
+      try {
+        const imgData = this._ctx.getImageData(0, 0, this._width, this._height).data;
+        const pixels = [];
+        for (let y = 0; y < this._height; y++) {
+          for (let x = 0; x < this._width; x++) {
+            const idx = (y * this._width + x) * 4;
+            const r = imgData[idx];
+            const g = imgData[idx + 1];
+            const b = imgData[idx + 2];
+            const a = imgData[idx + 3];
+            if (a > 0) {
+              pixels.push({
+                x,
+                y,
+                color: this._rgbToHex(r, g, b)
+              });
+            }
+          }
+        }
+        if (pixels.length > 0) {
+          await this.callService("ipixel_color", "set_pixels", {
+            pixels
+          });
+        }
+      } catch (err) {
+        console.error("Failed to send pixels to device:", err);
+      } finally {
+        this._sending = false;
+        this.render();
+      }
+    }
+    _rgbToHex(r, g, b) {
+      return (r << 16 | g << 8 | b).toString(16).padStart(6, "0");
+    }
+    static getConfigElement() {
+      return document.createElement("ipixel-simple-editor");
+    }
+    static getStubConfig() {
+      return { entity: "" };
+    }
+    getCardSize() {
+      return 4;
+    }
+  };
+
+  // src/cards/gallery-card.js
+  var _keepPlayFrames = ImageDataLEDRenderer.prototype.playFrames;
+  var isHA2 = typeof window !== "undefined" && (typeof window.hassConnection !== "undefined" || document.querySelector("home-assistant") !== null);
+  var GALLERY_BASE = isHA2 ? "/ipixel_color/gallery" : `${window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1)}gallery`;
+  var USER_GIFS_KEY = "iPIXEL_UserGIFs";
+  var iPIXELGalleryCard = class extends iPIXELCardBase {
+    constructor() {
+      super();
+      this._manifest = null;
+      this._loading = false;
+      this._selectedSize = null;
+      this._filter = "all";
+      this._sending = null;
+      this._slotMode = false;
+      this._targetSlot = 1;
+      this._dragOver = false;
+    }
+    connectedCallback() {
+      this._loadManifest();
+    }
+    // ── Manifest loading ──
+    async _loadManifest() {
+      if (this._manifest)
+        return;
+      this._loading = true;
+      this.render();
+      try {
+        const resp = await fetch(`${GALLERY_BASE}/manifest.json`);
+        this._manifest = await resp.json();
+        this._autoSelectSize();
+      } catch (err) {
+        console.error("iPIXEL Gallery: Failed to load manifest", err);
+        this._manifest = {};
+      }
+      this._loading = false;
+      this.render();
+    }
+    _autoSelectSize() {
+      if (!this._manifest)
+        return;
+      const [w, h] = this.getResolution();
+      const sizeKey = `${w}x${h}`;
+      if (this._manifest[sizeKey]) {
+        this._selectedSize = sizeKey;
+      } else {
+        const sizes = Object.keys(this._manifest);
+        this._selectedSize = sizes.length > 0 ? sizes[0] : null;
+      }
+    }
+    _getSortedSizes() {
+      if (!this._manifest)
+        return [];
+      return Object.keys(this._manifest).sort((a, b) => {
+        const [aw, ah] = a.split("x").map(Number);
+        const [bw, bh] = b.split("x").map(Number);
+        return ah - bh || aw - bw;
+      });
+    }
+    // ── User GIFs (localStorage) ──
+    _getUserGifs() {
+      try {
+        return JSON.parse(localStorage.getItem(USER_GIFS_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+    _saveUserGifs(gifs) {
+      localStorage.setItem(USER_GIFS_KEY, JSON.stringify(gifs));
+    }
+    _addUserGif(name, dataUrl) {
+      const gifs = this._getUserGifs();
+      const existing = gifs.findIndex((g) => g.name === name);
+      if (existing >= 0)
+        gifs[existing] = { name, dataUrl, addedAt: Date.now() };
+      else
+        gifs.push({ name, dataUrl, addedAt: Date.now() });
+      this._saveUserGifs(gifs);
+    }
+    _removeUserGif(name) {
+      const gifs = this._getUserGifs().filter((g) => g.name !== name);
+      this._saveUserGifs(gifs);
+    }
+    // ── Items ──
+    _getItems() {
+      if (!this._manifest || !this._selectedSize) {
+        if (this._filter === "user" || this._filter === "all") {
+          return this._getUserGifs().map((g) => ({ ...g, type: "user" }));
+        }
+        return [];
+      }
+      const data = this._manifest[this._selectedSize];
+      const bundled = [];
+      if (this._filter !== "user") {
+        if (this._filter === "all" || this._filter === "animations") {
+          (data?.animations || []).forEach((a) => bundled.push({ ...a, type: "bundled" }));
+        }
+        if (this._filter === "all" || this._filter === "eyes") {
+          (data?.eyes || []).forEach((e) => bundled.push({ ...e, type: "bundled" }));
+        }
+      }
+      const userGifs = this._filter === "all" || this._filter === "user" ? this._getUserGifs().map((g) => ({ ...g, type: "user" })) : [];
+      return [...userGifs, ...bundled];
+    }
+    // ── GIF preview on display renderer ──
+    async _playGifOnPreview(url) {
+      const displayCard = document.querySelector("ipixel-display-card");
+      const renderer = displayCard?._renderer;
+      if (!renderer) {
+        console.warn("iPIXEL Gallery: No display renderer found for preview");
+        return;
+      }
+      const MAX_FRAMES = 120;
+      const w = renderer.width, h = renderer.height;
+      console.info("iPIXEL Gallery: Decoding GIF for preview", { url: url.slice(-40), w, h });
+      try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const frames = [];
+        let avgDelay = 100;
+        if (typeof ImageDecoder !== "undefined") {
+          const decoder = new ImageDecoder({ data: await blob.arrayBuffer(), type: "image/gif" });
+          await decoder.tracks.ready;
+          const total = Math.min(decoder.tracks.selectedTrack.frameCount, MAX_FRAMES);
+          const offCanvas = new OffscreenCanvas(w, h);
+          const ctx = offCanvas.getContext("2d", { willReadFrequently: true });
+          for (let i = 0; i < total; i++) {
+            const result = await decoder.decode({ frameIndex: i });
+            ctx.imageSmoothingEnabled = false;
+            ctx.clearRect(0, 0, w, h);
+            ctx.drawImage(result.image, 0, 0, w, h);
+            if (i === 0 && result.image.duration)
+              avgDelay = result.image.duration / 1e3;
+            const d = ctx.getImageData(0, 0, w, h).data;
+            const pixels = [];
+            for (let p = 0; p < w * h; p++) {
+              const ri = d[p * 4], gi = d[p * 4 + 1], bi = d[p * 4 + 2], ai = d[p * 4 + 3];
+              pixels.push(ai < 128 ? "#000000" : "#" + ri.toString(16).padStart(2, "0") + gi.toString(16).padStart(2, "0") + bi.toString(16).padStart(2, "0"));
+            }
+            frames.push(pixels);
+            result.image.close();
+          }
+          decoder.close();
+        } else {
+          const img = new Image();
+          img.src = URL.createObjectURL(blob);
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+          });
+          const c = document.createElement("canvas");
+          c.width = w;
+          c.height = h;
+          const ctx = c.getContext("2d");
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0, w, h);
+          const d = ctx.getImageData(0, 0, w, h).data;
+          const pixels = [];
+          for (let p = 0; p < w * h; p++) {
+            const ri = d[p * 4], gi = d[p * 4 + 1], bi = d[p * 4 + 2], ai = d[p * 4 + 3];
+            pixels.push(ai < 128 ? "#000000" : "#" + ri.toString(16).padStart(2, "0") + gi.toString(16).padStart(2, "0") + bi.toString(16).padStart(2, "0"));
+          }
+          frames.push(pixels);
+          URL.revokeObjectURL(img.src);
+        }
+        console.info("iPIXEL Gallery: Decoded", frames.length, "frames, delay:", avgDelay);
+        renderer.stopFrames?.();
+        renderer.stop();
+        if (frames.length > 1 && renderer.playFrames) {
+          renderer.playFrames(frames, Math.max(20, avgDelay));
+        } else if (frames.length > 0) {
+          renderer.setData(frames[0]);
+          renderer.setEffect("fixed", 50);
+          renderer.renderStatic();
+        }
+      } catch (err) {
+        console.error("iPIXEL Gallery: GIF preview failed", err);
+      }
+    }
+    // ── Send ──
+    async _sendToDevice(item) {
+      this._sending = item.name || item.file;
+      this.render();
+      const previewUrl = item.type === "user" ? item.dataUrl : `${GALLERY_BASE}/${this._selectedSize}/${item.file}`;
+      if (item.type === "user" || isHA2) {
+        this._playGifOnPreview(previewUrl);
+      }
+      try {
+        if (item.type === "user") {
+          const resp = await fetch(item.dataUrl);
+          const blob = await resp.blob();
+          if (window.iPIXEL_BLE && window.iPIXEL_BLE.isConnected()) {
+            const arrayBuf = await blob.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuf);
+            const slot = this._slotMode ? this._targetSlot : 1;
+            await window.iPIXEL_BLE.saveGifToSlot(slot, bytes);
+          } else {
+            console.warn("iPIXEL Gallery: User GIF send requires BLE connection or HA backend support");
+            const serviceData = { gif_url: item.dataUrl };
+            if (this._slotMode)
+              serviceData.buffer_slot = this._targetSlot;
+            await this.callService("ipixel_color", "upload_gif", serviceData);
+          }
+        } else {
+          const serviceData = {
+            size: this._selectedSize,
+            filename: item.file
+          };
+          if (this._slotMode)
+            serviceData.buffer_slot = this._targetSlot;
+          await this.callService("ipixel_color", "display_local_gallery", serviceData);
+        }
+      } catch (err) {
+        console.error("iPIXEL Gallery: Send failed", err);
+      }
+      this._sending = null;
+      this.render();
+    }
+    // ── File handling ──
+    _handleFiles(files) {
+      for (const file of files) {
+        if (!file.type.startsWith("image/"))
+          continue;
+        const reader = new FileReader();
+        reader.onload = () => {
+          this._addUserGif(file.name, reader.result);
+          this.render();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+    // ── Render ──
+    render() {
+      const testMode = this.isInTestMode();
+      if (!this._hass && !testMode)
+        return;
+      const sizes = this._getSortedSizes();
+      const items = this._getItems();
+      const data = this._manifest?.[this._selectedSize];
+      const hasAnimations = (data?.animations?.length || 0) > 0;
+      const hasEyes = (data?.eyes?.length || 0) > 0;
+      const userGifs = this._getUserGifs();
+      const hasUserGifs = userGifs.length > 0;
+      this.shadowRoot.innerHTML = `
+      <style>${iPIXELCardStyles}
         .gallery-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -1646,42 +7145,46 @@ Example:
                 <path d="M22,16V4A2,2 0 0,0 20,2H8A2,2 0 0,0 6,4V16A2,2 0 0,0 8,18H20A2,2 0 0,0 22,16M11,12L13.03,14.71L16,11L20,16H8M2,6V20A2,2 0 0,0 4,22H18V20H4V6" />
               </svg>
               Gallery
-              <span class="gallery-count">${s.length} items</span>
+              <span class="gallery-count">${items.length} items</span>
             </div>
           </div>
 
-          ${this._loading?'<div class="empty-state">Loading gallery...</div>':""}
+          ${this._loading ? '<div class="empty-state">Loading gallery...</div>' : ""}
 
-          ${this._loading?"":`
-            ${t.length>0?`
+          ${!this._loading ? `
+            ${sizes.length > 0 ? `
               <div class="section-title">Display Size</div>
               <div class="size-select">
-                ${t.map(l=>{let[c,f]=this.getResolution(),h=l===`${c}x${f}`;return`<button class="size-btn${l===this._selectedSize?" active":""}${h?" match":""}" data-size="${l}">${l}</button>`}).join("")}
+                ${sizes.map((s) => {
+        const [w, h] = this.getResolution();
+        const isMatch = s === `${w}x${h}`;
+        return `<button class="size-btn${s === this._selectedSize ? " active" : ""}${isMatch ? " match" : ""}" data-size="${s}">${s}</button>`;
+      }).join("")}
               </div>
-            `:""}
+            ` : ""}
 
             <div class="filter-row">
-              <button class="filter-btn${this._filter==="all"?" active":""}" data-filter="all">All</button>
-              ${o?`<button class="filter-btn${this._filter==="animations"?" active":""}" data-filter="animations">Animations</button>`:""}
-              ${n?`<button class="filter-btn${this._filter==="eyes"?" active":""}" data-filter="eyes">Eyes</button>`:""}
-              <button class="filter-btn${this._filter==="user"?" active":""}" data-filter="user">My GIFs${a?` (${r.length})`:""}</button>
+              <button class="filter-btn${this._filter === "all" ? " active" : ""}" data-filter="all">All</button>
+              ${hasAnimations ? `<button class="filter-btn${this._filter === "animations" ? " active" : ""}" data-filter="animations">Animations</button>` : ""}
+              ${hasEyes ? `<button class="filter-btn${this._filter === "eyes" ? " active" : ""}" data-filter="eyes">Eyes</button>` : ""}
+              <button class="filter-btn${this._filter === "user" ? " active" : ""}" data-filter="user">My GIFs${hasUserGifs ? ` (${userGifs.length})` : ""}</button>
             </div>
 
             <div class="slot-row">
               <div id="slot-toggle" style="
-                width: 36px; height: 20px; background: ${this._slotMode?"var(--ipixel-primary)":"rgba(255,255,255,0.1)"};
+                width: 36px; height: 20px; background: ${this._slotMode ? "var(--ipixel-primary)" : "rgba(255,255,255,0.1)"};
                 border-radius: 10px; position: relative; cursor: pointer; flex-shrink: 0; transition: background 0.2s;
               "><span style="
-                position: absolute; top: 2px; left: ${this._slotMode?"18px":"2px"}; width: 16px; height: 16px;
+                position: absolute; top: 2px; left: ${this._slotMode ? "18px" : "2px"}; width: 16px; height: 16px;
                 background: #fff; border-radius: 50%; transition: left 0.2s;
               "></span></div>
               <label>Save to slot</label>
-              <select id="target-slot" ${this._slotMode?"":"disabled"}>
-                ${[1,2,3,4,5,6,7,8,9].map(l=>`<option value="${l}"${l===this._targetSlot?" selected":""}>Slot ${l}</option>`).join("")}
+              <select id="target-slot" ${!this._slotMode ? "disabled" : ""}>
+                ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<option value="${n}"${n === this._targetSlot ? " selected" : ""}>Slot ${n}</option>`).join("")}
               </select>
             </div>
 
-            <div class="drop-zone${this._dragOver?" drag-over":""}" id="drop-zone">
+            <div class="drop-zone${this._dragOver ? " drag-over" : ""}" id="drop-zone">
               <div class="drop-zone-text">
                 <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
                   <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
@@ -1691,25 +7194,136 @@ Example:
               <input type="file" id="file-input" accept="image/*,.gif" multiple>
             </div>
 
-            ${s.length>0?`
+            ${items.length > 0 ? `
               <div class="gallery-grid">
-                ${s.map(l=>{let c=l.name||l.file,f=this._sending===c,h=l.type==="user",p=h?l.name.replace(/\.[^.]+$/,""):l.side?`Eye ${l.side.toUpperCase()} #${l.num}`:`#${l.num}`,u=h?l.dataUrl:`${$t}/${this._selectedSize}/${l.file}`;return`
-                    <div class="gallery-item${f?" sending":""}${h?" user-gif":""}"
-                         data-id="${c}" data-type="${l.type}" title="${c}">
-                      <img src="${u}" loading="lazy" alt="${p}">
-                      <div class="item-label">${p}</div>
-                      ${h?`<button class="delete-btn" data-delete="${l.name}">x</button>`:""}
-                      ${f?'<div class="sending-overlay">Sending...</div>':""}
-                    </div>`}).join("")}
+                ${items.map((item) => {
+        const id = item.name || item.file;
+        const isSending = this._sending === id;
+        const isUser = item.type === "user";
+        const label = isUser ? item.name.replace(/\.[^.]+$/, "") : item.side ? `Eye ${item.side.toUpperCase()} #${item.num}` : `#${item.num}`;
+        const src = isUser ? item.dataUrl : `${GALLERY_BASE}/${this._selectedSize}/${item.file}`;
+        return `
+                    <div class="gallery-item${isSending ? " sending" : ""}${isUser ? " user-gif" : ""}"
+                         data-id="${id}" data-type="${item.type}" title="${id}">
+                      <img src="${src}" loading="lazy" alt="${label}">
+                      <div class="item-label">${label}</div>
+                      ${isUser ? `<button class="delete-btn" data-delete="${item.name}">x</button>` : ""}
+                      ${isSending ? '<div class="sending-overlay">Sending...</div>' : ""}
+                    </div>`;
+      }).join("")}
               </div>
-            `:`
+            ` : `
               <div class="empty-state">
-                ${this._filter==="user"?"No uploaded GIFs yet. Drop files above to add some!":"No items for this filter."}
+                ${this._filter === "user" ? "No uploaded GIFs yet. Drop files above to add some!" : "No items for this filter."}
               </div>
             `}
-          `}
+          ` : ""}
         </div>
-      </ha-card>`,this._attachListeners()}_attachListeners(){this.shadowRoot.querySelectorAll("[data-size]").forEach(t=>{t.addEventListener("click",s=>{this._selectedSize=s.currentTarget.dataset.size,this._filter="all",this.render()})}),this.shadowRoot.querySelectorAll("[data-filter]").forEach(t=>{t.addEventListener("click",s=>{this._filter=s.currentTarget.dataset.filter,this.render()})}),this.shadowRoot.getElementById("slot-toggle")?.addEventListener("click",()=>{this._slotMode=!this._slotMode,this.render()}),this.shadowRoot.getElementById("target-slot")?.addEventListener("change",t=>{this._targetSlot=parseInt(t.target.value)});let e=this.shadowRoot.getElementById("drop-zone");e&&(e.addEventListener("dragover",t=>{t.preventDefault(),t.stopPropagation(),this._dragOver||(this._dragOver=!0,e.classList.add("drag-over"))}),e.addEventListener("dragleave",t=>{t.preventDefault(),t.stopPropagation(),this._dragOver=!1,e.classList.remove("drag-over")}),e.addEventListener("drop",t=>{t.preventDefault(),t.stopPropagation(),this._dragOver=!1,t.dataTransfer?.files?.length&&this._handleFiles(t.dataTransfer.files)}),e.addEventListener("click",()=>{this.shadowRoot.getElementById("file-input")?.click()})),this.shadowRoot.getElementById("file-input")?.addEventListener("change",t=>{t.target.files?.length&&this._handleFiles(t.target.files)}),this.shadowRoot.querySelectorAll(".gallery-item").forEach(t=>{t.addEventListener("click",s=>{if(s.target.classList.contains("delete-btn"))return;let i=t.dataset.id,n=this._getItems().find(r=>(r.name||r.file)===i);n&&!this._sending&&this._sendToDevice(n)})}),this.shadowRoot.querySelectorAll("[data-delete]").forEach(t=>{t.addEventListener("click",s=>{s.stopPropagation();let i=s.currentTarget.dataset.delete;this._removeUserGif(i),this.render()})})}static getConfigElement(){return document.createElement("ipixel-simple-editor")}static getStubConfig(){return{entity:""}}};var yt=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"open"})}setConfig(e){this._config=e,this.render()}set hass(e){this._hass=e,this.render()}render(){if(!this._hass)return;let e=Object.keys(this._hass.states).filter(t=>t.startsWith("text.")||t.startsWith("switch.")).sort();this.shadowRoot.innerHTML=`
+      </ha-card>`;
+      this._attachListeners();
+    }
+    _attachListeners() {
+      this.shadowRoot.querySelectorAll("[data-size]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          this._selectedSize = e.currentTarget.dataset.size;
+          this._filter = "all";
+          this.render();
+        });
+      });
+      this.shadowRoot.querySelectorAll("[data-filter]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          this._filter = e.currentTarget.dataset.filter;
+          this.render();
+        });
+      });
+      this.shadowRoot.getElementById("slot-toggle")?.addEventListener("click", () => {
+        this._slotMode = !this._slotMode;
+        this.render();
+      });
+      this.shadowRoot.getElementById("target-slot")?.addEventListener("change", (e) => {
+        this._targetSlot = parseInt(e.target.value);
+      });
+      const dropZone = this.shadowRoot.getElementById("drop-zone");
+      if (dropZone) {
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!this._dragOver) {
+            this._dragOver = true;
+            dropZone.classList.add("drag-over");
+          }
+        });
+        dropZone.addEventListener("dragleave", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this._dragOver = false;
+          dropZone.classList.remove("drag-over");
+        });
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this._dragOver = false;
+          if (e.dataTransfer?.files?.length) {
+            this._handleFiles(e.dataTransfer.files);
+          }
+        });
+        dropZone.addEventListener("click", () => {
+          this.shadowRoot.getElementById("file-input")?.click();
+        });
+      }
+      this.shadowRoot.getElementById("file-input")?.addEventListener("change", (e) => {
+        if (e.target.files?.length) {
+          this._handleFiles(e.target.files);
+        }
+      });
+      this.shadowRoot.querySelectorAll(".gallery-item").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          if (e.target.classList.contains("delete-btn"))
+            return;
+          const id = el.dataset.id;
+          const items = this._getItems();
+          const item = items.find((i) => (i.name || i.file) === id);
+          if (item && !this._sending) {
+            this._sendToDevice(item);
+          }
+        });
+      });
+      this.shadowRoot.querySelectorAll("[data-delete]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const name = e.currentTarget.dataset.delete;
+          this._removeUserGif(name);
+          this.render();
+        });
+      });
+    }
+    static getConfigElement() {
+      return document.createElement("ipixel-simple-editor");
+    }
+    static getStubConfig() {
+      return { entity: "" };
+    }
+  };
+
+  // src/editor.js
+  var iPIXELSimpleEditor = class extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: "open" });
+    }
+    setConfig(config) {
+      this._config = config;
+      this.render();
+    }
+    set hass(hass) {
+      this._hass = hass;
+      this.render();
+    }
+    render() {
+      if (!this._hass)
+        return;
+      const entities = Object.keys(this._hass.states).filter((e) => e.startsWith("text.") || e.startsWith("switch.")).sort();
+      this.shadowRoot.innerHTML = `
       <style>
         .row { margin-bottom: 12px; }
         label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 0.9em; }
@@ -1727,14 +7341,63 @@ Example:
         <label>Entity</label>
         <select id="entity">
           <option value="">Select entity</option>
-          ${e.map(t=>`
-            <option value="${t}" ${this._config?.entity===t?"selected":""}>
-              ${this._hass.states[t]?.attributes?.friendly_name||t}
+          ${entities.map((e) => `
+            <option value="${e}" ${this._config?.entity === e ? "selected" : ""}>
+              ${this._hass.states[e]?.attributes?.friendly_name || e}
             </option>
           `).join("")}
         </select>
       </div>
       <div class="row">
         <label>Name (optional)</label>
-        <input type="text" id="name" value="${this._config?.name||""}" placeholder="Display name">
-      </div>`,this.shadowRoot.querySelectorAll("select, input").forEach(t=>{t.addEventListener("change",()=>this.fireConfig())})}fireConfig(){this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:{type:this._config?.type||"custom:ipixel-display-card",entity:this.shadowRoot.getElementById("entity")?.value,name:this.shadowRoot.getElementById("name")?.value||void 0}},bubbles:!0,composed:!0}))}};customElements.define("ipixel-display-card",ut);customElements.define("ipixel-controls-card",gt);customElements.define("ipixel-text-card",mt);customElements.define("ipixel-playlist-card",bt);customElements.define("ipixel-schedule-card",vt);customElements.define("ipixel-editor-card",_t);customElements.define("ipixel-gallery-card",xt);customElements.define("ipixel-simple-editor",yt);window.customCards=window.customCards||[];[{type:"ipixel-display-card",name:"iPIXEL Display",description:"LED matrix preview with power control"},{type:"ipixel-controls-card",name:"iPIXEL Controls",description:"Brightness, mode, and orientation controls"},{type:"ipixel-text-card",name:"iPIXEL Text",description:"Text input with effects and colors"},{type:"ipixel-playlist-card",name:"iPIXEL Playlist",description:"Playlist management"},{type:"ipixel-schedule-card",name:"iPIXEL Schedule",description:"Power schedule and time slots"},{type:"ipixel-editor-card",name:"iPIXEL Pixel Editor",description:"Draw custom pixel art and send to your LED matrix"},{type:"ipixel-gallery-card",name:"iPIXEL Gallery",description:"Browse and send bundled animations to your LED matrix"}].forEach(d=>window.customCards.push({...d,preview:!0,documentationURL:"https://github.com/cagcoach/ha-ipixel-color"}));console.info(`%c iPIXEL Cards %c ${Gt} `,"background:#03a9f4;color:#fff;padding:2px 6px;border-radius:4px 0 0 4px;","background:#333;color:#fff;padding:2px 6px;border-radius:0 4px 4px 0;");})();
+        <input type="text" id="name" value="${this._config?.name || ""}" placeholder="Display name">
+      </div>`;
+      this.shadowRoot.querySelectorAll("select, input").forEach((el) => {
+        el.addEventListener("change", () => this.fireConfig());
+      });
+    }
+    fireConfig() {
+      this.dispatchEvent(new CustomEvent("config-changed", {
+        detail: {
+          config: {
+            type: this._config?.type || "custom:ipixel-display-card",
+            entity: this.shadowRoot.getElementById("entity")?.value,
+            name: this.shadowRoot.getElementById("name")?.value || void 0
+          }
+        },
+        bubbles: true,
+        composed: true
+      }));
+    }
+  };
+
+  // src/index.js
+  customElements.define("ipixel-display-card", iPIXELDisplayCard);
+  customElements.define("ipixel-controls-card", iPIXELControlsCard);
+  customElements.define("ipixel-text-card", iPIXELTextCard);
+  customElements.define("ipixel-playlist-card", iPIXELPlaylistCard);
+  customElements.define("ipixel-schedule-card", iPIXELScheduleCard);
+  customElements.define("ipixel-editor-card", iPIXELEditorCard);
+  customElements.define("ipixel-gallery-card", iPIXELGalleryCard);
+  customElements.define("ipixel-simple-editor", iPIXELSimpleEditor);
+  window.customCards = window.customCards || [];
+  [
+    { type: "ipixel-display-card", name: "iPIXEL Display", description: "LED matrix preview with power control" },
+    { type: "ipixel-controls-card", name: "iPIXEL Controls", description: "Brightness, mode, and orientation controls" },
+    { type: "ipixel-text-card", name: "iPIXEL Text", description: "Text input with effects and colors" },
+    { type: "ipixel-playlist-card", name: "iPIXEL Playlist", description: "Playlist management" },
+    { type: "ipixel-schedule-card", name: "iPIXEL Schedule", description: "Power schedule and time slots" },
+    { type: "ipixel-editor-card", name: "iPIXEL Pixel Editor", description: "Draw custom pixel art and send to your LED matrix" },
+    { type: "ipixel-gallery-card", name: "iPIXEL Gallery", description: "Browse and send bundled animations to your LED matrix" }
+  ].forEach((card) => window.customCards.push({
+    ...card,
+    preview: true,
+    documentationURL: "https://github.com/cagcoach/ha-ipixel-color"
+  }));
+  console.info(
+    `%c iPIXEL Cards %c ${CARD_VERSION} `,
+    "background:#03a9f4;color:#fff;padding:2px 6px;border-radius:4px 0 0 4px;",
+    "background:#333;color:#fff;padding:2px 6px;border-radius:0 4px 4px 0;"
+  );
+})();
+//# sourceMappingURL=ipixel-display-card.js.map
