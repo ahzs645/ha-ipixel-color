@@ -131,18 +131,37 @@ def make_pixel_command(x: int, y: int, color: str) -> bytes:
     return bytes([10, 0, 5, 1, 0, r, g, b, x, y])
 
 
-def make_clear_command() -> bytes:
-    """Build clear display command.
+def make_erase_all_command() -> bytes:
+    """Build the EEPROM-wiping reset command (opcode 0x8003).
 
-    Command format from pypixelcolor:
-    [4, 0, 3, 0x80]
+    DESTRUCTIVE. This is not a "blank the screen" command: it erases the
+    device's stored ROM data, which means every saved slot and the device
+    settings. pypixelcolor documents it as "removes all stored content from
+    the device's memory, including device settings"; the iPixel-CLI projects
+    call it "Clear the EEPROM"; ipixel-ctrl calls it set_default_mode.
 
-    Note: This clears the display content without affecting power state.
+    Command format: [4, 0, 3, 0x80]
+
+    For a non-destructive blank, use make_diy_mode_command(1) instead.
 
     Returns:
-        Command bytes for clearing display
+        Command bytes for the factory-default reset.
     """
     return bytes([4, 0, 3, 0x80])
+
+
+def make_blank_display_command() -> bytes:
+    """Build a non-destructive "blank the screen" command.
+
+    Enters DIY mode with DIY_IMAGE_FUN_ENTER_CLEAR_CUR_SHOW (mode 1), which
+    clears what is currently shown without touching stored slots. Pair with
+    make_diy_mode_command(0) (QUIT_NOSAVE_KEEP_PREV) to restore the previous
+    display.
+
+    Returns:
+        Command bytes for blanking the display.
+    """
+    return make_diy_mode_command(1)
 
 
 def make_show_slot_command(slot: int) -> bytes:
@@ -223,6 +242,10 @@ def make_upside_down_command(upside_down: bool) -> bytes:
 
 def make_default_mode_command() -> bytes:
     """Build command to reset device to factory default display mode.
+
+    DESTRUCTIVE. Identical on the wire to make_erase_all_command(): it wipes
+    the device's stored slots and settings, it does not just switch display
+    mode.
 
     Command format from ipixel-ctrl (opcode 0x8003):
     [length, 0, 0x03, 0x80] (no payload)
@@ -543,8 +566,20 @@ def make_mix_block_header(
 
     return bytes(header)
 
-def _make_windows_from_payload(payload: bytes, screen_slot: int, command: bytes) -> list[Window]:
-    """Helper function to split payload into windows for SendPlan."""
+def _make_windows_from_payload(
+    payload: bytes,
+    screen_slot: int,
+    command: bytes,
+    mode_byte: int = 0x02,
+) -> list[Window]:
+    """Helper function to split payload into windows for SendPlan.
+
+    Args:
+        payload: Complete content bytes to send.
+        screen_slot: Destination slot (1-100 persists, 0x65 is temporary/DIY).
+        command: 2-byte on-wire data type (see DATA_TYPE_BYTES).
+        mode_byte: Header byte before the slot number (see DATA_MODE_BYTES).
+    """
     # Calculate CRC32 of mix data
     crc = zlib.crc32(payload) & 0xFFFFFFFF
     payload_size = len(payload)
@@ -581,7 +616,7 @@ def _make_windows_from_payload(payload: bytes, screen_slot: int, command: bytes)
         frame_header += crc.to_bytes(4, byteorder="little")
         
         # Tail - 2 bytes
-        frame_header += bytes([0x02])                   # Reserved
+        frame_header += bytes([mode_byte & 0xFF])         # Mode
         frame_header += bytes([int(screen_slot) & 0xFF])  # save_slot
         
         # Combine header and chunk
@@ -769,6 +804,56 @@ TYPE_TEXT = 4
 TYPE_DIY_IMAGE = 5
 TYPE_DIY_IMAGE_UNREDO = 6
 TYPE_TEM = 7
+
+# On-wire data type bytes, from go-ipxl/packet_builder.go getDataType().
+# The logical TYPE_* constant is NOT what goes on the wire -- text in
+# particular is 0x0100, not 0x0004.
+DATA_TYPE_BYTES: dict[int, bytes] = {
+    TYPE_CAMERA: bytes([0x00, 0x00]),
+    TYPE_VIDEO: bytes([0x01, 0x00]),
+    TYPE_IMAGE: bytes([0x02, 0x00]),
+    TYPE_GIF: bytes([0x03, 0x00]),
+    TYPE_TEXT: bytes([0x00, 0x01]),
+    TYPE_DIY_IMAGE: bytes([0x05, 0x01]),
+    TYPE_DIY_IMAGE_UNREDO: bytes([0x00, 0x00]),
+    TYPE_TEM: bytes([0x04, 0x00]),
+}
+
+# The byte immediately before the slot number in a bulk-data frame header.
+# PNG and text send 0x00; GIF, mixed data and templates send 0x02.
+DATA_MODE_BYTES: dict[int, int] = {
+    TYPE_CAMERA: 0x00,
+    TYPE_VIDEO: 0x00,
+    TYPE_IMAGE: 0x00,
+    TYPE_GIF: 0x02,
+    TYPE_TEXT: 0x00,
+    TYPE_DIY_IMAGE: 0x00,
+    TYPE_DIY_IMAGE_UNREDO: 0x00,
+    TYPE_TEM: 0x02,
+}
+
+# Slot numbering (ipixel-ctrl docs/DeviceCommands.md).
+SLOT_PRG_MIN = 0x01   # 1-100: persistent program slots
+SLOT_PRG_MAX = 0x64
+SLOT_DIY = 0x65       # temporary: show now, do not persist
+SLOT_REMOCON_MIN = 0x6F  # 111-119: "remocon" screens 1-9
+SLOT_REMOCON_MAX = 0x77
+
+
+def get_data_type_bytes(data_type: int) -> bytes:
+    """Return the 2-byte on-wire data type for a logical TYPE_* constant."""
+    try:
+        return DATA_TYPE_BYTES[data_type]
+    except KeyError:
+        raise ValueError(f"Unknown data type {data_type}") from None
+
+
+def get_data_mode_byte(data_type: int) -> int:
+    """Return the header mode byte for a logical TYPE_* constant."""
+    try:
+        return DATA_MODE_BYTES[data_type]
+    except KeyError:
+        raise ValueError(f"Unknown data type {data_type}") from None
 
 # Chunk size for raw RGB transfer (from go-ipxl)
 RAW_RGB_CHUNK_SIZE = 12288  # 12KB chunks
@@ -981,15 +1066,18 @@ def make_clock_mode_full_command(
 ) -> bytes:
     """Build clock mode command with full date fields.
 
-    Command format from APK reverse engineering:
-    [0x0B, 0x00, 0x06, 0x01, mode, flagA, flagB, yy, mm, dd, weekday]
+    Command format (opcode 0x0106):
+    [0x0B, 0x00, 0x06, 0x01, style, format_24, show_date, yy, mm, dd, weekday]
 
-    Where flagA controls date display and flagB controls 24h format.
+    Byte 5 is the 24-hour flag and byte 6 is the show-date flag, both with
+    1 = on. Confirmed by ipixel-ctrl docs/DeviceCommands.md section 0x0106,
+    pypixelcolor commands/set_clock_mode.py, DonKracho showClock() and
+    ToBiDi0410 setClockMode().
 
     Args:
         mode: Clock style (0-8)
-        show_date: Show date alongside time (flagA: True=0x00, False=0x01)
-        format_24: Use 24-hour format (flagB: True=0x01, False=0x00)
+        show_date: Show date alongside time (byte 6: True=0x01, False=0x00)
+        format_24: Use 24-hour format (byte 5: True=0x01, False=0x00)
         year: Year (e.g. 2026). Defaults to current year.
         month: Month (1-12). Defaults to current month.
         day: Day (1-31). Defaults to current day.
@@ -1013,13 +1101,13 @@ def make_clock_mode_full_command(
     if weekday is None:
         weekday = now.isoweekday()
 
-    flag_a = 0x00 if show_date else 0x01
-    flag_b = 0x01 if format_24 else 0x00
     yy = year - 2000
 
     return bytes([
         0x0B, 0x00, 0x06, 0x01,
-        mode, flag_a, flag_b,
+        mode,
+        0x01 if format_24 else 0x00,
+        0x01 if show_date else 0x00,
         yy, month, day, weekday,
     ])
 

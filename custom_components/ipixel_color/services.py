@@ -451,11 +451,11 @@ async def handle_clear_pixels(call: ServiceCall) -> None:
     try:
         success = await api.clear_display()
         if success:
-            _LOGGER.info("Display cleared")
+            _LOGGER.info("Display blanked")
         else:
-            _LOGGER.error("Failed to clear display")
+            _LOGGER.error("Failed to blank display")
     except Exception as err:
-        _LOGGER.error("Error clearing display: %s", err)
+        _LOGGER.error("Error blanking display: %s", err)
 
 async def handle_show_slot(call: ServiceCall) -> None:
     """Handle show_slot service call."""
@@ -622,9 +622,16 @@ async def handle_set_upside_down(call: ServiceCall) -> None:
         _LOGGER.error("Error setting upside down mode: %s", err)
 
 async def handle_set_default_mode(call: ServiceCall) -> None:
-    """Handle set_default_mode service call."""
+    """Handle set_default_mode service call.
+
+    This wipes the device's stored slots and settings -- it is not a display
+    mode switch. Use clear_pixels to blank the screen non-destructively.
+    """
     api = get_api(call)
     try:
+        _LOGGER.warning(
+            "set_default_mode erases all stored slots and device settings"
+        )
         success = await api.set_default_mode()
         if success:
             _LOGGER.info("Device reset to default mode")
@@ -1029,12 +1036,12 @@ async def handle_display_native_text(call: ServiceCall) -> None:
     """Handle display_native_text service call."""
     api = get_api(call)
     text = call.data.get("text", "")
-    effect = call.data.get("effect", 1)
+    effect = int(call.data.get("effect", 1))
     speed = call.data.get("speed", 50)
     color_fg = call.data.get("color_fg", [255, 255, 255])
     color_bg = call.data.get("color_bg", [0, 0, 0])
-    h_align = call.data.get("h_align", 0)
-    v_align = call.data.get("v_align", 0)
+    h_align = call.data.get("h_align", 1)
+    v_align = call.data.get("v_align", 1)
     font_size = int(call.data.get("font_size", 16))
     buffer_slot = call.data.get("buffer_slot", 1)
 

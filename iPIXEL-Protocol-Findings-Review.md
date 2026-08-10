@@ -5,9 +5,12 @@
 available reverse-engineering effort on the iPIXEL Color / B.K. Light LED Pixel Board
 protocol, as of August 2026.
 
-This document does **not** change any code. It records what other people have figured
-out since `iPIXEL-Protocol-Documentation.md` was written, and lists the places where our
-implementation or our documented assumptions disagree with the current consensus.
+It records what other people have figured out since `iPIXEL-Protocol-Documentation.md`
+was written, and lists the places where our implementation or our documented assumptions
+disagree with the current consensus.
+
+> **Status:** §3.1–§3.8 have been fixed. Items still open are marked *OPEN* in §3.11,
+> plus everything in §5. See §7 for what changed.
 
 ---
 
@@ -341,22 +344,21 @@ and annotates it *"ATTENTION: malformed command"*; ToBiDi emits a 4-byte
 ignores the trailing byte, DonKracho's variant would wipe the panel. Nobody has a
 confirmed capture. Ours is the most plausible but should be treated as unproven.
 
-### 3.11 Smaller items
+### 3.11 Smaller items — *OPEN*
 
-- `make_program_mode_command` (`commands.py:290`) caps at 9 buffers; the wire format and
-  DonKracho both allow **100**.
+- `make_program_mode_command` caps at 9 buffers; the wire format and DonKracho both
+  allow **100**.
 - `make_erase_data_command(erase_all=True)` sends `count = 0x00FF` but only 254 slot
   bytes, and no upstream source documents an "erase all" form. Speculative and
   destructive — worth gating or removing.
 - `make_reserve_slot_command` / `make_template_handshake_command` produce bytes identical
   to `show_slot`; their docstrings describe a "slot reservation handshake" that is really
   just `set_prg_mode` with one entry.
-- `get_hw_info()` (`api.py:2026`) sends `0x8005` but registers no response handler, so the
-  MCU/BLE firmware versions are discarded. `device_info_to_dict` consequently always
-  reports `mcu_version`/`wifi_version` as `"unknown"` (pypixelcolor never fills them).
+- `get_hw_info()` sends `0x8005` but registers no response handler, so the MCU/BLE
+  firmware versions are discarded. `device_info_to_dict` consequently always reports
+  `mcu_version`/`wifi_version` as `"unknown"` (pypixelcolor never fills them).
 - `iPIXEL-Protocol-Documentation.md` §3.3 documents `set_pixel` data as `[R,G,B,A,X,Y]`.
-  It is `[0x00,R,G,B,X,Y]` — a fixed zero, not alpha. Our code (`commands.py:131`) is
-  correct; the doc is not.
+  It is `[0x00,R,G,B,X,Y]` — a fixed zero, not alpha. Our code is correct; the doc is not.
 - `assets/emoji/` ships 525 JPEGs (2.2 MB) extracted from the app, in exactly the sizes
   the emoji record format wants (16/20/24/32/64) — and **nothing references them**.
   pypixelcolor downloads Twemoji from a CDN at runtime instead; we could feed our bundled
@@ -423,21 +425,34 @@ confirmed capture. Ours is the most plausible but should be treated as unproven.
 
 ---
 
-## 7. Suggested order of work
+## 7. What has been fixed
 
-1. Fix §3.3 (clock flags), §3.4 and §3.5 (Wi-Fi ACK + type bytes) — small, self-contained,
-   each currently produces wrong behaviour.
-2. Correct the docstrings/labels for §3.6 (`clear`) and add the bootloop + single-connection
-   notes to the README; mark animations 3/4 as unsafe in `services.yaml`.
-3. Either fix `display_native_text` (§3.1, §3.2) against the §2.6 spec, or retire it in
-   favour of the pypixelcolor `send_text` path, which already does everything it was
-   meant to and more.
-4. Replace `device_config.LED_TYPE_DIMENSIONS` with the §2.5 table and drop the linear
-   byte→type arithmetic.
-5. Stop the hourly time sync from resurrecting a powered-off display (§3.8), and parse
-   `LED_SW` for real power state.
-6. Parse the `0x8005` response so firmware versions stop reading `"unknown"`.
-7. Opportunistic: wire up the bundled emoji assets, raise the BLE chunk size toward the
+| § | Change |
+|---|---|
+| 3.1 | `display_native_text` now sends data type `00 01` with mode byte `0x00`. `_make_windows_from_payload` takes the mode byte as a parameter instead of hardcoding `0x02`, and `DATA_TYPE_BYTES` / `DATA_MODE_BYTES` in `device/commands.py` map logical `TYPE_*` constants to their on-wire form. |
+| 3.2 | `device/text_protocol.py` rewritten to §2.6: 14-byte properties header with `0x01/0x01` alignment, rainbow mode at byte 6, background flag at byte 10; glyph records use the fixed-size `0x00`/`0x01`/`0x02` forms with the correct row stride and per-byte bit reversal. |
+| 3.3 | `make_clock_mode_full_command` byte 5 is now `format_24` and byte 6 is `show_date`, both `1 = on`. |
+| 3.4 | `WifiAckInfo` treats `0x03` as success for bulk-data opcodes and exposes `is_error`, which `send_data_windowed` uses. |
+| 3.5 | `send_data_windowed` translates the logical type to on-wire bytes and derives the mode byte per type. |
+| 3.6 | `clear_display()` now sends the non-destructive DIY blank (`[05 00 04 01 01]`). The destructive `0x8003` moved to `erase_all_data()`, which `set_default_mode()` delegates to. `clear_pixels` and the screen switch are non-destructive; the screen switch restores via `restore_display()`. Service descriptions updated. |
+| 3.7 | `LED_TYPE_DIMENSIONS` corrected and `DEVICE_TYPE_TO_LED_TYPE` replaces the linear byte→type arithmetic. |
+| 3.8 | `set_power()` records the state; `sync_time(preserve_power=True)` re-applies it, so the hourly sync no longer resurrects a powered-off panel. |
+| 3.9 | Animations 3 and 4 are rejected by `validate_animation()` on both text paths and removed from the `display_text` / `display_native_text` service pickers. Effect labels now follow the ipixel-ctrl spec. |
+| Safety | README gained a Safety Notes section and a "device not found" troubleshooting entry covering the single-BLE-connection behaviour. |
+
+Verified by encoding each affected command and comparing against the byte sequences in
+§2 (clock flags, type/mode bytes, text frame envelope, blank vs erase, device-type
+lookup, properties header, glyph record lengths, animation guard) plus a visual
+round-trip of a rendered glyph through the bit reversal.
+
+### Still to do
+
+1. §3.10 — confirm the `set_text_speed` opcode with a capture before trusting it.
+2. §3.11 — program-mode slot cap, speculative `erase_all`, `0x8005` response parsing so
+   firmware versions stop reading `"unknown"`.
+3. Parse `LED_SW` from the `0x8001` response for true power state rather than tracking it
+   optimistically.
+4. Opportunistic: wire up the bundled emoji assets, raise the BLE chunk size toward the
    negotiated MTU, adopt `fit`/`crop` resize semantics.
 
 ---

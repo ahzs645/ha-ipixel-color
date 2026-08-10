@@ -119,10 +119,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up hourly time sync
     async def _sync_time(now=None) -> None:
-        """Sync time to device hourly."""
+        """Sync time to device hourly.
+
+        sync_time() re-applies the last known power state afterwards, because
+        the underlying 0x8001 command powers the panel on as a side effect.
+        """
         try:
             if api.is_connected:
-                await api.sync_time()
+                await api.sync_time(preserve_power=True)
                 _LOGGER.debug("Hourly time sync completed")
         except Exception as err:
             _LOGGER.warning("Hourly time sync failed: %s", err)

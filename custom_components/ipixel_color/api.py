@@ -18,12 +18,12 @@ from .device.commands import (
     make_rhythm_mode_command,
     make_fun_mode_command,
     make_pixel_command,
-    make_clear_command,
+    make_blank_display_command,
+    make_erase_all_command,
     make_show_slot_command,
     make_delete_slot_command,
     make_set_time_command,
     make_upside_down_command,
-    make_default_mode_command,
     make_erase_data_command,
     make_program_mode_command,
     make_rhythm_mode_advanced_command,
@@ -114,6 +114,7 @@ class iPIXELAPI:
             result = await self._bluetooth.send_command("set_power", payload)
 
             if result.success:
+                self._power_state = on
                 _LOGGER.debug("Power set to %s", "ON" if on else "OFF")
             else:
                 _LOGGER.error("Failed to set power state")
@@ -149,11 +150,20 @@ class iPIXELAPI:
             _LOGGER.error("Error setting brightness: %s", err)
             return False
 
-    async def sync_time(self) -> bool:
+    async def sync_time(self, preserve_power: bool = True) -> bool:
         """Sync current time to the device.
 
         This is useful for keeping the clock display accurate,
         especially after the device has been running for a while.
+
+        Note: opcode 0x8001 powers the panel on as a side effect
+        ("It will automatically power on" -- ipixel-ctrl
+        docs/DeviceCommands.md). With preserve_power set, a display that was
+        turned off is switched back off afterwards, so a periodic time sync
+        cannot resurrect it.
+
+        Args:
+            preserve_power: Re-apply the last known power state after syncing.
 
         Returns:
             True if time was synced successfully
@@ -166,7 +176,15 @@ class iPIXELAPI:
                 _LOGGER.debug("Time synced to device")
             else:
                 _LOGGER.error("Failed to sync time")
-            return result.success
+                return False
+
+            if preserve_power and not self._power_state:
+                _LOGGER.debug(
+                    "Time sync powered the panel on; switching it back off"
+                )
+                await self.set_power(False)
+
+            return True
 
         except Exception as err:
             _LOGGER.error("Error syncing time: %s", err)
@@ -607,25 +625,71 @@ class iPIXELAPI:
             return False
 
     async def clear_display(self) -> bool:
-        """Clear the display (blank screen).
+        """Blank the display without erasing anything stored on the device.
 
-        This blanks the screen without affecting power state.
+        Enters DIY mode with "clear current show", which blanks the panel but
+        leaves saved slots and device settings intact. Use restore_display()
+        to bring the previous content back, or erase_all_data() for the
+        destructive factory reset.
 
         Returns:
             True if command was sent successfully
         """
         try:
-            payload = make_clear_command()
-            result = await self._bluetooth.send_command("clear_display",payload)
+            payload = make_blank_display_command()
+            result = await self._bluetooth.send_command("clear_display", payload)
 
             if result.success:
-                _LOGGER.debug("Display cleared")
+                _LOGGER.debug("Display blanked")
             else:
-                _LOGGER.error("Failed to clear display")
+                _LOGGER.error("Failed to blank display")
             return result.success
 
         except Exception as err:
-            _LOGGER.error("Error clearing display: %s", err)
+            _LOGGER.error("Error blanking display: %s", err)
+            return False
+
+    async def restore_display(self) -> bool:
+        """Leave DIY mode and restore whatever was shown before blanking.
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_diy_mode_command(0)
+            result = await self._bluetooth.send_command("restore_display", payload)
+
+            if result.success:
+                _LOGGER.debug("Display restored")
+            else:
+                _LOGGER.error("Failed to restore display")
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error restoring display: %s", err)
+            return False
+
+    async def erase_all_data(self) -> bool:
+        """Erase the device's stored slots and settings (opcode 0x8003).
+
+        DESTRUCTIVE and not undoable. This is the command that used to back
+        clear_display(); it wipes every saved slot plus device settings.
+
+        Returns:
+            True if command was sent successfully
+        """
+        try:
+            payload = make_erase_all_command()
+            result = await self._bluetooth.send_command("erase_all_data", payload)
+
+            if result.success:
+                _LOGGER.warning("Device stored data erased (factory reset)")
+            else:
+                _LOGGER.error("Failed to erase device data")
+            return result.success
+
+        except Exception as err:
+            _LOGGER.error("Error erasing device data: %s", err)
             return False
 
     async def show_slot(self, slot: int) -> bool:
@@ -757,6 +821,16 @@ class iPIXELAPI:
         if self._device_info is None:
             raise RuntimeError("Device info not loaded yet")
         return self._device_info
+
+    def _panel_dimensions(self) -> tuple[int | None, int | None]:
+        """Return the cached panel size, or (None, None) if not known yet.
+
+        Unlike _get_device_info() this never raises, so safety checks can run
+        before the device has answered.
+        """
+        if self._device_info is None:
+            return None, None
+        return self._device_info.width, self._device_info.height
     
     async def get_device_info(self) -> dict[str, Any] | None:
         """Get device information as a dictionary.
@@ -840,7 +914,8 @@ class iPIXELAPI:
             color: Text color in hex format (e.g., 'ffffff')
             bg_color: Background color in hex format (e.g., '000000'), or None for transparent
             font: Font name ('CUSONG', 'SIMSUN', 'VCR_OSD_MONO') or file path
-            animation: Animation type (0-7)
+            animation: Animation type (0-8; 3 and 4 are blocked, they boot-loop
+                non-32x32 panels)
             speed: Animation speed (0-100)
             rainbow_mode: Rainbow mode (0-9)
             matrix_height: Override device height for text rendering (16, 20, 24, or 32)
@@ -848,7 +923,12 @@ class iPIXELAPI:
         Returns:
             True if text was sent successfully
         """
-        try:            
+        try:
+            from .device.text_protocol import validate_animation
+
+            width, height = self._panel_dimensions()
+            animation = validate_animation(animation, width, height)
+
             device_info = await self._get_device_info()
             device_height = matrix_height if matrix_height else None
 
@@ -964,24 +1044,16 @@ class iPIXELAPI:
             return False
 
     async def set_default_mode(self) -> bool:
-        """Reset device to factory default display mode.
+        """Reset device to factory defaults.
+
+        DESTRUCTIVE. Identical on the wire to erase_all_data(): it erases every
+        saved slot and the device settings, it does not just switch display
+        mode. Use clear_display() to blank the panel non-destructively.
 
         Returns:
             True if command was sent successfully
         """
-        try:
-            payload = make_default_mode_command()
-            result = await self._bluetooth.send_command("set_default_mode", payload)
-
-            if result.success:
-                _LOGGER.info("Device reset to default mode")
-            else:
-                _LOGGER.error("Failed to reset to default mode")
-            return result.success
-
-        except Exception as err:
-            _LOGGER.error("Error resetting to default mode: %s", err)
-            return False
+        return await self.erase_all_data()
 
     async def erase_data(
         self,
@@ -1502,10 +1574,11 @@ class iPIXELAPI:
         speed: int = 50,
         fg_color: tuple[int, int, int] = (255, 255, 255),
         bg_color: tuple[int, int, int] = (0, 0, 0),
-        h_align: int = 0,
-        v_align: int = 0,
+        h_align: int = 1,
+        v_align: int = 1,
         font_size: int = 16,
         buffer_slot: int = 1,
+        rainbow_mode: int = 0,
     ) -> bool:
         """Display text using the native device text protocol.
 
@@ -1514,14 +1587,17 @@ class iPIXELAPI:
 
         Args:
             text: Text string to display
-            effect: Text animation effect (0-7)
+            effect: Text animation effect (0-8; 3 and 4 are blocked, they
+                boot-loop non-32x32 panels)
             speed: Animation speed (0-100)
             fg_color: Foreground RGB color tuple
             bg_color: Background RGB color tuple
-            h_align: Horizontal alignment (0=left, 1=center, 2=right)
-            v_align: Vertical alignment (0=top, 1=center, 2=bottom)
-            font_size: Font size for character rendering
-            buffer_slot: Storage slot on device (1-255)
+            h_align: Horizontal alignment (the app sends 1)
+            v_align: Vertical alignment (the app sends 1)
+            font_size: Glyph height; selects the record type (8/16/32)
+            buffer_slot: Storage slot on device. 1-100 persists, 0x65 (101)
+                shows without saving.
+            rainbow_mode: Rainbow / style mode (0-9)
 
         Returns:
             True if text was sent successfully
@@ -1530,27 +1606,40 @@ class iPIXELAPI:
             from .device.text_protocol import (
                 TextStyle,
                 build_native_text_payload,
+                validate_animation,
             )
-            from .device.commands import _make_windows_from_payload
+            from .device.commands import (
+                TYPE_TEXT,
+                _make_windows_from_payload,
+                get_data_mode_byte,
+                get_data_type_bytes,
+            )
+
+            width, height = self._panel_dimensions()
+            effect = validate_animation(effect, width, height)
 
             style = TextStyle(
                 h_align=h_align,
                 v_align=v_align,
                 effect=effect,
                 speed=speed,
+                rainbow_mode=rainbow_mode,
                 fg_color=fg_color,
-                fg_enabled=True,
                 bg_color=bg_color,
-                bg_enabled=bg_color != (0, 0, 0),
+                bg_enabled=True,
             )
 
             payload = build_native_text_payload(text, style, font_size, fg_color)
             _LOGGER.debug("Native text payload: %d bytes for '%s'", len(payload), text)
 
-            # Send as type 4 (text) using the windowed protocol
+            # Text goes out as data type 0x0100 with mode byte 0x00 -- not as
+            # mixed data (0x0004/0x02), which is what this used to send.
             from pypixelcolor.lib.transport.send_plan import SendPlan
             windows = _make_windows_from_payload(
-                payload, buffer_slot, bytes([0x04, 0x00])
+                payload,
+                buffer_slot,
+                get_data_type_bytes(TYPE_TEXT),
+                get_data_mode_byte(TYPE_TEXT),
             )
             plan = SendPlan("native_text", windows)
             result = await self._bluetooth.send_plan(plan)
