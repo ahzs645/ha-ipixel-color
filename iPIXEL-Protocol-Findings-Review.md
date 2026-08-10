@@ -457,6 +457,58 @@ round-trip of a rendered glyph through the bit reversal.
 
 ---
 
+## 8. Web preview / Lovelace card review
+
+Reviewed the GitHub Pages preview (`www/preview.html`, deployed by
+`.github/workflows/deploy-preview.yml`) and the seven Lovelace cards behind it,
+driving the page in headless Chromium to confirm each finding.
+
+### Fixed
+
+| Finding | Detail |
+|---|---|
+| Gallery card dead on Pages | `/gallery/manifest.json` returned 404 on the live site — the workflow copied `preview.html`, `src/`, `fonts/` and a nonexistent `lib/`, but never `assets/gallery`. Console showed `iPIXEL Gallery: Failed to load manifest`. Workflow now copies it and asserts every required asset exists before deploying. Gallery now loads 18 items. |
+| Default font never rendered | `CUSONG.ttf` declares OS/2 **version 5** but ships a 96-byte (v4-sized) table, so Chromium's OTS rejected it: `OS/2: Failed to read version 5-specific fields`. CUSONG is the default font for `send_text`, so this broke the preview *and* Home Assistant. Fixed by declaring v4 and refreshing the table + `head` checksums. Same fix applied to `assets/fonts/cusong16_zitidi.ttf`. `VCR_OSD_MONO.ttf` declares v3 at 96 bytes, which is valid — left alone. |
+| Text card's Send button was broken in HA | The card populates its Effect dropdown from the renderer's effect registry, so it sent `effect: "fixed"`, while `handle_display_text` did `int(effect)` → `ValueError`, swallowed as "Error displaying text". `resolve_animation()` now accepts renderer names, numeric codes and numeric strings; renderer-only effects (`plasma`, `neon`, …) fall back to static instead of raising. |
+| Controls card offered the bricking animations | Its Animation dropdown listed "Scroll Up" (3) and "Scroll Down" (4). Now offers 0/1/2/5/6/7/8 with the ipixel-ctrl labels. |
+| Controls card called a nonexistent service | `set_animation_mode` is not registered anywhere in the integration, so the dropdown was a no-op in HA. It now re-sends the current text with the chosen animation code, which is how the device actually applies it. |
+| 400 KB of stale build output | `www/cards/*.js` (6 pre-refactor per-card bundles), `www/ipixel-base.js` and a 358 KB `ipixel-display-card.js.map` were committed and referenced by nothing; the production build emits no source map. Removed and `*.js.map` gitignored. |
+| Connection panels buried the cards | Both "Real Device Connection" panels sat expanded inside `<div class="header">`, pushing all seven cards below roughly 600 px of controls. They are now `<details>`, collapsed by default. |
+| Console noise | Added an inline favicon; the page now loads with zero console errors. |
+
+Verified by serving the exact `_site` layout locally and asserting in Chromium:
+all seven cards upgrade and render, the gallery manifest loads, both panels are
+collapsed and expand on click, the animation dropdown excludes 3/4, sending text
+calls `display_text`, changing the animation re-sends with a numeric code, the
+display card keeps rendering, and no console errors or non-200 requests remain.
+
+### Recommended, not done
+
+1. **The preview page duplicates its transport layer.** `preview.html` is 1751
+   lines, of which roughly 400 are two near-identical control panels and ~40
+   paired `window.*` globals (`bleSetBrightness`/`wifiSetBrightness`,
+   `bleToggleStream`/`wifiToggleStream`, `updateStreamButton`/
+   `updateWifiStreamButton`, …). The two transports also expose *different*
+   feature sets for no protocol reason — BLE has rainbow/rhythm/orientation,
+   Wi-Fi has countdown/scoreboard/stopwatch/exit-mode — even though both speak
+   the same command set. One transport façade with a BLE/Wi-Fi selector would
+   remove the duplication and the feature gap. This is a dev tool, so the
+   payoff is maintenance rather than user-facing, hence left for a decision.
+2. **Four speculative opcodes in `src/ble-device.js`** appear in no upstream
+   source: `0x010A` (`setRainbowMode`), `0x010B` (`setAnimationMode`),
+   `0x010C` (`setFontSize`), `0x010D` (`setFontOffset`). Note `0x800A` and
+   `0x800D` are the documented scoreboard and countdown, so these look invented.
+   Sending unknown opcodes to a device that replays SPI-flash state at boot is
+   the exact risk profile behind the boot-loop reports.
+3. **Invented rainbow labels.** The preview's rainbow dropdown names modes
+   "Wave, Cycle, Pulse, Fade, Chase, Sparkle, Gradient, Theater, Fire". No
+   source names these; upstream only knows `rainbow_mode` 0–9, and DonKracho
+   notes the colour fields may only apply at mode 1.
+4. **Clock style ranges disagree** — preview offers 1–8, HA's
+   `select.clock_style` offers 0–8, DonKracho validates 1–9 (see §5.1).
+5. **BLE orientation control offers only 0/1** though the field is a 0–3
+   rotation, and the Wi-Fi panel has no orientation control at all.
+
 ## Sources
 
 - https://github.com/lucagoc/pypixelcolor

@@ -3,6 +3,7 @@
 from . import DOMAIN
 from .api import iPIXELAPI
 from .schedule import iPIXELScheduleManager, ScheduleItem
+from .device.text_protocol import resolve_animation
 from homeassistant.const import ATTR_DEVICE_ID
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
@@ -152,7 +153,9 @@ async def handle_display_text(call: ServiceCall) -> None:
 
     try:
         # Convert effect name to animation number
-        animation = int(effect)
+        # The text card sends renderer effect names, the service UI sends
+        # numeric codes -- accept either.
+        animation = resolve_animation(effect)
 
         # Convert RGB arrays to hex strings
         fg_hex = rgb_to_hex(color_fg)

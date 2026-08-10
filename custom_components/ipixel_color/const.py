@@ -69,6 +69,31 @@ TEXT_ANIMATION_LABELS = {
     TEXT_ANIM_LASER: "laser",
 }
 
+# The Lovelace text card populates its Effect dropdown from the renderer's
+# effect registry (react-pixel-display), which uses names rather than the
+# device's numeric codes. Accept both so the card, the service UI and existing
+# automations all work.
+#
+# Note: sources disagree on which of 1/2 is "left" and which is "right" --
+# ipixel-ctrl labels 0x01 RTL and 0x02 LTR, while pypixelcolor treats 2 as the
+# RTL case and reverses glyph order for it. The two values are a pair; if the
+# direction looks wrong, use the other one.
+TEXT_ANIMATION_NAMES = {
+    "static": TEXT_ANIM_STATIC,
+    "fixed": TEXT_ANIM_STATIC,
+    "none": TEXT_ANIM_STATIC,
+    "scroll_left": TEXT_ANIM_SCROLL_LEFT,
+    "scroll_rtl": TEXT_ANIM_SCROLL_LEFT,
+    "scroll": TEXT_ANIM_SCROLL_LEFT,
+    "scroll_right": TEXT_ANIM_SCROLL_RIGHT,
+    "scroll_ltr": TEXT_ANIM_SCROLL_RIGHT,
+    "blink": TEXT_ANIM_BLINK,
+    "flash": TEXT_ANIM_BLINK,
+    "breeze": TEXT_ANIM_BREEZE,
+    "snow": TEXT_ANIM_SNOW,
+    "laser": TEXT_ANIM_LASER,
+}
+
 # Animations 3 and 4 are known to put the device into a boot loop on panels that
 # are not 32x32. The device stores the offending payload in SPI flash and then
 # crashes re-reading it on every boot, so recovery means racing a clear command

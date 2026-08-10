@@ -47,6 +47,7 @@ from pathlib import Path
 
 from ..const import (
     SAFE_ANIMATION_DIMENSIONS,
+    TEXT_ANIMATION_NAMES,
     TEXT_ANIM_BLINK,
     TEXT_ANIM_BREEZE,
     TEXT_ANIM_LASER,
@@ -95,8 +96,38 @@ class UnsafeAnimationError(ValueError):
     """Raised when a caller asks for an animation known to brick the device."""
 
 
+def resolve_animation(animation: int | str) -> int:
+    """Turn an effect name or numeric code into a device animation code.
+
+    Accepts the numeric codes the service UI offers, the names the Lovelace
+    text card sends (which come from the renderer's effect registry), or a
+    numeric string. Renderer-only effects that have no device equivalent --
+    the ambient and colour effects such as "plasma" or "neon" -- fall back to
+    static, because the device cannot reproduce them.
+
+    Args:
+        animation: Effect name or numeric code.
+
+    Returns:
+        Numeric device animation code.
+    """
+    if isinstance(animation, str):
+        key = animation.strip().lower()
+        if key in TEXT_ANIMATION_NAMES:
+            return TEXT_ANIMATION_NAMES[key]
+        try:
+            return int(key)
+        except ValueError:
+            _LOGGER.debug(
+                "Effect %r has no device animation, falling back to static",
+                animation,
+            )
+            return TEXT_ANIM_STATIC
+    return int(animation)
+
+
 def validate_animation(
-    animation: int,
+    animation: int | str,
     width: int | None = None,
     height: int | None = None,
 ) -> int:
@@ -108,18 +139,18 @@ def validate_animation(
     than a warning.
 
     Args:
-        animation: Requested animation value.
+        animation: Requested animation, as a numeric code or an effect name.
         width: Panel width, if known.
         height: Panel height, if known.
 
     Returns:
-        The animation value, unchanged, when it is safe to send.
+        The resolved numeric animation code, when it is safe to send.
 
     Raises:
         UnsafeAnimationError: If the animation is known-unsafe for this panel.
         ValueError: If the animation is outside the accepted range.
     """
-    animation = int(animation)
+    animation = resolve_animation(animation)
 
     if animation < 0 or animation > 8:
         raise ValueError(f"Text animation must be 0-8, got {animation}")

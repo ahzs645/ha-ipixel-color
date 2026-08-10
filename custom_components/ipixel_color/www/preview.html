@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>iPIXEL Cards Preview</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23111'/%3E%3Crect x='2' y='5' width='3' height='3' fill='%2303a9f4'/%3E%3Crect x='6.5' y='5' width='3' height='3' fill='%23ff9800'/%3E%3Crect x='11' y='5' width='3' height='3' fill='%234caf50'/%3E%3C/svg%3E">
   <style>
     :root {
       --primary-color: #03a9f4;
@@ -96,6 +97,31 @@
       font-weight: 500;
       color: rgba(255,255,255,0.8);
     }
+
+    /* Connection panels are collapsed by default so the cards stay above
+       the fold; they expand to ~8 rows of controls each. */
+    details.controls-section > summary {
+      font-size: 1em;
+      font-weight: 500;
+      color: rgba(255,255,255,0.8);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    details.controls-section > summary::-webkit-details-marker { display: none; }
+
+    details.controls-section > summary::before {
+      content: '▸';
+      color: var(--primary-color);
+      transition: transform 0.15s ease;
+    }
+
+    details.controls-section[open] > summary::before { transform: rotate(90deg); }
+
+    details.controls-section[open] > summary { margin-bottom: 16px; }
 
     .control-row {
       display: flex;
@@ -191,8 +217,8 @@
       Tip: Click the <strong style="color: #ff9800;">Test</strong> button on the Display Card to enable Test Mode for previewing without a device
     </p>
 
-    <div class="controls-section" id="ble-section" style="margin-top: 20px; text-align: left;">
-      <h3>Real Device Connection (WebBluetooth)</h3>
+    <details class="controls-section" id="ble-section" style="margin-top: 20px; text-align: left;">
+      <summary>Real Device Connection (WebBluetooth)</summary>
       <div class="control-row">
         <label>Status:</label>
         <span id="ble-status" style="color: #f44; font-weight: bold;">Disconnected</span>
@@ -285,11 +311,12 @@
       </div>
       <p style="font-size: 0.75em; color: #666; margin-top: 8px;">
         Requires Chrome or Edge. Click "Connect Device" and select your LED_BLE_* device.
+        The panel only advertises when nothing else is connected -- close the phone app first.
       </p>
-    </div>
+    </details>
 
-    <div class="controls-section" id="wifi-section" style="margin-top: 20px; text-align: left;">
-      <h3>Real Device Connection (WiFi)</h3>
+    <details class="controls-section" id="wifi-section" style="margin-top: 20px; text-align: left;">
+      <summary>Real Device Connection (WiFi)</summary>
       <div class="control-row">
         <label>Status:</label>
         <span id="wifi-status" style="color: #f44; font-weight: bold;">Disconnected</span>
@@ -360,7 +387,7 @@
         Requires <code>python tools/wifi_bridge.py</code> running locally.
         Connect your laptop to the iPIXEL WiFi AP first.
       </p>
-    </div>
+    </details>
   </div>
 
   <div class="preview-container">
@@ -1474,7 +1501,7 @@
     // Check WebBluetooth availability
     if (!BLE.isWebBluetoothAvailable()) {
       document.getElementById('ble-section').innerHTML = `
-        <h3>Real Device Connection</h3>
+        <summary>Real Device Connection (WebBluetooth)</summary>
         <p style="color: #f88;">WebBluetooth is not available. Use Chrome or Edge on a supported platform.</p>
       `;
     }

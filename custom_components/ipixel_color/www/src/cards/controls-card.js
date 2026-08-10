@@ -5,7 +5,7 @@
 
 import { iPIXELCardBase } from '../base.js';
 import { iPIXELCardStyles } from '../styles.js';
-import { updateDisplayState, createStorage } from '../state.js';
+import { getDisplayState, updateDisplayState, createStorage } from '../state.js';
 import {
   renderSlider, attachSlider,
   renderGridSelector, attachGridSelector,
@@ -26,15 +26,17 @@ const CLOCK_STYLES = [
   { value: 8, name: 'Style 8 (Modern)' },
 ];
 
+// Device text animations. 3 and 4 are deliberately absent: they are known to
+// put non-32x32 panels into a boot loop and the integration rejects them.
+// Labels follow ipixel-ctrl docs/DeviceCommands.md section 0x0100.
 const ANIMATION_MODES = [
   { value: 0, name: 'Static' },
   { value: 1, name: 'Scroll Left' },
   { value: 2, name: 'Scroll Right' },
-  { value: 3, name: 'Scroll Up' },
-  { value: 4, name: 'Scroll Down' },
-  { value: 5, name: 'Flash' },
-  { value: 6, name: 'Fade In/Out' },
-  { value: 7, name: 'Bounce' },
+  { value: 5, name: 'Blink' },
+  { value: 6, name: 'Breeze' },
+  { value: 7, name: 'Snow' },
+  { value: 8, name: 'Laser' },
 ];
 
 const DISPLAY_MODES = [
@@ -341,9 +343,19 @@ export class iPIXELControlsCard extends iPIXELCardBase {
     attachToggle(this.shadowRoot, 'toggle-24h', (v) => { this._is24Hour = v; });
     attachToggle(this.shadowRoot, 'toggle-date', (v) => { this._showDate = v; });
     this.shadowRoot.getElementById('animation-mode')?.addEventListener('change', (e) => {
+      // The animation travels with the text rather than as its own command
+      // (there is no set_animation_mode service), so apply it by re-sending
+      // the current text with the chosen device animation code.
       this._animationMode = parseInt(e.target.value);
       updateDisplayState({ animationMode: this._animationMode });
-      this.callService('ipixel_color', 'set_animation_mode', { mode: this._animationMode });
+
+      const text = getDisplayState().text;
+      if (text) {
+        this.callService('ipixel_color', 'display_text', {
+          text,
+          effect: this._animationMode,
+        });
+      }
     });
     this.shadowRoot.getElementById('orientation')?.addEventListener('change', (e) => {
       this.callService('ipixel_color', 'set_orientation', { orientation: parseInt(e.target.value) });
