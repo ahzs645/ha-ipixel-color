@@ -670,6 +670,9 @@ class iPIXELScreenVisibleSwitch(SwitchEntity, RestoreEntity):
             if not self._api.is_connected:
                 await self._api.connect()
 
+            # Leave the DIY blank state before re-sending content.
+            await self._api.restore_display()
+
             # Trigger display update to restore content
             success = await update_ipixel_display(self.hass, self._name, self._api)
             if success:
@@ -682,7 +685,7 @@ class iPIXELScreenVisibleSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.error("Error restoring screen visibility: %s", err)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Hide screen (clear display)."""
+        """Hide screen (blank the display, leaving stored slots intact)."""
         try:
             if not self._api.is_connected:
                 await self._api.connect()
@@ -690,7 +693,7 @@ class iPIXELScreenVisibleSwitch(SwitchEntity, RestoreEntity):
             success = await self._api.clear_display()
             if success:
                 self._is_on = False
-                _LOGGER.info("Screen hidden (display cleared)")
+                _LOGGER.info("Screen hidden (display blanked)")
             else:
                 _LOGGER.error("Failed to hide screen")
         except Exception as err:

@@ -112,7 +112,39 @@ Temp: {{ states('sensor.temperature') | round(1) }}°C
 - Restart HA to see new fonts in dropdown
 - Recommended: pixel fonts like 5x5.ttf, 7x7.ttf
 
+## Safety Notes
+
+These displays store content in SPI flash and re-read it at every boot, so a
+bad write can leave the device unable to start.
+
+- **Text animations 3 and 4 boot-loop non-32×32 panels.** They are blocked by
+  this integration and omitted from the service pickers. Recovery from a boot
+  loop means racing a clear command into a very short window at power-on, so
+  don't try to send them via `send_raw_command` either.
+- **Test content before writing it to a slot.** If a payload displays correctly
+  without `buffer_slot`, it is safe to save. A corrupt payload written to a slot
+  is replayed on every boot.
+- **`ipixel_color.set_default_mode` is destructive.** It erases every saved slot
+  and the device settings. To blank the screen, use `ipixel_color.clear_pixels`
+  or turn off the screen switch — both are non-destructive.
+
 ## Troubleshooting
+
+**Device not found / won't connect**
+
+The panel accepts only one Bluetooth connection at a time, and it stops
+advertising entirely while something is connected to it. This is the most common
+cause of discovery failures:
+
+1. Force-close the official iPIXEL Color app on every phone in range (leaving it
+   backgrounded is often enough to hold the connection).
+2. If the panel was paired to a phone, unpair it there.
+3. Power-cycle the panel and retry discovery in Home Assistant.
+
+Only one controller can drive the display — pick either Home Assistant or the
+phone app, not both.
+
+**Other issues**
 
 - Enable debug logging: `custom_components.ipixel_color: debug`
 - Check auto-update is ON or use manual update button

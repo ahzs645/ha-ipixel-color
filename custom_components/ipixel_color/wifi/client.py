@@ -24,7 +24,25 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class WifiAckInfo:
-    """Parsed ACK response from the device."""
+    """Parsed ACK response from the device.
+
+    The device answers every command with a 5-byte frame
+    [0x05, 0x00, cmd_lo, cmd_hi, RET]. RET means different things depending on
+    the command class (ipixel-ctrl docs/DeviceCommands.md):
+
+      simple control commands : 0x00 = NG, 0x01 = OK
+      bulk data (0x0002/0x0003/0x0004/0x0100) : 0x03 = OK, anything else = NG
+
+    pypixelcolor's BLE AckManager uses the same reading: 0 and 1 acknowledge a
+    window, 3 signals the whole transfer landed.
+    """
+
+    # Bulk-data opcodes, where 0x03 is success rather than an error.
+    BULK_OPCODES = frozenset({0x0002, 0x0003, 0x0004, 0x0100})
+
+    ACK_WINDOW = 0x00
+    ACK_OK = 0x01
+    ACK_COMPLETE = 0x03
 
     def __init__(self, raw: bytes) -> None:
         self.raw = raw
@@ -35,14 +53,29 @@ class WifiAckInfo:
         if len(raw) >= 5 and raw[0] == 0x05:
             self.opcode = ((raw[3] & 0xFF) << 8) | (raw[2] & 0xFF)
             self.status = raw[4] & 0xFF
-            if self.status == 0x00:
-                self.ack_kind = "chunk-ack"
-            elif self.status == 0x01:
+            if self.status == self.ACK_COMPLETE:
                 self.ack_kind = "transfer-complete"
-            elif self.status == 0x03:
-                self.ack_kind = "crc-or-transfer-error"
+            elif self.status == self.ACK_WINDOW:
+                self.ack_kind = "chunk-ack"
+            elif self.status == self.ACK_OK:
+                self.ack_kind = "ok"
             else:
-                self.ack_kind = "socket-status"
+                self.ack_kind = "error"
+
+    @property
+    def is_error(self) -> bool:
+        """Return True if this ACK reports a failure."""
+        if self.status is None:
+            return False
+        if self.opcode in self.BULK_OPCODES:
+            # Mid-transfer windows are acknowledged with 0/1; only the final
+            # window reports 0x03. Anything else is a failure.
+            return self.status not in (
+                self.ACK_WINDOW,
+                self.ACK_OK,
+                self.ACK_COMPLETE,
+            )
+        return self.status == 0x00
 
 
 class WifiClient:
@@ -168,15 +201,26 @@ class WifiClient:
         Mirrors the app's payloadChannel() wrapper format:
         [length(2)][type(2)][option(1)][content_len(4)][crc32(4)][mode(1)][slot(1)][data...]
 
+        The logical content type is translated to its on-wire bytes -- they are
+        not the same value. Text is 0x0100 and templates are 0x0004, so writing
+        the logical constant straight into the frame sends the wrong command.
+
         Args:
             data: Content bytes to send
-            data_type: Content type (2=image, 3=gif, 4=text, 7=template)
-            slot: Storage slot on device (1-255)
+            data_type: Logical content type (TYPE_IMAGE, TYPE_GIF, TYPE_TEXT,
+                TYPE_TEM, ...)
+            slot: Storage slot on device. 1-100 persists, 0x65 (101) is
+                temporary.
 
         Returns:
             True if transfer completed successfully
         """
         import zlib
+
+        from ..device.commands import get_data_mode_byte, get_data_type_bytes
+
+        type_bytes = get_data_type_bytes(data_type)
+        mode_byte = get_data_mode_byte(data_type)
 
         crc = zlib.crc32(data) & 0xFFFFFFFF
         total_len = len(data)
@@ -193,11 +237,11 @@ class WifiClient:
 
             # Build frame header
             header = bytearray()
-            header.extend(data_type.to_bytes(2, "little"))  # Data type
+            header.extend(type_bytes)  # On-wire data type
             header.append(option)  # Option
             header.extend(total_len.to_bytes(4, "little"))  # Total content length
             header.extend(crc.to_bytes(4, "little"))  # CRC32
-            header.append(0x02)  # Storage mode
+            header.append(mode_byte)  # Storage mode
             header.append(slot & 0xFF)  # Slot
 
             frame = header + chunk
@@ -212,8 +256,12 @@ class WifiClient:
             ack = await self.recv()
             if ack:
                 ack_info = WifiAckInfo(ack)
-                if ack_info.status == 0x03:
-                    _LOGGER.error("Wi-Fi transfer CRC error at window %d", window_index)
+                if ack_info.is_error:
+                    _LOGGER.error(
+                        "Wi-Fi transfer failed at window %d (status=0x%02x)",
+                        window_index,
+                        ack_info.status or 0,
+                    )
                     return False
 
             window_index += 1

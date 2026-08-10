@@ -5,7 +5,7 @@
 
 import { iPIXELCardBase } from '../base.js';
 import { iPIXELCardStyles } from '../styles.js';
-import { updateDisplayState, createStorage } from '../state.js';
+import { getDisplayState, updateDisplayState, createStorage } from '../state.js';
 import {
   renderSlider, attachSlider,
   renderGridSelector, attachGridSelector,
@@ -26,15 +26,17 @@ const CLOCK_STYLES = [
   { value: 8, name: 'Style 8 (Modern)' },
 ];
 
+// Device text animations. 3 and 4 are deliberately absent: they are known to
+// put non-32x32 panels into a boot loop and the integration rejects them.
+// Labels follow ipixel-ctrl docs/DeviceCommands.md section 0x0100.
 const ANIMATION_MODES = [
   { value: 0, name: 'Static' },
   { value: 1, name: 'Scroll Left' },
   { value: 2, name: 'Scroll Right' },
-  { value: 3, name: 'Scroll Up' },
-  { value: 4, name: 'Scroll Down' },
-  { value: 5, name: 'Flash' },
-  { value: 6, name: 'Fade In/Out' },
-  { value: 7, name: 'Bounce' },
+  { value: 5, name: 'Blink' },
+  { value: 6, name: 'Breeze' },
+  { value: 7, name: 'Snow' },
+  { value: 8, name: 'Laser' },
 ];
 
 const DISPLAY_MODES = [
@@ -199,7 +201,9 @@ export class iPIXELControlsCard extends iPIXELCardBase {
           <div class="subsection-title">Rotation</div>
           <select class="dropdown" id="orientation">
             <option value="0">0° (Normal)</option>
-            <option value="1">180°</option>
+            <option value="1">90°</option>
+            <option value="2">180°</option>
+            <option value="3">270°</option>
           </select>
         </div>
         <div>
@@ -341,12 +345,33 @@ export class iPIXELControlsCard extends iPIXELCardBase {
     attachToggle(this.shadowRoot, 'toggle-24h', (v) => { this._is24Hour = v; });
     attachToggle(this.shadowRoot, 'toggle-date', (v) => { this._showDate = v; });
     this.shadowRoot.getElementById('animation-mode')?.addEventListener('change', (e) => {
+      // The animation travels with the text rather than as its own command
+      // (there is no set_animation_mode service), so apply it by re-sending
+      // the current text with the chosen device animation code.
       this._animationMode = parseInt(e.target.value);
       updateDisplayState({ animationMode: this._animationMode });
-      this.callService('ipixel_color', 'set_animation_mode', { mode: this._animationMode });
+
+      const text = getDisplayState().text;
+      if (text) {
+        this.callService('ipixel_color', 'display_text', {
+          text,
+          effect: this._animationMode,
+        });
+      }
     });
     this.shadowRoot.getElementById('orientation')?.addEventListener('change', (e) => {
-      this.callService('ipixel_color', 'set_orientation', { orientation: parseInt(e.target.value) });
+      // There is no set_orientation service; orientation is a select entity
+      // whose options are the rotation in degrees.
+      const value = parseInt(e.target.value);
+      const entity = this.getRelatedEntity('select', '_orientation');
+      if (entity) {
+        this._hass.callService('select', 'select_option', {
+          entity_id: entity.entity_id,
+          option: String(value * 90),
+        });
+      } else {
+        this.callService('ipixel_color', 'set_orientation', { orientation: value });
+      }
     });
     attachToggle(this.shadowRoot, 'toggle-upside-down', (v) => {
       this._upsideDown = v;
@@ -370,7 +395,7 @@ export class iPIXELControlsCard extends iPIXELCardBase {
       const slots = input.split(/[,\s]+/).map(Number).filter(n => n >= 1 && n <= 255);
       if (slots.length) {
         this._programSlots = input;
-        this.callService('ipixel_color', 'program_mode', { slots });
+        this.callService('ipixel_color', 'set_program_mode', { buffers: slots });
       }
     });
 
@@ -383,7 +408,7 @@ export class iPIXELControlsCard extends iPIXELCardBase {
       btn.addEventListener('click', (e) => {
         const slot = parseInt(e.currentTarget.dataset.delete);
         if (confirm(`Delete screen slot ${slot}?`)) {
-          this.callService('ipixel_color', 'delete_screen', { slot });
+          this.callService('ipixel_color', 'delete_slot', { slot });
           const slots = slotsStore.load();
           delete slots[String(slot)];
           slotsStore.save(slots);

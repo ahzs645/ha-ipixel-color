@@ -78,10 +78,32 @@ export class iPIXELCardBase extends HTMLElement {
     return matches.length > 0 ? this._hass.states[matches[0]] : null;
   }
 
+  /**
+   * True when the running backend registers this service.
+   *
+   * The preview harness has no service registry, so an unknown registry is
+   * treated as "available" and the call goes through to the mock.
+   */
+  hasService(domain, service) {
+    const registry = this._hass?.services;
+    if (!registry || !registry[domain]) return true;
+    return Object.prototype.hasOwnProperty.call(registry[domain], service);
+  }
+
   async callService(domain, service, data = {}) {
     if (!this._hass) return;
     if (this.isInTestMode()) {
       console.info(`iPIXEL [Test Mode]: ${domain}.${service}`, data);
+    }
+    if (!this.hasService(domain, service)) {
+      // Fail loudly rather than firing into the void -- Home Assistant only
+      // logs "Service not found" server-side, which is easy to miss.
+      console.warn(
+        `iPIXEL: ${domain}.${service} is not provided by this version of the ` +
+        `integration, so this control does nothing. Update the integration ` +
+        `or remove the control.`
+      );
+      return;
     }
     try {
       await this._hass.callService(domain, service, data);

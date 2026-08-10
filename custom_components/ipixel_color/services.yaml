@@ -18,14 +18,28 @@ display_text:
         text:
     effect:
       name: Effect
-      description: Display effect for the text
+      description: >-
+        Text animation. 3 and 4 are omitted on purpose: they are known to put
+        non-32x32 panels into a boot loop and are rejected by the integration.
       required: false
-      default: 0
+      default: "0"
       selector:
-        number:
-          min: 0
-          max: 7
-          mode: box
+        select:
+          options:
+            - label: "Static"
+              value: "0"
+            - label: "Scroll left"
+              value: "1"
+            - label: "Scroll right"
+              value: "2"
+            - label: "Blink"
+              value: "5"
+            - label: "Breeze"
+              value: "6"
+            - label: "Snow"
+              value: "7"
+            - label: "Laser"
+              value: "8"
     speed:
       name: Speed
       description: Animation speed (1-100)
@@ -277,7 +291,9 @@ set_pixels:
 
 clear_pixels:
   name: Clear Pixels
-  description: Clear the display (blank screen without powering off)
+  description: >-
+    Blank the display without powering off. Non-destructive: saved slots and
+    device settings are kept. For the destructive wipe, use Set Default Mode.
   fields:
     device_id:
       name: Device
@@ -624,8 +640,11 @@ set_upside_down:
         boolean:
 
 set_default_mode:
-  name: Set Default Mode
-  description: Reset device to factory default display mode
+  name: Set Default Mode (erases stored data)
+  description: >-
+    DESTRUCTIVE. Resets the device to factory defaults, which erases every
+    saved slot and the device settings. To just blank the screen, use
+    Clear Pixels instead.
   fields:
     device_id:
       name: Device
@@ -1391,14 +1410,28 @@ display_native_text:
         text:
     effect:
       name: Effect
-      description: "Text animation: 0=Static, 1=Scroll Left, 2=Scroll Right, 3=Scroll Up, 4=Scroll Down, 5=Flash, 6=Snow, 7=Laser"
+      description: >-
+        Text animation. 3 and 4 are omitted on purpose: they are known to put
+        non-32x32 panels into a boot loop and are rejected by the integration.
       required: false
-      default: 1
+      default: "1"
       selector:
-        number:
-          min: 0
-          max: 7
-          mode: box
+        select:
+          options:
+            - label: "Static"
+              value: "0"
+            - label: "Scroll left"
+              value: "1"
+            - label: "Scroll right"
+              value: "2"
+            - label: "Blink"
+              value: "5"
+            - label: "Breeze"
+              value: "6"
+            - label: "Snow"
+              value: "7"
+            - label: "Laser"
+              value: "8"
     speed:
       name: Speed
       description: Animation speed (0-100)

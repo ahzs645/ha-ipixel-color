@@ -929,10 +929,10 @@ export async function setRhythmLevelMode(style = 0, levels = []) {
 
 /**
  * Set orientation/rotation
- * @param {number} orientation - 0=normal, 1=180°, 2=mirror
+ * @param {number} orientation - 0=0°, 1=90°, 2=180°, 3=270°
  */
 export async function setOrientation(orientation) {
-  const o = Math.max(0, Math.min(2, orientation));
+  const o = Math.max(0, Math.min(3, orientation));
   await sendCommand([0x05, 0x00, 0x06, 0x80, o]);
 }
 
@@ -975,48 +975,6 @@ export async function programMode(slots) {
 }
 
 /**
- * Set rainbow mode for text
- * @param {number} mode - Rainbow mode (0-9)
- *   0=None, 1=Wave, 2=Cycle, 3=Pulse, 4=Fade,
- *   5=Chase, 6=Sparkle, 7=Gradient, 8=Theater, 9=Fire
- */
-export async function setRainbowMode(mode) {
-  const m = Math.max(0, Math.min(9, mode));
-  // Rainbow mode command based on iPixel-ESP32 protocol
-  await sendCommand([0x05, 0x00, 0x0A, 0x01, m]);
-}
-
-/**
- * Send text with per-character colors
- * @param {string} text - Text to display
- * @param {Array<{r: number, g: number, b: number}>} colors - Array of RGB colors for each character
- */
-export async function sendMulticolorText(text, colors) {
-  if (!text || colors.length === 0) return;
-
-  // Build the multicolor text command
-  // Format: [length_lo, length_hi, 0x03, 0x01, char_count, ...char_data]
-  // Each char_data: [char_code, r, g, b]
-  const charData = [];
-  for (let i = 0; i < text.length; i++) {
-    const charCode = text.charCodeAt(i);
-    const color = colors[i % colors.length]; // Cycle colors if fewer than chars
-    charData.push(charCode, color.r, color.g, color.b);
-  }
-
-  const length = 4 + charData.length; // header + char data
-  const data = [
-    length & 0xFF,
-    (length >> 8) & 0xFF,
-    0x03, 0x01,  // Multicolor text command
-    text.length,
-    ...charData
-  ];
-
-  await sendCommand(data);
-}
-
-/**
  * Send GFX pixel data (DIY mode)
  * @param {Array<{x: number, y: number, color: string}>} pixels - Array of pixel data
  */
@@ -1045,38 +1003,6 @@ export async function sendGfxPixels(pixels) {
  */
 export async function setUpsideDown(enabled) {
   await sendCommand([0x05, 0x00, 0x06, 0x80, enabled ? 0x01 : 0x00]);
-}
-
-/**
- * Set text animation mode
- * @param {number} mode - Animation mode (0-7)
- *   0=Static, 1=Scroll Left, 2=Scroll Right, 3=Scroll Up,
- *   4=Scroll Down, 5=Flash, 6=Fade In/Out, 7=Bounce
- */
-export async function setAnimationMode(mode) {
-  const m = Math.max(0, Math.min(7, mode));
-  await sendCommand([0x05, 0x00, 0x0B, 0x01, m]);
-}
-
-/**
- * Set font size
- * @param {number} size - Font size (1-128)
- */
-export async function setFontSize(size) {
-  const s = Math.max(1, Math.min(128, size));
-  await sendCommand([0x05, 0x00, 0x0C, 0x01, s]);
-}
-
-/**
- * Set font offset (position adjustment)
- * @param {number} x - X offset (-64 to 64)
- * @param {number} y - Y offset (-32 to 32)
- */
-export async function setFontOffset(x, y) {
-  // Convert to unsigned bytes (with offset for negative values)
-  const xByte = Math.max(0, Math.min(255, x + 128));
-  const yByte = Math.max(0, Math.min(255, y + 128));
-  await sendCommand([0x06, 0x00, 0x0D, 0x01, xByte, yByte]);
 }
 
 /**

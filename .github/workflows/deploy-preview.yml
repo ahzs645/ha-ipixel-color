@@ -42,12 +42,24 @@ jobs:
 
       - name: Prepare GitHub Pages
         run: |
+          set -euo pipefail
           mkdir -p _site
           cp custom_components/ipixel_color/www/preview.html _site/index.html
           cp custom_components/ipixel_color/www/ipixel-display-card.js _site/
           cp -r custom_components/ipixel_color/www/src _site/
-          cp -r custom_components/ipixel_color/www/lib _site/ 2>/dev/null || true
-          cp -r custom_components/ipixel_color/www/fonts _site/ 2>/dev/null || true
+          cp -r custom_components/ipixel_color/www/fonts _site/
+          # The gallery card fetches ./gallery/manifest.json relative to the
+          # page; outside Home Assistant that resolves inside _site.
+          cp -r custom_components/ipixel_color/assets/gallery _site/gallery
+
+      - name: Verify Pages assets
+        run: |
+          set -euo pipefail
+          for f in index.html ipixel-display-card.js src/ble-device.js \
+                   fonts/CUSONG.ttf gallery/manifest.json; do
+            test -s "_site/$f" || { echo "missing or empty: _site/$f"; exit 1; }
+          done
+          echo "all required Pages assets present"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

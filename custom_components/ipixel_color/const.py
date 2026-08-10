@@ -48,6 +48,67 @@ DEFAULT_ORIENTATION = "0"
 AVAILABLE_RHYTHM_STYLES = ["0", "1", "2", "3", "4"]
 DEFAULT_RHYTHM_STYLE = "0"
 
+# Native text animations (opcode 0x0100, properties byte 4).
+# Labels follow ipixel-ctrl/docs/DeviceCommands.md section 0x0100, which is the
+# only formal spec of this field. Note the gap at 3/4 -- see below.
+TEXT_ANIM_STATIC = 0
+TEXT_ANIM_SCROLL_LEFT = 1
+TEXT_ANIM_SCROLL_RIGHT = 2
+TEXT_ANIM_BLINK = 5
+TEXT_ANIM_BREEZE = 6
+TEXT_ANIM_SNOW = 7
+TEXT_ANIM_LASER = 8
+
+TEXT_ANIMATION_LABELS = {
+    TEXT_ANIM_STATIC: "static",
+    TEXT_ANIM_SCROLL_LEFT: "scroll_left",
+    TEXT_ANIM_SCROLL_RIGHT: "scroll_right",
+    TEXT_ANIM_BLINK: "blink",
+    TEXT_ANIM_BREEZE: "breeze",
+    TEXT_ANIM_SNOW: "snow",
+    TEXT_ANIM_LASER: "laser",
+}
+
+# The Lovelace text card populates its Effect dropdown from the renderer's
+# effect registry (react-pixel-display), which uses names rather than the
+# device's numeric codes. Accept both so the card, the service UI and existing
+# automations all work.
+#
+# Note: sources disagree on which of 1/2 is "left" and which is "right" --
+# ipixel-ctrl labels 0x01 RTL and 0x02 LTR, while pypixelcolor treats 2 as the
+# RTL case and reverses glyph order for it. The two values are a pair; if the
+# direction looks wrong, use the other one.
+TEXT_ANIMATION_NAMES = {
+    "static": TEXT_ANIM_STATIC,
+    "fixed": TEXT_ANIM_STATIC,
+    "none": TEXT_ANIM_STATIC,
+    "scroll_left": TEXT_ANIM_SCROLL_LEFT,
+    "scroll_rtl": TEXT_ANIM_SCROLL_LEFT,
+    "scroll": TEXT_ANIM_SCROLL_LEFT,
+    "scroll_right": TEXT_ANIM_SCROLL_RIGHT,
+    "scroll_ltr": TEXT_ANIM_SCROLL_RIGHT,
+    "blink": TEXT_ANIM_BLINK,
+    "flash": TEXT_ANIM_BLINK,
+    "breeze": TEXT_ANIM_BREEZE,
+    "snow": TEXT_ANIM_SNOW,
+    "laser": TEXT_ANIM_LASER,
+}
+
+# Animations 3 and 4 are known to put the device into a boot loop on panels that
+# are not 32x32. The device stores the offending payload in SPI flash and then
+# crashes re-reading it on every boot, so recovery means racing a clear command
+# into a very short window at power-on.
+#
+# Every upstream implementation blocks them:
+#   - pypixelcolor commands/send_text: raises for non-32x32 devices
+#   - lucagoc/SuperIlu iPixel-CLI commands.py: raises unconditionally
+#   - ToBiDi0410/iPixel-ESP32 iPixelCommands.cpp: returns an empty frame
+#   - freijn ipixel_text_v2.h: silently remaps 3/4 to 0
+UNSAFE_TEXT_ANIMATIONS = frozenset({3, 4})
+
+# Panel size on which animations 3/4 have been observed to work.
+SAFE_ANIMATION_DIMENSIONS = (32, 32)
+
 # Visual effects
 AVAILABLE_EFFECTS = [
     "none",

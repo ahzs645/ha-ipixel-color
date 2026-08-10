@@ -43,8 +43,10 @@ _DEVICE_CONFIGS = [
     },
 ]
 
-# LED type to display dimensions mapping
-# Recovered from device info parsing in the APK
+# LED type to display dimensions mapping.
+# Identical in go-ipxl/consts.go (ledSizeMap), pypixelcolor
+# lib/device_info.py (LED_SIZE_MAP) and DonKracho's ipixel_ble.h
+# (display_size_). Note there is no 128x64 or 192x64 type.
 LED_TYPE_DIMENSIONS: dict[int, tuple[int, int]] = {
     0: (64, 64),
     1: (96, 16),
@@ -52,24 +54,50 @@ LED_TYPE_DIMENSIONS: dict[int, tuple[int, int]] = {
     3: (64, 16),
     4: (32, 16),
     5: (64, 20),
-    6: (128, 16),
+    6: (128, 32),
     7: (144, 16),
     8: (192, 16),
     9: (48, 24),
     10: (64, 32),
     11: (96, 32),
     12: (128, 32),
-    13: (160, 32),
-    14: (192, 32),
-    15: (256, 32),
-    16: (128, 64),
-    17: (192, 64),
-    18: (320, 32),
-    19: (384, 32),
-    20: (448, 32),
+    13: (96, 32),
+    14: (160, 32),
+    15: (192, 32),
+    16: (256, 32),
+    17: (320, 32),
+    18: (384, 32),
+    19: (448, 32),
 }
 
-# LED type byte offset (the device reports type as signed byte, offset by 128)
+# Device type byte (byte 4 of the 0x8001 response) to LED type.
+# This mapping is NOT a linear offset -- 129 is type 2 and 132 is type 1 --
+# so it has to be a lookup table.
+DEVICE_TYPE_TO_LED_TYPE: dict[int, int] = {
+    128: 0,
+    129: 2,
+    130: 4,
+    131: 3,
+    132: 1,
+    133: 5,
+    134: 6,
+    135: 7,
+    136: 8,
+    137: 9,
+    138: 10,
+    139: 11,
+    140: 12,
+    141: 13,
+    142: 14,
+    143: 15,
+    144: 16,
+    145: 17,
+    146: 18,
+    147: 19,
+}
+
+# Lowest device type byte; values at or above this are raw device bytes
+# rather than LED type numbers.
 LED_TYPE_BYTE_OFFSET = 128
 
 # Border animation dimensions available per display size
@@ -115,16 +143,22 @@ def get_dimensions_for_led_type(led_type: int) -> tuple[int, int] | None:
     """Get display dimensions for a given LED type number.
 
     Args:
-        led_type: LED type number (0-20, or raw device byte)
+        led_type: LED type number (0-19), or a raw device type byte
+            (128-147, or its signed equivalent -128..-109)
 
     Returns:
         (width, height) tuple, or None if unknown
     """
-    # Handle raw device byte (signed, offset by 128)
+    # Normalise a signed device byte back into its unsigned form.
+    if led_type < 0:
+        led_type += 256
+
+    # Raw device bytes go through the lookup table, not arithmetic.
     if led_type >= LED_TYPE_BYTE_OFFSET:
-        led_type = led_type - 256 + LED_TYPE_BYTE_OFFSET
-    elif led_type < 0:
-        led_type = led_type + LED_TYPE_BYTE_OFFSET
+        mapped = DEVICE_TYPE_TO_LED_TYPE.get(led_type)
+        if mapped is None:
+            return None
+        led_type = mapped
 
     return LED_TYPE_DIMENSIONS.get(led_type)
 
