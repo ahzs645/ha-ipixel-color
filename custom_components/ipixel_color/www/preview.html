@@ -217,176 +217,126 @@
       Tip: Click the <strong style="color: #ff9800;">Test</strong> button on the Display Card to enable Test Mode for previewing without a device
     </p>
 
-    <details class="controls-section" id="ble-section" style="margin-top: 20px; text-align: left;">
-      <summary>Real Device Connection (WebBluetooth)</summary>
-      <div class="control-row">
-        <label>Status:</label>
-        <span id="ble-status" style="color: #f44; font-weight: bold;">Disconnected</span>
-        <span id="ble-device-name" style="color: #888; margin-left: 8px;"></span>
-      </div>
-      <div class="control-row">
-        <button id="ble-connect-btn" onclick="connectBleDevice()">Connect Device</button>
-        <button id="ble-disconnect-btn" onclick="disconnectBleDevice()" style="display:none;">Disconnect</button>
-      </div>
-      <div class="control-row" id="ble-controls" style="display:none;">
-        <button onclick="blePowerOn()">Power On</button>
-        <button onclick="blePowerOff()">Power Off</button>
-        <button onclick="bleSendPreview()">Send Preview to Device</button>
-      </div>
-      <div class="control-row" id="ble-controls-debug" style="display:none;">
-        <button onclick="bleTestPattern()" style="background:#f80;">Test 3px</button>
-        <button onclick="bleTestCamera()" style="background:#f0f;">Test Cam</button>
-        <button onclick="bleSendCamera()" style="background:#0a0;">Camera (Fast)</button>
-        <button onclick="bleSendDiyPixels()" style="background:#888;">DIY (Slow)</button>
-        <button onclick="debugRenderer()" style="background:#08f;">Debug</button>
-        <button onclick="bleResetLock()" style="background:#f00;">Reset</button>
-      </div>
-      <div class="control-row" id="ble-controls-stream" style="display:none;">
-        <button id="ble-stream-btn" onclick="bleToggleStream()" style="background:#0aa; min-width: 140px;">▶ Stream to Device</button>
-        <label style="margin-left: 8px;">FPS:</label>
-        <select id="ble-stream-fps">
-          <option value="2">2 (Slow)</option>
-          <option value="3" selected>3 (Default)</option>
-          <option value="5">5 (Fast)</option>
-          <option value="8">8 (Very Fast)</option>
-        </select>
-        <span id="ble-stream-status" style="margin-left: 8px; color: #888;"></span>
-      </div>
-      <div class="control-row" id="ble-controls-2" style="display:none;">
-        <label>Brightness:</label>
-        <input type="range" id="ble-brightness" min="1" max="100" value="50" style="flex:1;">
-        <span id="ble-brightness-value">50</span>
-        <button onclick="bleSetBrightness()">Set</button>
-      </div>
-      <div class="control-row" id="ble-controls-3" style="display:none;">
-        <label>Clock:</label>
-        <select id="ble-clock-style">
-          <option value="1">Style 1</option>
-          <option value="2">Style 2</option>
-          <option value="3">Style 3</option>
-          <option value="4">Style 4</option>
-          <option value="5">Style 5</option>
-          <option value="6">Style 6</option>
-          <option value="7">Style 7</option>
-          <option value="8">Style 8</option>
-        </select>
-        <button onclick="bleSetClockMode()">Show Clock</button>
-        <button onclick="bleSyncTime()">Sync Time</button>
-      </div>
-      <div class="control-row" id="ble-controls-4" style="display:none;">
-        <label>Orientation:</label>
-        <select id="ble-orientation">
-          <option value="0">Normal</option>
-          <option value="1">Upside Down</option>
-        </select>
-        <button onclick="bleSetOrientation()">Set</button>
-        <button onclick="bleClearDisplay()">Clear</button>
-      </div>
-      <div class="control-row" id="ble-controls-5" style="display:none;">
-        <label>Rainbow:</label>
-        <select id="ble-rainbow-mode">
-          <option value="0">None</option>
-          <option value="1">Wave</option>
-          <option value="2">Cycle</option>
-          <option value="3">Pulse</option>
-          <option value="4">Fade</option>
-          <option value="5">Chase</option>
-          <option value="6">Sparkle</option>
-          <option value="7">Gradient</option>
-          <option value="8">Theater</option>
-          <option value="9">Fire</option>
-        </select>
-        <button onclick="bleSetRainbowMode()">Set Rainbow</button>
-      </div>
-      <div class="control-row" id="ble-controls-6" style="display:none;">
-        <label>Rhythm:</label>
-        <select id="ble-rhythm-style">
-          <option value="0">Classic Bars</option>
-          <option value="1">Mirrored Bars</option>
-          <option value="2">Center Out</option>
-          <option value="3">Wave Style</option>
-          <option value="4">Particle Style</option>
-        </select>
-        <button onclick="bleSetRhythmDemo()">Demo Rhythm</button>
-      </div>
-      <p style="font-size: 0.75em; color: #666; margin-top: 8px;">
-        Requires Chrome or Edge. Click "Connect Device" and select your LED_BLE_* device.
-        The panel only advertises when nothing else is connected -- close the phone app first.
-      </p>
-    </details>
+    <details class="controls-section" id="device-section" style="margin-top: 20px; text-align: left;">
+      <summary>Real Device Connection</summary>
 
-    <details class="controls-section" id="wifi-section" style="margin-top: 20px; text-align: left;">
-      <summary>Real Device Connection (WiFi)</summary>
       <div class="control-row">
-        <label>Status:</label>
-        <span id="wifi-status" style="color: #f44; font-weight: bold;">Disconnected</span>
+        <label>Transport:</label>
+        <select id="transport-select">
+          <option value="ble">Bluetooth</option>
+          <option value="wifi">Wi-Fi</option>
+        </select>
+        <span id="device-status" style="color: #f44; font-weight: bold;">Disconnected</span>
+        <span id="device-name" style="color: #888; margin-left: 8px;"></span>
       </div>
-      <div class="control-row">
+
+      <!-- Wi-Fi needs a bridge URL and the panel size up front; BLE reads both
+           from the device once connected. -->
+      <div class="control-row transport-only" data-transport="wifi">
         <label>Bridge:</label>
-        <input type="text" id="wifi-ws-url" value="ws://localhost:9001" style="flex:1; padding:8px 12px; border:1px solid #333; border-radius:6px; background:#222; color:#fff; font-size:0.9em;">
+        <input type="text" id="wifi-ws-url" value="ws://localhost:9001" style="flex:1;">
       </div>
-      <div class="control-row">
+      <div class="control-row transport-only" data-transport="wifi">
         <label>Size:</label>
-        <input type="number" id="wifi-width" value="64" min="8" max="256" style="width:60px; padding:8px; border:1px solid #333; border-radius:6px; background:#222; color:#fff;">
+        <input type="number" id="wifi-width" value="64" min="8" max="256" style="width:70px;">
         <span style="color:#666;">x</span>
-        <input type="number" id="wifi-height" value="16" min="8" max="64" style="width:60px; padding:8px; border:1px solid #333; border-radius:6px; background:#222; color:#fff;">
+        <input type="number" id="wifi-height" value="16" min="8" max="64" style="width:70px;">
       </div>
+
       <div class="control-row">
-        <button id="wifi-connect-btn" onclick="connectWifiDevice()">Connect WiFi</button>
-        <button id="wifi-disconnect-btn" onclick="disconnectWifiDevice()" style="display:none;">Disconnect</button>
+        <button id="device-connect-btn" onclick="deviceConnect()">Connect</button>
+        <button id="device-disconnect-btn" onclick="deviceDisconnect()" style="display:none;">Disconnect</button>
+        <span id="transport-note" style="color:#f88; font-size:0.8em;"></span>
       </div>
-      <div class="control-row" id="wifi-controls" style="display:none;">
-        <button onclick="wifiPowerOn()">Power On</button>
-        <button onclick="wifiPowerOff()">Power Off</button>
-        <button onclick="wifiSendPreview()">Send Preview</button>
+
+      <div id="device-controls" style="display:none;">
+        <div class="control-row">
+          <button onclick="devicePowerOn()">Power On</button>
+          <button onclick="devicePowerOff()">Power Off</button>
+          <button onclick="deviceSendPreview()">Send Preview</button>
+          <button onclick="deviceClear()" style="background:#888;">Clear</button>
+          <button onclick="deviceSyncTime()" style="background:#08f;">Sync Time</button>
+        </div>
+
+        <div class="control-row">
+          <button id="device-stream-btn" onclick="deviceToggleStream()" style="background:#0aa; min-width:140px;">▶ Stream to Device</button>
+          <label style="margin-left:8px;">FPS:</label>
+          <select id="device-stream-fps">
+            <option value="2">2 (Slow)</option>
+            <option value="3" selected>3</option>
+            <option value="5">5 (Fast)</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+            <option value="15">15 (Wi-Fi)</option>
+          </select>
+          <span id="device-stream-status" style="margin-left:8px; color:#888;"></span>
+        </div>
+
+        <div class="control-row">
+          <label>Brightness:</label>
+          <input type="range" id="device-brightness" min="1" max="100" value="50" style="flex:1;">
+          <span id="device-brightness-value">50</span>
+          <button onclick="deviceSetBrightness()">Set</button>
+        </div>
+
+        <div class="control-row">
+          <label>Clock:</label>
+          <select id="device-clock-style">
+            <option value="0">Style 0</option>
+            <option value="1" selected>Style 1</option>
+            <option value="2">Style 2</option>
+            <option value="3">Style 3</option>
+            <option value="4">Style 4</option>
+            <option value="5">Style 5</option>
+            <option value="6">Style 6</option>
+            <option value="7">Style 7</option>
+            <option value="8">Style 8</option>
+          </select>
+          <button onclick="deviceSetClockMode()">Show Clock</button>
+          <label style="margin-left:8px;">Rotation:</label>
+          <select id="device-orientation">
+            <option value="0">0°</option>
+            <option value="1">90°</option>
+            <option value="2">180°</option>
+            <option value="3">270°</option>
+          </select>
+          <button onclick="deviceSetOrientation()">Set</button>
+        </div>
+
+        <div class="control-row">
+          <label>Rhythm:</label>
+          <select id="device-rhythm-style">
+            <option value="0">Classic Bars</option>
+            <option value="1">Mirrored Bars</option>
+            <option value="2">Center Out</option>
+            <option value="3">Wave Style</option>
+            <option value="4">Particle Style</option>
+          </select>
+          <button onclick="deviceRhythmDemo()">Demo Rhythm</button>
+        </div>
+
+        <div class="control-row">
+          <button onclick="deviceCountdown()" style="background:#a50;">Countdown 1m</button>
+          <button onclick="deviceScoreboard()" style="background:#05a;">Score 0-0</button>
+          <button onclick="deviceStopwatch()" style="background:#0a5;">Stopwatch Start</button>
+          <button onclick="deviceExitMode()" style="background:#555;">Exit Mode</button>
+        </div>
+
+        <!-- Bluetooth-only diagnostics: ACK notifications and the DIY pixel
+             path have no Wi-Fi equivalent in the harness. -->
+        <div class="control-row cap-only" data-cap="debugTools">
+          <button onclick="deviceTestPattern()" style="background:#f80;">Test 3px</button>
+          <button onclick="deviceTestCamera()" style="background:#f0f;">Test Cam</button>
+          <button onclick="deviceSendDiyPixels()" style="background:#888;">DIY (Slow)</button>
+          <button onclick="debugRenderer()" style="background:#08f;">Debug</button>
+          <button onclick="deviceResetLock()" style="background:#f00;">Reset Lock</button>
+        </div>
+        <div class="control-row cap-only" data-cap="testPattern">
+          <button onclick="deviceTestPatternWifi()" style="background:#f80;">Test Pattern</button>
+        </div>
       </div>
-      <div class="control-row" id="wifi-controls-2" style="display:none;">
-        <button onclick="wifiTestPattern()" style="background:#f80;">Test Pattern</button>
-        <button onclick="wifiSyncTime()" style="background:#08f;">Sync Time</button>
-        <button onclick="wifiClearDisplay()" style="background:#888;">Clear</button>
-      </div>
-      <div class="control-row" id="wifi-controls-3" style="display:none;">
-        <label>Brightness:</label>
-        <input type="range" id="wifi-brightness" min="1" max="100" value="50" style="flex:1;">
-        <span id="wifi-brightness-value">50</span>
-        <button onclick="wifiSetBrightness()">Set</button>
-      </div>
-      <div class="control-row" id="wifi-controls-4" style="display:none;">
-        <label>Clock:</label>
-        <select id="wifi-clock-style">
-          <option value="1">Style 1</option>
-          <option value="2">Style 2</option>
-          <option value="3">Style 3</option>
-          <option value="4">Style 4</option>
-          <option value="5">Style 5</option>
-          <option value="6">Style 6</option>
-          <option value="7">Style 7</option>
-          <option value="8">Style 8</option>
-        </select>
-        <button onclick="wifiSetClockMode()">Show Clock</button>
-      </div>
-      <div class="control-row" id="wifi-controls-5" style="display:none;">
-        <button onclick="wifiCountdown()" style="background:#a50;">Countdown 1m</button>
-        <button onclick="wifiScoreboard()" style="background:#05a;">Score 0-0</button>
-        <button onclick="wifiStopwatch()" style="background:#0a5;">Stopwatch Start</button>
-        <button onclick="wifiExitMode()" style="background:#555;">Exit Mode</button>
-      </div>
-      <div class="control-row" id="wifi-controls-stream" style="display:none;">
-        <button id="wifi-stream-btn" onclick="wifiToggleStream()" style="background:#0aa; min-width: 140px;">Stream to Device</button>
-        <label style="margin-left: 8px;">FPS:</label>
-        <select id="wifi-stream-fps">
-          <option value="3">3</option>
-          <option value="5" selected>5</option>
-          <option value="8">8</option>
-          <option value="10">10 (Fast)</option>
-          <option value="15">15 (WiFi)</option>
-        </select>
-        <span id="wifi-stream-status" style="margin-left: 8px; color: #888;"></span>
-      </div>
-      <p style="font-size: 0.75em; color: #666; margin-top: 8px;">
-        Requires <code>python tools/wifi_bridge.py</code> running locally.
-        Connect your laptop to the iPIXEL WiFi AP first.
-      </p>
+
+      <p style="font-size: 0.75em; color: #666; margin-top: 8px;" id="transport-help"></p>
     </details>
   </div>
 
@@ -535,70 +485,59 @@
           }
         }
 
-        // Forward iPIXEL service calls to BLE device when connected
-        if (domain === 'ipixel_color' && BLE.isDeviceConnected()) {
+        // Forward iPIXEL service calls to whichever transport is connected.
+        // Only services the integration actually registers are handled here --
+        // anything else would be forwarding a call Home Assistant would reject.
+        if (domain === 'ipixel_color' && DEVICE.isConnected()) {
+          const tag = DEVICE.getActiveId();
           try {
             if (service === 'display_text') {
               // Wait for the display to update before sending pixels
               // The updateDisplayState event needs time to propagate
-              logService('ble', 'forwarding_display_text', data);
+              logService(tag, 'forwarding_display_text', data);
               await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-              await bleSendPreview();
-            } else if (service === 'set_rhythm_level') {
-              await BLE.setRhythmLevelMode(data.style, data.levels);
-              logService('ble', 'set_rhythm_level', data);
-            } else if (service === 'set_rainbow_mode') {
-              await BLE.setRainbowMode(data.mode);
-              logService('ble', 'set_rainbow_mode', data);
+              await deviceSendPreview();
+            } else if (service === 'set_rhythm_mode_advanced') {
+              const levels = String(data.levels).split(',').map(Number);
+              await DEVICE.setRhythmLevelMode(data.style, levels);
+              logService(tag, 'set_rhythm_mode_advanced', data);
             } else if (service === 'set_screen') {
-              await BLE.selectScreen(data.screen);
-              logService('ble', 'select_screen', data);
+              await DEVICE.selectScreen(data.screen);
+              logService(tag, 'select_screen', data);
             } else if (service === 'show_slot') {
-              await BLE.showSlot(data.slot);
-              logService('ble', 'show_slot', data);
-            } else if (service === 'program_mode') {
-              await BLE.programMode(data.slots);
-              logService('ble', 'program_mode', data);
-            } else if (service === 'delete_screen') {
-              await BLE.deleteScreen(data.slot);
-              logService('ble', 'delete_screen', data);
+              await DEVICE.showSlot(data.slot);
+              logService(tag, 'show_slot', data);
+            } else if (service === 'set_program_mode') {
+              await DEVICE.programMode(data.buffers);
+              logService(tag, 'set_program_mode', data);
+            } else if (service === 'delete_slot') {
+              await DEVICE.deleteScreen(data.slot);
+              logService(tag, 'delete_slot', data);
             } else if (service === 'set_brightness') {
-              await BLE.setBrightness(data.level);
-              logService('ble', 'set_brightness', data);
+              await DEVICE.setBrightness(data.level);
+              logService(tag, 'set_brightness', data);
             } else if (service === 'clear_pixels') {
-              await BLE.enterDiyMode();
-              logService('ble', 'clear_pixels', data);
+              await DEVICE.enterDiyMode();
+              logService(tag, 'clear_pixels', data);
             } else if (service === 'set_clock_mode') {
-              await BLE.setClockMode(data.style, data.format_24h, data.show_date);
-              logService('ble', 'set_clock_mode', data);
+              await DEVICE.setClockMode(data.style, data.format_24h, data.show_date);
+              logService(tag, 'set_clock_mode', data);
             } else if (service === 'sync_time') {
-              await BLE.syncTime();
-              logService('ble', 'sync_time', data);
-            } else if (service === 'set_orientation') {
-              await BLE.setOrientation(data.orientation);
-              logService('ble', 'set_orientation', data);
+              await DEVICE.syncTime();
+              logService(tag, 'sync_time', data);
             } else if (service === 'set_upside_down') {
-              await BLE.setUpsideDown(data.enabled ? 1 : 0);
-              logService('ble', 'set_upside_down', data);
+              await DEVICE.setUpsideDown(data.enabled ? 1 : 0);
+              logService(tag, 'set_upside_down', data);
             } else if (service === 'set_diy_mode') {
-              await BLE.switchToDiyFunMode(parseInt(data.mode));
-              logService('ble', 'set_diy_mode', data);
-            } else if (service === 'set_animation_mode') {
-              await BLE.setAnimationMode(data.mode);
-              logService('ble', 'set_animation_mode', data);
+              await DEVICE.call('switchToDiyFunMode', parseInt(data.mode));
+              logService(tag, 'set_diy_mode', data);
             } else if (service === 'send_raw_command') {
               const bytes = data.hex_data.split(/\s+/).map(h => parseInt(h, 16));
-              await BLE.sendCommand(bytes);
-              logService('ble', 'send_raw_command', data);
-            } else if (service === 'set_font_size') {
-              await BLE.sendCommand([0x05, 0x00, 0x0C, 0x01, data.size & 0xFF]);
-              logService('ble', 'set_font_size', data);
-            } else if (service === 'set_font_offset') {
-              await BLE.sendCommand([0x06, 0x00, 0x0D, 0x01, data.x & 0xFF, data.y & 0xFF]);
-              logService('ble', 'set_font_offset', data);
+              await DEVICE.sendCommand(bytes);
+              logService(tag, 'send_raw_command', data);
             }
           } catch (e) {
-            logService('ble', 'error', { message: e.message });
+            logService(tag, 'error', { message: e.message });
           }
         }
 
@@ -699,139 +638,154 @@
     // Import device modules
     import * as BLE from './src/ble-device.js';
     import * as WIFI from './src/wifi-device.js';
+    import * as DEVICE from './src/device-transport.js';
     import { encodeGif } from './src/gif-encoder.js';
     window.BLE = BLE; // Expose for debugging
     window.WIFI = WIFI;
+    window.DEVICE = DEVICE;
     window.encodeGif = encodeGif;
 
-    // BLE connection functions
-    window.connectBleDevice = async function() {
-      try {
-        const deviceName = await BLE.connectDevice();
-        document.getElementById('ble-status').textContent = 'Connected';
-        document.getElementById('ble-status').style.color = '#4f4';
-        document.getElementById('ble-device-name').textContent = deviceName;
-        document.getElementById('ble-connect-btn').style.display = 'none';
-        document.getElementById('ble-disconnect-btn').style.display = 'inline-block';
-        document.getElementById('ble-controls').style.display = 'flex';
-        document.getElementById('ble-controls-debug').style.display = 'flex';
-        document.getElementById('ble-controls-stream').style.display = 'flex';
-        document.getElementById('ble-controls-2').style.display = 'flex';
-        document.getElementById('ble-controls-3').style.display = 'flex';
-        document.getElementById('ble-controls-4').style.display = 'flex';
-        document.getElementById('ble-controls-5').style.display = 'flex';
-        document.getElementById('ble-controls-6').style.display = 'flex';
+    // ── Transport-agnostic device panel ────────────────────────────────────
+    // One set of handlers drives whichever transport is selected; the facade
+    // in src/device-transport.js forwards to ble-device or wifi-device.
 
-        // Auto-detect and set device dimensions (from name or device info query)
-        const dimensions = BLE.getDeviceDimensions();
+    const $id = (id) => document.getElementById(id);
+
+    function syncTransportUI() {
+      const t = DEVICE.getActive();
+      const connected = DEVICE.isConnected();
+      const available = t.isAvailable();
+
+      // Rows that only make sense for one transport, or that need a capability.
+      document.querySelectorAll('.transport-only').forEach(el => {
+        el.style.display = el.dataset.transport === t.id ? 'flex' : 'none';
+      });
+      document.querySelectorAll('.cap-only').forEach(el => {
+        el.style.display = t.capabilities[el.dataset.cap] ? 'flex' : 'none';
+      });
+
+      $id('device-controls').style.display = connected ? 'block' : 'none';
+      $id('device-connect-btn').style.display = connected ? 'none' : 'inline-block';
+      $id('device-disconnect-btn').style.display = connected ? 'inline-block' : 'none';
+      $id('device-connect-btn').disabled = !available;
+      $id('transport-note').textContent = available ? '' : t.unavailableReason;
+      $id('transport-select').disabled = connected;
+
+      $id('transport-help').textContent = t.id === 'ble'
+        ? 'Requires Chrome or Edge. The panel only advertises when nothing else is connected — close the phone app first.'
+        : 'Requires python tools/wifi_bridge.py running locally. Connect to the iPIXEL Wi-Fi AP first.';
+
+      $id('device-status').textContent = connected ? 'Connected' : 'Disconnected';
+      $id('device-status').style.color = connected ? '#4f4' : '#f44';
+      if (!connected) $id('device-name').textContent = '';
+    }
+    window.syncTransportUI = syncTransportUI;
+
+    window.deviceConnect = async function() {
+      const t = DEVICE.getActive();
+      try {
+        const opts = {
+          wsUrl: $id('wifi-ws-url').value,
+          width: parseInt($id('wifi-width').value) || 64,
+          height: parseInt($id('wifi-height').value) || 16,
+        };
+        const name = await DEVICE.connect(opts);
+
+        const dimensions = DEVICE.getDeviceDimensions();
         if (dimensions) {
-          document.getElementById('preview-width').value = dimensions.width;
-          document.getElementById('preview-height').value = dimensions.height;
+          $id('preview-width').value = dimensions.width;
+          $id('preview-height').value = dimensions.height;
           updateResolution();
-          logService('ble', 'auto_dimensions', dimensions);
-        } else {
-          logService('ble', 'dimensions', { status: 'unknown — using defaults' });
+        } else if (t.id === 'wifi') {
+          $id('preview-width').value = opts.width;
+          $id('preview-height').value = opts.height;
+          updateResolution();
         }
 
-        // Show notify status and dimensions
-        const notifyStatus = BLE.hasNotify() ? ' (notify: ON)' : ' (notify: OFF)';
-        const dimStr = dimensions ? ` [${dimensions.width}x${dimensions.height}]` : '';
-        document.getElementById('ble-device-name').textContent = deviceName + notifyStatus + dimStr;
+        const label = typeof name === 'string' ? name : t.label;
+        const notify = t.capabilities.notify ? ` (notify: ${BLE.hasNotify() ? 'ON' : 'OFF'})` : '';
+        const dim = dimensions ? ` [${dimensions.width}x${dimensions.height}]` : '';
+        $id('device-name').textContent = label + notify + dim;
 
-        logService('ble', 'connect', { device: deviceName, hasNotify: BLE.hasNotify(), dimensions });
+        syncTransportUI();
+        logService(t.id, 'connect', { device: label, dimensions });
       } catch (e) {
-        logService('ble', 'error', { message: e.message });
+        syncTransportUI();
+        logService(t.id, 'error', { message: e.message });
       }
     };
 
-    window.disconnectBleDevice = async function() {
-      await BLE.disconnectDevice();
-      document.getElementById('ble-status').textContent = 'Disconnected';
-      document.getElementById('ble-status').style.color = '#f44';
-      document.getElementById('ble-device-name').textContent = '';
-      document.getElementById('ble-connect-btn').style.display = 'inline-block';
-      document.getElementById('ble-disconnect-btn').style.display = 'none';
-      document.getElementById('ble-controls').style.display = 'none';
-      document.getElementById('ble-controls-debug').style.display = 'none';
-      document.getElementById('ble-controls-stream').style.display = 'none';
-      document.getElementById('ble-controls-2').style.display = 'none';
-      document.getElementById('ble-controls-3').style.display = 'none';
-      document.getElementById('ble-controls-4').style.display = 'none';
-      document.getElementById('ble-controls-5').style.display = 'none';
-      document.getElementById('ble-controls-6').style.display = 'none';
-      // Stop streaming on disconnect
-      if (BLE.isAnimationRunning()) {
-        BLE.stopAnimation();
+    window.deviceDisconnect = async function() {
+      const t = DEVICE.getActive();
+      if (DEVICE.isAnimationRunning()) {
+        DEVICE.stopAnimation();
         updateStreamButton(false);
       }
-      logService('ble', 'disconnect', {});
+      await DEVICE.disconnect();
+      syncTransportUI();
+      logService(t.id, 'disconnect', {});
     };
 
-    window.blePowerOn = async function() {
-      await BLE.powerOn();
-      logService('ble', 'power_on', {});
+    window.devicePowerOn = async () => { await DEVICE.powerOn(); logService(DEVICE.getActiveId(), 'power_on', {}); };
+    window.devicePowerOff = async () => { await DEVICE.powerOff(); logService(DEVICE.getActiveId(), 'power_off', {}); };
+    window.deviceSyncTime = async () => { await DEVICE.syncTime(); logService(DEVICE.getActiveId(), 'sync_time', {}); };
+    window.deviceClear = async () => { await DEVICE.clearDisplay(); logService(DEVICE.getActiveId(), 'clear_display', {}); };
+    window.deviceExitMode = async () => { await DEVICE.exitMode(); logService(DEVICE.getActiveId(), 'exit_mode', {}); };
+    window.deviceCountdown = async () => { await DEVICE.setCountdownTimer(0, 1, 0); logService(DEVICE.getActiveId(), 'countdown', { minutes: 1 }); };
+    window.deviceScoreboard = async () => { await DEVICE.setScoreboard(0, 0); logService(DEVICE.getActiveId(), 'scoreboard', { a: 0, b: 0 }); };
+    window.deviceStopwatch = async () => { await DEVICE.setStopwatch(1); logService(DEVICE.getActiveId(), 'stopwatch', { mode: 'start' }); };
+    window.deviceResetLock = () => { BLE.resetBleLock(); logService('ble', 'lock_reset', {}); };
+
+    window.deviceSetBrightness = async function() {
+      const value = parseInt($id('device-brightness').value);
+      await DEVICE.setBrightness(value);
+      logService(DEVICE.getActiveId(), 'set_brightness', { value });
     };
 
-    window.blePowerOff = async function() {
-      await BLE.powerOff();
-      logService('ble', 'power_off', {});
+    window.deviceSetClockMode = async function() {
+      const style = parseInt($id('device-clock-style').value);
+      await DEVICE.setClockMode(style, true, false);
+      logService(DEVICE.getActiveId(), 'set_clock_mode', { style });
     };
 
-    window.bleSetBrightness = async function() {
-      const value = parseInt(document.getElementById('ble-brightness').value);
-      await BLE.setBrightness(value);
-      logService('ble', 'set_brightness', { value });
+    window.deviceSetOrientation = async function() {
+      const orientation = parseInt($id('device-orientation').value);
+      await DEVICE.setOrientation(orientation);
+      logService(DEVICE.getActiveId(), 'set_orientation', { orientation });
     };
 
-    window.bleSetClockMode = async function() {
-      const style = parseInt(document.getElementById('ble-clock-style').value);
-      await BLE.setClockMode(style, true, false);
-      logService('ble', 'set_clock_mode', { style });
+    window.deviceTestPatternWifi = async function() {
+      await WIFI.testPattern();
+      logService('wifi', 'test_pattern', { message: 'Red gradient sent' });
     };
 
-    window.bleSyncTime = async function() {
-      await BLE.syncTime();
-      logService('ble', 'sync_time', {});
-    };
-
-    window.bleSetOrientation = async function() {
-      const orientation = parseInt(document.getElementById('ble-orientation').value);
-      await BLE.setOrientation(orientation);
-      logService('ble', 'set_orientation', { orientation });
-    };
-
-    window.bleClearDisplay = async function() {
-      await BLE.enterDiyMode();
-      logService('ble', 'clear_display', {});
-    };
-
-    window.bleSetRainbowMode = async function() {
-      const mode = parseInt(document.getElementById('ble-rainbow-mode').value);
-      await BLE.setRainbowMode(mode);
-      logService('ble', 'set_rainbow_mode', { mode });
-    };
+    $id('transport-select').addEventListener('change', (e) => {
+      DEVICE.setActive(e.target.value);
+      syncTransportUI();
+      logService('preview', 'transport', { active: e.target.value });
+    });
 
     // Rhythm demo state
     let _rhythmDemoInterval = null;
     let _rhythmDemoLevels = new Array(11).fill(0);
 
-    window.bleSetRhythmDemo = async function() {
-      const style = parseInt(document.getElementById('ble-rhythm-style').value);
+    window.deviceRhythmDemo = async function() {
+      const style = parseInt($id('device-rhythm-style').value);
 
-      // If already running, stop it
       if (_rhythmDemoInterval) {
         clearInterval(_rhythmDemoInterval);
         _rhythmDemoInterval = null;
-        // Send zeros to clear
-        await BLE.setRhythmLevelMode(style, new Array(11).fill(0));
-        logService('ble', 'rhythm_demo_stop', {});
+        await DEVICE.setRhythmLevelMode(style, new Array(11).fill(0));
+        logService(DEVICE.getActiveId(), 'rhythm_demo_stop', {});
         return;
       }
 
-      // Enter rhythm mode
-      await BLE.enterRhythmMode(style, 4);
-      await new Promise(r => setTimeout(r, 200));
-      logService('ble', 'rhythm_demo_start', { style });
+      // Bluetooth wants an explicit mode switch first; Wi-Fi does not expose one.
+      if (typeof DEVICE.api().enterRhythmMode === 'function') {
+        await DEVICE.api().enterRhythmMode(style, 4);
+        await new Promise(r => setTimeout(r, 200));
+      }
+      logService(DEVICE.getActiveId(), 'rhythm_demo_start', { style });
 
       // Simulate music: bass-heavy with random peaks and smooth decay
       const targets = new Array(11).fill(0);
@@ -839,34 +793,24 @@
 
       _rhythmDemoInterval = setInterval(async () => {
         beat++;
-
-        // Every ~8 ticks, simulate a beat (boost bass bands)
         if (beat % 8 === 0) {
-          targets[0] = 12 + Math.floor(Math.random() * 4); // sub bass
-          targets[1] = 10 + Math.floor(Math.random() * 5); // bass
+          targets[0] = 12 + Math.floor(Math.random() * 4);
+          targets[1] = 10 + Math.floor(Math.random() * 5);
           targets[2] = 8 + Math.floor(Math.random() * 5);
         }
-
-        // Random mid/high energy
         for (let i = 3; i < 11; i++) {
-          if (Math.random() < 0.3) {
-            targets[i] = Math.floor(Math.random() * 12) + 3;
-          }
+          if (Math.random() < 0.3) targets[i] = Math.floor(Math.random() * 12) + 3;
         }
-
-        // Smooth towards targets with decay
         for (let i = 0; i < 11; i++) {
           if (_rhythmDemoLevels[i] < targets[i]) {
             _rhythmDemoLevels[i] = Math.min(15, _rhythmDemoLevels[i] + 3);
           } else {
             _rhythmDemoLevels[i] = Math.max(0, _rhythmDemoLevels[i] - 1);
           }
-          // Decay targets too
           targets[i] = Math.max(0, targets[i] - 1);
         }
-
         try {
-          await BLE.setRhythmLevelMode(style, [..._rhythmDemoLevels]);
+          await DEVICE.setRhythmLevelMode(style, [..._rhythmDemoLevels]);
         } catch (e) {
           clearInterval(_rhythmDemoInterval);
           _rhythmDemoInterval = null;
@@ -1107,48 +1051,39 @@
       });
     };
 
-    // Update brightness display and auto-send on change
-    document.getElementById('ble-brightness').addEventListener('input', (e) => {
-      document.getElementById('ble-brightness-value').textContent = e.target.value;
+    // Live-update the brightness readout, and push the value once the slider
+    // settles. Applies to whichever transport is active.
+    $id('device-brightness').addEventListener('input', (e) => {
+      $id('device-brightness-value').textContent = e.target.value;
+    });
+    $id('device-brightness').addEventListener('change', () => {
+      if (DEVICE.isConnected()) deviceSetBrightness();
     });
 
-    // Auto-send brightness when slider stops (on change)
-    document.getElementById('ble-brightness').addEventListener('change', (e) => {
-      if (BLE.isDeviceConnected()) {
-        bleSetBrightness();
-      }
-    });
-
-    // Auto-send clock style on change (but not while sending pixels)
-    document.getElementById('ble-clock-style').addEventListener('change', (e) => {
-      if (BLE.isDeviceConnected() && !isSendingPixels) {
-        bleSetClockMode();
-      }
-    });
-
-    // Auto-send orientation on change
-    document.getElementById('ble-orientation').addEventListener('change', (e) => {
-      if (BLE.isDeviceConnected() && !isSendingPixels) {
-        bleSetOrientation();
-      }
-    });
-
-    // Auto-send rainbow mode on change
-    document.getElementById('ble-rainbow-mode').addEventListener('change', (e) => {
-      if (BLE.isDeviceConnected() && !isSendingPixels) {
-        bleSetRainbowMode();
-      }
-    });
-
-    // Auto-send rhythm style on change
-    document.getElementById('ble-rhythm-style').addEventListener('change', (e) => {
-      if (BLE.isDeviceConnected() && !isSendingPixels) {
-        bleSetRhythmDemo();
-      }
+    // Auto-apply the other selects too, but never mid-upload.
+    const autoApply = [
+      ['device-clock-style', () => deviceSetClockMode()],
+      ['device-orientation', () => deviceSetOrientation()],
+      ['device-rhythm-style', () => deviceRhythmDemo()],
+    ];
+    autoApply.forEach(([id, fn]) => {
+      $id(id).addEventListener('change', () => {
+        if (DEVICE.isConnected() && !isSendingPixels) fn();
+      });
     });
 
     // Flag to prevent mode changes while sending pixels
     let isSendingPixels = false;
+
+    /** The display card's renderer, or null (with a log line) if not ready. */
+    function getRenderer() {
+      const card = document.getElementById('display-card');
+      if (!card || !card._renderer) {
+        logService(DEVICE.getActiveId(), 'error', { message: 'No renderer available' });
+        return null;
+      }
+      return card._renderer;
+    }
 
     // Helper function to get pixels from renderer
     // Ambient effects write to buffer (RGB arrays), text effects write to _colorPixels (hex strings)
@@ -1173,259 +1108,44 @@
       return renderer._colorPixels || [];
     }
 
-    window.bleSendPreview = async function() {
-      // Get current preview pixels from the renderer
-      const displayCard = document.getElementById('display-card');
-      if (!displayCard || !displayCard._renderer) {
-        logService('ble', 'error', { message: 'No renderer available' });
-        return;
-      }
-
-      const renderer = displayCard._renderer;
-      const width = renderer.width;
-      const height = renderer.height;
+    window.deviceSendPreview = async function() {
+      const renderer = getRenderer();
+      if (!renderer) return;
+      const { width, height } = renderer;
       const pixels = getRendererPixels(renderer);
-
-      // Find actual non-black pixels with their positions
-      const nonBlackPixels = [];
-      for (let i = 0; i < pixels.length; i++) {
-        const p = pixels[i];
-        if (p && p !== '#000000' && p !== '#000' && p !== '#111' && p !== '#111111' && p !== '#050505') {
-          const x = i % width;
-          const y = Math.floor(i / width);
-          nonBlackPixels.push({ idx: i, x, y, color: p });
-        }
-      }
-
       if (pixels.length === 0) {
-        logService('ble', 'error', { message: 'No pixels to send' });
+        logService(DEVICE.getActiveId(), 'error', { message: 'No pixels to send' });
         return;
       }
-
-      logService('ble', 'send_preview', {
-        width,
-        height,
-        pixelCount: pixels.length,
-        nonBlackCount: nonBlackPixels.length,
-        firstFewColoredPixels: nonBlackPixels.slice(0, 5)
-      });
-
-      if (nonBlackPixels.length === 0) {
-        logService('ble', 'warning', { message: 'No colored pixels to send - all black!' });
+      const lit = pixels.filter(p => p && !/^#(000000|000|111111|111|050505)$/.test(p)).length;
+      logService(DEVICE.getActiveId(), 'send_preview', { width, height, pixelCount: pixels.length, nonBlackCount: lit });
+      if (lit === 0) {
+        logService(DEVICE.getActiveId(), 'warning', { message: 'No colored pixels to send - all black!' });
         return;
       }
-
       try {
         isSendingPixels = true;
-        // Use TYPE_CAMERA protocol (fastest method from go-ipxl)
-        await BLE.sendImageCamera(pixels, width, height);
-        logService('ble', 'send_preview_complete', { sentPixels: nonBlackPixels.length, method: 'camera' });
+        await DEVICE.sendImageCamera(pixels, width, height);
+        logService(DEVICE.getActiveId(), 'send_preview_complete', { sentPixels: lit, method: 'camera' });
       } catch (e) {
-        logService('ble', 'error', { message: e.message });
+        logService(DEVICE.getActiveId(), 'error', { message: e.message });
       } finally {
         isSendingPixels = false;
       }
     };
 
-    // Debug function to test BLE with a simple pattern
-    window.bleTestPattern = async function() {
-      if (!BLE.isDeviceConnected()) {
-        logService('ble', 'error', { message: 'Not connected' });
-        return;
-      }
-
-      logService('ble', 'test_pattern', { message: 'Sending test pattern (3 pixels)...' });
-
-      try {
-        // Enter DIY mode
-        logService('ble', 'test', { step: 'Entering DIY mode...' });
-        await BLE.enterDiyMode();
-        await new Promise(r => setTimeout(r, 300));
-
-        // Just send 3 pixels with longer delays
-        logService('ble', 'test', { step: 'Sending red pixel at (0,0)...' });
-        await BLE.setPixel(0, 0, 255, 0, 0);
-        await new Promise(r => setTimeout(r, 150));
-
-        logService('ble', 'test', { step: 'Sending green pixel at (1,0)...' });
-        await BLE.setPixel(1, 0, 0, 255, 0);
-        await new Promise(r => setTimeout(r, 150));
-
-        logService('ble', 'test', { step: 'Sending blue pixel at (2,0)...' });
-        await BLE.setPixel(2, 0, 0, 0, 255);
-        await new Promise(r => setTimeout(r, 150));
-
-        logService('ble', 'test_pattern_complete', { message: 'Test pattern sent! You should see R-G-B pixels at top-left.' });
-      } catch (e) {
-        logService('ble', 'error', { message: e.message, stack: e.stack });
-      }
-    };
-
-    // Test single pixel
-    window.bleTestSinglePixel = async function() {
-      if (!BLE.isDeviceConnected()) {
-        logService('ble', 'error', { message: 'Not connected' });
-        return;
-      }
-
-      try {
-        logService('ble', 'test', { step: 'Entering DIY mode...' });
-        await BLE.enterDiyMode();
-        await new Promise(r => setTimeout(r, 300));
-
-        logService('ble', 'test', { step: 'Sending single white pixel at (5,5)...' });
-        await BLE.setPixel(5, 5, 255, 255, 255);
-
-        logService('ble', 'test_complete', { message: 'Single pixel sent! Look for white pixel at (5,5).' });
-      } catch (e) {
-        logService('ble', 'error', { message: e.message });
-      }
-    };
-
-    // Test camera protocol with simple gradient pattern
-    window.bleTestCamera = async function() {
-      if (!BLE.isDeviceConnected()) {
-        logService('ble', 'error', { message: 'Not connected' });
-        return;
-      }
-
-      logService('ble', 'test_camera', { message: 'Testing TYPE_CAMERA protocol...' });
-
-      try {
-        await BLE.testCameraProtocol();
-        logService('ble', 'test_camera_complete', { message: 'Camera test sent! You should see a red gradient on the left side.' });
-      } catch (e) {
-        logService('ble', 'error', { message: e.message, stack: e.stack });
-      }
-    };
-
-    // Update stream button appearance
-    function updateStreamButton(isStreaming) {
-      const btn = document.getElementById('ble-stream-btn');
-      const status = document.getElementById('ble-stream-status');
-      if (isStreaming) {
-        btn.textContent = '⏹ Stop Stream';
-        btn.style.background = '#a00';
-        status.textContent = 'Streaming...';
-        status.style.color = '#4f4';
-      } else {
-        btn.textContent = '▶ Stream to Device';
-        btn.style.background = '#0aa';
-        status.textContent = '';
-      }
-    }
-
-    // Toggle animation streaming to device
-    window.bleToggleStream = async function() {
-      if (!BLE.isDeviceConnected()) {
-        logService('ble', 'error', { message: 'Not connected' });
-        return;
-      }
-
-      // If already streaming, stop it
-      if (BLE.isAnimationRunning()) {
-        BLE.stopAnimation();
-        updateStreamButton(false);
-        logService('ble', 'stream_stopped', { message: 'Animation streaming stopped' });
-        return;
-      }
-
-      // Get the renderer
-      const displayCard = document.getElementById('display-card');
-      if (!displayCard || !displayCard._renderer) {
-        logService('ble', 'error', { message: 'No renderer available' });
-        return;
-      }
-
-      const renderer = displayCard._renderer;
-      const width = renderer.width;
-      const height = renderer.height;
-      const fps = parseInt(document.getElementById('ble-stream-fps').value) || 3;
-
-      logService('ble', 'stream_starting', { width, height, fps });
-
-      // Function to get current frame pixels (uses helper that handles both buffer and _colorPixels)
-      const getFramePixels = () => getRendererPixels(renderer);
-
-      try {
-        updateStreamButton(true);
-        await BLE.streamAnimation(getFramePixels, width, height, fps);
-      } catch (e) {
-        logService('ble', 'stream_error', { message: e.message });
-        updateStreamButton(false);
-      }
-    };
-
-    // Reset BLE lock if it gets stuck
-    window.bleResetLock = function() {
-      BLE.resetBleLock();
-      logService('ble', 'lock_reset', { message: 'BLE lock has been reset' });
-    };
-
-    // Send using TYPE_CAMERA protocol (fastest, from go-ipxl)
-    window.bleSendCamera = async function() {
-      if (!BLE.isDeviceConnected()) {
-        logService('ble', 'error', { message: 'Not connected' });
-        return;
-      }
-
-      const displayCard = document.getElementById('display-card');
-      if (!displayCard || !displayCard._renderer) {
-        logService('ble', 'error', { message: 'No renderer available' });
-        return;
-      }
-
-      const renderer = displayCard._renderer;
-      const width = renderer.width;
-      const height = renderer.height;
+    // Bluetooth-only: walks the slow DIY pixel path instead of a camera frame.
+    window.deviceSendDiyPixels = async function() {
+      const renderer = getRenderer();
+      if (!renderer) return;
       const pixels = getRendererPixels(renderer);
-
       if (pixels.length === 0) {
         logService('ble', 'error', { message: 'No pixels to send' });
         return;
       }
-
-      logService('ble', 'send_camera', { width, height, pixelCount: pixels.length });
-
       try {
         isSendingPixels = true;
-        await BLE.sendImageCamera(pixels, width, height);
-        logService('ble', 'send_camera_complete', { message: 'Camera image sent!' });
-      } catch (e) {
-        logService('ble', 'error', { message: e.message });
-      } finally {
-        isSendingPixels = false;
-      }
-    };
-
-    // Send using old DIY pixel-by-pixel mode (slower but known to work)
-    window.bleSendDiyPixels = async function() {
-      if (!BLE.isDeviceConnected()) {
-        logService('ble', 'error', { message: 'Not connected' });
-        return;
-      }
-
-      const displayCard = document.getElementById('display-card');
-      if (!displayCard || !displayCard._renderer) {
-        logService('ble', 'error', { message: 'No renderer available' });
-        return;
-      }
-
-      const renderer = displayCard._renderer;
-      const width = renderer.width;
-      const height = renderer.height;
-      const pixels = getRendererPixels(renderer);
-
-      if (pixels.length === 0) {
-        logService('ble', 'error', { message: 'No pixels to send' });
-        return;
-      }
-
-      logService('ble', 'send_diy_pixels', { width, height, pixelCount: pixels.length });
-
-      try {
-        isSendingPixels = true;
-        await BLE.sendPixels(pixels, width, height);
+        await BLE.sendPixels(pixels, renderer.width, renderer.height);
         logService('ble', 'send_diy_complete', { message: 'DIY pixels sent!' });
       } catch (e) {
         logService('ble', 'error', { message: e.message });
@@ -1434,6 +1154,71 @@
       }
     };
 
+    window.deviceTestPattern = async function() {
+      if (!DEVICE.isConnected()) {
+        logService(DEVICE.getActiveId(), 'error', { message: 'Not connected' });
+        return;
+      }
+      logService(DEVICE.getActiveId(), 'test_pattern', { message: 'Sending 3 pixels...' });
+      try {
+        await DEVICE.enterDiyMode();
+        await new Promise(r => setTimeout(r, 300));
+        const dots = [[0, 0, 255, 0, 0], [1, 0, 0, 255, 0], [2, 0, 0, 0, 255]];
+        for (const [x, y, r, g, b] of dots) {
+          await DEVICE.setPixel(x, y, r, g, b);
+          await new Promise(res => setTimeout(res, 150));
+        }
+        logService(DEVICE.getActiveId(), 'test_pattern_complete', { message: 'R-G-B pixels sent at top-left.' });
+      } catch (e) {
+        logService(DEVICE.getActiveId(), 'error', { message: e.message });
+      }
+    };
+
+    window.deviceTestCamera = async function() {
+      if (!DEVICE.isConnected()) {
+        logService(DEVICE.getActiveId(), 'error', { message: 'Not connected' });
+        return;
+      }
+      try {
+        await BLE.testCameraProtocol();
+        logService('ble', 'test_camera_complete', { message: 'Camera test sent.' });
+      } catch (e) {
+        logService('ble', 'error', { message: e.message });
+      }
+    };
+
+    function updateStreamButton(isStreaming) {
+      const btn = $id('device-stream-btn');
+      const status = $id('device-stream-status');
+      btn.textContent = isStreaming ? '⏹ Stop Stream' : '▶ Stream to Device';
+      btn.style.background = isStreaming ? '#a00' : '#0aa';
+      status.textContent = isStreaming ? 'Streaming...' : '';
+      status.style.color = isStreaming ? '#4f4' : '#888';
+    }
+
+    window.deviceToggleStream = async function() {
+      if (!DEVICE.isConnected()) {
+        logService(DEVICE.getActiveId(), 'error', { message: 'Not connected' });
+        return;
+      }
+      if (DEVICE.isAnimationRunning()) {
+        DEVICE.stopAnimation();
+        updateStreamButton(false);
+        logService(DEVICE.getActiveId(), 'stream_stopped', {});
+        return;
+      }
+      const renderer = getRenderer();
+      if (!renderer) return;
+      const fps = parseInt($id('device-stream-fps').value) || 3;
+      logService(DEVICE.getActiveId(), 'stream_starting', { width: renderer.width, height: renderer.height, fps });
+      try {
+        updateStreamButton(true);
+        await DEVICE.streamAnimation(() => getRendererPixels(renderer), renderer.width, renderer.height, fps);
+      } catch (e) {
+        logService(DEVICE.getActiveId(), 'stream_error', { message: e.message });
+      }
+      updateStreamButton(false);
+    };
     // Debug function to check renderer state
     window.debugRenderer = function() {
       const displayCard = document.getElementById('display-card');
@@ -1470,265 +1255,29 @@
       logService('debug', 'renderer', info);
       return info;
     };
-
-    // Log BLE notifications/ACKs
-    BLE.addEventListener('notify', (evt) => {
-      logService('ble', 'notify', { hex: evt.hex, length: evt.data.length });
+    // Log ACK/notify frames from whichever transport reports them.
+    DEVICE.addEventListener('notify', (evt) => {
+      logService(DEVICE.getActiveId(), 'notify', { hex: evt.hex, length: evt.data.length });
     });
 
-    // Handle BLE disconnect events
-    BLE.addEventListener('disconnect', () => {
-      document.getElementById('ble-status').textContent = 'Disconnected';
-      document.getElementById('ble-status').style.color = '#f44';
-      document.getElementById('ble-device-name').textContent = '';
-      document.getElementById('ble-connect-btn').style.display = 'inline-block';
-      document.getElementById('ble-disconnect-btn').style.display = 'none';
-      document.getElementById('ble-controls').style.display = 'none';
-      document.getElementById('ble-controls-debug').style.display = 'none';
-      document.getElementById('ble-controls-stream').style.display = 'none';
-      document.getElementById('ble-controls-2').style.display = 'none';
-      document.getElementById('ble-controls-3').style.display = 'none';
-      document.getElementById('ble-controls-4').style.display = 'none';
-      document.getElementById('ble-controls-5').style.display = 'none';
-      document.getElementById('ble-controls-6').style.display = 'none';
-      // Stop streaming on disconnect
-      if (BLE.isAnimationRunning()) {
-        BLE.stopAnimation();
+    // Any transport dropping its connection resets the shared panel.
+    DEVICE.addEventListener('disconnect', () => {
+      if (DEVICE.isAnimationRunning()) {
+        DEVICE.stopAnimation();
         updateStreamButton(false);
       }
+      syncTransportUI();
     });
 
-    // Check WebBluetooth availability
-    if (!BLE.isWebBluetoothAvailable()) {
-      document.getElementById('ble-section').innerHTML = `
-        <summary>Real Device Connection (WebBluetooth)</summary>
-        <p style="color: #f88;">WebBluetooth is not available. Use Chrome or Edge on a supported platform.</p>
-      `;
-    }
-
-    // =========================================================================
-    // WiFi device connection functions
-    // =========================================================================
-
-    function showWifiControls(show) {
-      const ids = ['wifi-controls', 'wifi-controls-2', 'wifi-controls-3',
-                   'wifi-controls-4', 'wifi-controls-5', 'wifi-controls-stream'];
-      ids.forEach(id => {
-        document.getElementById(id).style.display = show ? 'flex' : 'none';
-      });
-    }
-
-    window.connectWifiDevice = async function() {
-      const wsUrl = document.getElementById('wifi-ws-url').value;
-      const width = parseInt(document.getElementById('wifi-width').value) || 64;
-      const height = parseInt(document.getElementById('wifi-height').value) || 16;
-
-      document.getElementById('wifi-status').textContent = 'Connecting...';
-      document.getElementById('wifi-status').style.color = '#ff0';
-
-      try {
-        await WIFI.connect(wsUrl, { width, height });
-        document.getElementById('wifi-status').textContent = 'Connected';
-        document.getElementById('wifi-status').style.color = '#4f4';
-        document.getElementById('wifi-connect-btn').style.display = 'none';
-        document.getElementById('wifi-disconnect-btn').style.display = 'inline-block';
-        showWifiControls(true);
-
-        // Update preview resolution
-        document.getElementById('preview-width').value = width;
-        document.getElementById('preview-height').value = height;
-        updateResolution();
-
-        logService('wifi', 'connect', { bridge: wsUrl, width, height });
-      } catch (e) {
-        document.getElementById('wifi-status').textContent = 'Failed';
-        document.getElementById('wifi-status').style.color = '#f44';
-        logService('wifi', 'error', { message: e.message });
-      }
-    };
-
-    window.disconnectWifiDevice = async function() {
-      await WIFI.disconnect();
-      document.getElementById('wifi-status').textContent = 'Disconnected';
-      document.getElementById('wifi-status').style.color = '#f44';
-      document.getElementById('wifi-connect-btn').style.display = 'inline-block';
-      document.getElementById('wifi-disconnect-btn').style.display = 'none';
-      showWifiControls(false);
-      logService('wifi', 'disconnect', {});
-    };
-
-    // Handle WiFi disconnect events
-    WIFI.addEventListener('disconnect', () => {
-      document.getElementById('wifi-status').textContent = 'Disconnected';
-      document.getElementById('wifi-status').style.color = '#f44';
-      document.getElementById('wifi-connect-btn').style.display = 'inline-block';
-      document.getElementById('wifi-disconnect-btn').style.display = 'none';
-      showWifiControls(false);
-      if (WIFI.isAnimationRunning()) {
-        WIFI.stopAnimation();
-        updateWifiStreamButton(false);
-      }
-    });
-
-    window.wifiPowerOn = async function() {
-      await WIFI.powerOn();
-      logService('wifi', 'power_on', {});
-    };
-
-    window.wifiPowerOff = async function() {
-      await WIFI.powerOff();
-      logService('wifi', 'power_off', {});
-    };
-
-    window.wifiSetBrightness = async function() {
-      const value = parseInt(document.getElementById('wifi-brightness').value);
-      await WIFI.setBrightness(value);
-      logService('wifi', 'set_brightness', { value });
-    };
-
-    document.getElementById('wifi-brightness').addEventListener('input', (e) => {
-      document.getElementById('wifi-brightness-value').textContent = e.target.value;
-    });
-
-    document.getElementById('wifi-brightness').addEventListener('change', () => {
-      if (WIFI.isConnected()) wifiSetBrightness();
-    });
-
-    window.wifiSyncTime = async function() {
-      await WIFI.syncTime();
-      logService('wifi', 'sync_time', {});
-    };
-
-    window.wifiSetClockMode = async function() {
-      const style = parseInt(document.getElementById('wifi-clock-style').value);
-      await WIFI.setClockMode(style, true, false);
-      logService('wifi', 'set_clock_mode', { style });
-    };
-
-    window.wifiClearDisplay = async function() {
-      await WIFI.clearDisplay();
-      logService('wifi', 'clear_display', {});
-    };
-
-    window.wifiTestPattern = async function() {
-      await WIFI.testPattern();
-      logService('wifi', 'test_pattern', { message: 'Red gradient sent' });
-    };
-
-    window.wifiCountdown = async function() {
-      await WIFI.setCountdownTimer(0, 1, 0);
-      logService('wifi', 'countdown', { minutes: 1 });
-    };
-
-    window.wifiScoreboard = async function() {
-      await WIFI.setScoreboard(0, 0);
-      logService('wifi', 'scoreboard', { a: 0, b: 0 });
-    };
-
-    window.wifiStopwatch = async function() {
-      await WIFI.setStopwatch(1);
-      logService('wifi', 'stopwatch', { mode: 'start' });
-    };
-
-    window.wifiExitMode = async function() {
-      await WIFI.exitMode();
-      logService('wifi', 'exit_mode', {});
-    };
-
-    window.wifiSendPreview = async function() {
-      const displayCard = document.getElementById('display-card');
-      if (!displayCard || !displayCard._renderer) {
-        logService('wifi', 'error', { message: 'No renderer available' });
-        return;
-      }
-      const renderer = displayCard._renderer;
-      const pixels = getRendererPixels(renderer);
-      const width = renderer.width;
-      const height = renderer.height;
-
-      if (pixels.length === 0) {
-        logService('wifi', 'error', { message: 'No pixels to send' });
-        return;
-      }
-
-      logService('wifi', 'send_preview', { width, height, pixelCount: pixels.length });
-      try {
-        await WIFI.sendImageCamera(pixels, width, height);
-        logService('wifi', 'send_preview_complete', { message: 'Image sent via WiFi' });
-      } catch (e) {
-        logService('wifi', 'error', { message: e.message });
-      }
-    };
-
-    // WiFi stream button
-    function updateWifiStreamButton(isStreaming) {
-      const btn = document.getElementById('wifi-stream-btn');
-      const status = document.getElementById('wifi-stream-status');
-      if (isStreaming) {
-        btn.textContent = 'Stop Stream';
-        btn.style.background = '#a00';
-        status.textContent = 'Streaming...';
-        status.style.color = '#4f4';
-      } else {
-        btn.textContent = 'Stream to Device';
-        btn.style.background = '#0aa';
-        status.textContent = '';
+    // Start on a transport that is actually usable in this browser.
+    if (!DEVICE.getActive().isAvailable()) {
+      const fallback = DEVICE.listTransports().find(t => t.isAvailable());
+      if (fallback) {
+        DEVICE.setActive(fallback.id);
+        $id('transport-select').value = fallback.id;
       }
     }
-
-    window.wifiToggleStream = async function() {
-      if (!WIFI.isConnected()) {
-        logService('wifi', 'error', { message: 'Not connected' });
-        return;
-      }
-
-      if (WIFI.isAnimationRunning()) {
-        WIFI.stopAnimation();
-        updateWifiStreamButton(false);
-        logService('wifi', 'stream_stopped', {});
-        return;
-      }
-
-      const displayCard = document.getElementById('display-card');
-      if (!displayCard || !displayCard._renderer) {
-        logService('wifi', 'error', { message: 'No renderer' });
-        return;
-      }
-
-      const renderer = displayCard._renderer;
-      const width = renderer.width;
-      const height = renderer.height;
-      const fps = parseInt(document.getElementById('wifi-stream-fps').value) || 5;
-      const getFramePixels = () => getRendererPixels(renderer);
-
-      logService('wifi', 'stream_starting', { width, height, fps });
-      try {
-        updateWifiStreamButton(true);
-        await WIFI.streamAnimation(getFramePixels, width, height, fps);
-      } catch (e) {
-        logService('wifi', 'stream_error', { message: e.message });
-      }
-      updateWifiStreamButton(false);
-    };
-
-    // Forward iPIXEL service calls to WiFi device when connected
-    const _origCallService = mockHass.callService;
-    mockHass.callService = async (domain, service, data) => {
-      await _origCallService(domain, service, data);
-
-      if (domain === 'ipixel_color' && WIFI.isConnected()) {
-        try {
-          if (service === 'display_text') {
-            logService('wifi', 'forwarding_display_text', data);
-            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-            await wifiSendPreview();
-          }
-        } catch (e) {
-          logService('wifi', 'error', { message: e.message });
-        }
-      }
-    };
-
+    syncTransportUI();
     // =========================================================================
 
     // Load the built bundle (IIFE) which registers all custom elements.

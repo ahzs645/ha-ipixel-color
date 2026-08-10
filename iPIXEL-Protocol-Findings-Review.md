@@ -482,32 +482,35 @@ collapsed and expand on click, the animation dropdown excludes 3/4, sending text
 calls `display_text`, changing the animation re-sends with a numeric code, the
 display card keeps rendering, and no console errors or non-200 requests remain.
 
-### Recommended, not done
+### Consolidation and unattested opcodes — also fixed
 
-1. **The preview page duplicates its transport layer.** `preview.html` is 1751
-   lines, of which roughly 400 are two near-identical control panels and ~40
-   paired `window.*` globals (`bleSetBrightness`/`wifiSetBrightness`,
-   `bleToggleStream`/`wifiToggleStream`, `updateStreamButton`/
-   `updateWifiStreamButton`, …). The two transports also expose *different*
-   feature sets for no protocol reason — BLE has rainbow/rhythm/orientation,
-   Wi-Fi has countdown/scoreboard/stopwatch/exit-mode — even though both speak
-   the same command set. One transport façade with a BLE/Wi-Fi selector would
-   remove the duplication and the feature gap. This is a dev tool, so the
-   payoff is maintenance rather than user-facing, hence left for a decision.
-2. **Four speculative opcodes in `src/ble-device.js`** appear in no upstream
-   source: `0x010A` (`setRainbowMode`), `0x010B` (`setAnimationMode`),
-   `0x010C` (`setFontSize`), `0x010D` (`setFontOffset`). Note `0x800A` and
-   `0x800D` are the documented scoreboard and countdown, so these look invented.
-   Sending unknown opcodes to a device that replays SPI-flash state at boot is
-   the exact risk profile behind the boot-loop reports.
-3. **Invented rainbow labels.** The preview's rainbow dropdown names modes
-   "Wave, Cycle, Pulse, Fade, Chase, Sparkle, Gradient, Theater, Fire". No
-   source names these; upstream only knows `rainbow_mode` 0–9, and DonKracho
-   notes the colour fields may only apply at mode 1.
-4. **Clock style ranges disagree** — preview offers 1–8, HA's
-   `select.clock_style` offers 0–8, DonKracho validates 1–9 (see §5.1).
-5. **BLE orientation control offers only 0/1** though the field is a 0–3
-   rotation, and the Wi-Fi panel has no orientation control at all.
+| Finding | Detail |
+|---|---|
+| Preview duplicated its whole transport layer | `preview.html` carried two near-identical connection panels and 44 `window.*` globals in paired `bleX`/`wifiX` form. The two modules already implemented almost the same API, so the divergence was UI-only: Bluetooth exposed rainbow/rhythm/orientation/debug, Wi-Fi exposed countdown/scoreboard/stopwatch/exit-mode, and neither offered the other's controls. Added `src/device-transport.js` (161 lines) as a façade with a capability map, and collapsed both panels into one with a transport selector. `preview.html` drops 1777 → 1326 lines and 44 → 32 globals; every control is now available on both transports, and transport-specific rows show or hide from the capability map rather than from duplicated markup. |
+| Five unattested opcodes | `0x010A` `setRainbowMode`, `0x010B` `setAnimationMode`, `0x010C` `setFontSize`, `0x010D` `setFontOffset` and `0x0103` `sendMulticolorText` appear in no upstream source — and `0x800A`/`0x800D` are the documented scoreboard and countdown, so the `0x01xx` forms look invented. `0x0103` also collides with `set_text_speed`. All five removed from both transports; none of the removed calls had a working backend. The real mechanisms are per-glyph colour inside the text payload, the glyph record type for size, and the properties header for animation and rainbow. |
+| Wi-Fi rhythm command was wrong | `wifi-device.js` sent `[0x11, 0x00, 0x08, 0x01, style, …]` — wrong opcode *and* wrong length. Corrected to `[0x10, 0x00, 0x01, 0x02, style, …]`, matching the BLE path, go-ipxl, pypixelcolor and DonKracho. |
+| Nine card controls called services that do not exist | Cross-referencing every `callService('ipixel_color', …)` against the registered services found `delete_screen`, `program_mode`, `set_rhythm_level`, `set_orientation`, `set_font_size`, `set_font_offset`, `display_multicolor_text`, `save_to_slot` and `render_gfx` all unregistered — dead controls in Home Assistant. Four had real backends under other names and were repointed (`delete_slot`, `set_program_mode`, `set_rhythm_mode_advanced`, and the orientation *select entity*). The rest have no backend; `callService` in the card base now checks the service registry and logs a clear warning instead of failing silently. |
+| Invented rainbow labels | The rainbow dropdown named modes "Wave, Cycle, Pulse, Fade, Chase, Sparkle, Gradient, Theater, Fire". No source names these, and the field is part of the text payload rather than a standalone command, so the control was removed along with the opcode. |
+| Range mismatches | Clock styles were 1–8 in the preview but 0–8 in `select.clock_style`; now 0–8 in both. Orientation offered only "Normal / Upside Down" while the field is a 0–3 rotation, and `setOrientation` clamped to 0–2; both now offer 0°/90°/180°/270°. |
+
+Verified in Chromium: one panel replaces two, the selector switches the façade,
+transport-specific rows follow the capability map, an unavailable transport
+disables Connect and explains why, all five removed opcodes are absent from both
+modules, no stale `bleX`/`wifiX` globals remain, clock and orientation ranges are
+correct, and the page loads with no console errors — plus the earlier suite
+(cards render, gallery loads, animations 3/4 absent, text send and animation
+change both reach `display_text`) still passes.
+
+### Still open
+
+- **Clock style 9.** DonKracho validates 1–9; pypixelcolor and this integration
+  stop at 8. Untested whether style 9 exists on some panels.
+- **Which of animation 1/2 is left vs right** (§5, item 2) — sources contradict
+  each other, so the labels are a coin flip until someone checks on hardware.
+- **`display_multicolor_text`, `save_to_slot`, `render_gfx`** have card UI but no
+  backend. Per-glyph colour is genuinely supported by the text payload, so
+  multicolor text could be implemented properly; the other two are preview-only
+  features that would need new services.
 
 ## Sources
 

@@ -403,44 +403,13 @@ export function isAnimationRunning() {
 
 // --- Text & Font ---
 
-export async function setFontSize(size) {
-  await sendCommand([0x05, 0x00, 0x0C, 0x01, size & 0xFF]);
-}
-
-export async function setFontOffset(x, y) {
-  const xByte = (x + 128) & 0xFF;
-  const yByte = (y + 128) & 0xFF;
-  await sendCommand([0x06, 0x00, 0x0D, 0x01, xByte, yByte]);
-}
-
-export async function sendMulticolorText(text, colors) {
-  const chars = [...text];
-  const body = [];
-  for (let i = 0; i < chars.length; i++) {
-    const code = chars[i].charCodeAt(0);
-    const color = colors[i % colors.length] || { r: 255, g: 255, b: 255 };
-    body.push(code & 0xFF, color.r, color.g, color.b);
-  }
-  const totalLen = 5 + body.length;
-  await sendCommand([
-    totalLen & 0xFF, (totalLen >> 8) & 0xFF,
-    0x03, 0x01, chars.length,
-    ...body,
-  ]);
-}
-
 // --- Modes ---
 
-export async function setAnimationMode(mode) {
-  await sendCommand([0x05, 0x00, 0x0B, 0x01, mode]);
-}
-
-export async function setRainbowMode(mode) {
-  await sendCommand([0x05, 0x00, 0x0A, 0x01, mode]);
-}
-
 export async function setRhythmLevelMode(style, levels) {
-  const cmd = [0x11, 0x00, 0x08, 0x01, style];
+  // Opcode 0x0201, length 0x10 -- matches the BLE path, go-ipxl, pypixelcolor
+  // and DonKracho. This previously sent [0x11, 0x00, 0x08, 0x01, ...], which
+  // is neither the right opcode nor the right length.
+  const cmd = [0x10, 0x00, 0x01, 0x02, Math.max(0, Math.min(4, style))];
   for (let i = 0; i < 11; i++) {
     cmd.push((levels[i] || 0) & 0x0F);
   }

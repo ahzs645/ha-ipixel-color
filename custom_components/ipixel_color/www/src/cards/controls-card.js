@@ -201,7 +201,9 @@ export class iPIXELControlsCard extends iPIXELCardBase {
           <div class="subsection-title">Rotation</div>
           <select class="dropdown" id="orientation">
             <option value="0">0° (Normal)</option>
-            <option value="1">180°</option>
+            <option value="1">90°</option>
+            <option value="2">180°</option>
+            <option value="3">270°</option>
           </select>
         </div>
         <div>
@@ -358,7 +360,18 @@ export class iPIXELControlsCard extends iPIXELCardBase {
       }
     });
     this.shadowRoot.getElementById('orientation')?.addEventListener('change', (e) => {
-      this.callService('ipixel_color', 'set_orientation', { orientation: parseInt(e.target.value) });
+      // There is no set_orientation service; orientation is a select entity
+      // whose options are the rotation in degrees.
+      const value = parseInt(e.target.value);
+      const entity = this.getRelatedEntity('select', '_orientation');
+      if (entity) {
+        this._hass.callService('select', 'select_option', {
+          entity_id: entity.entity_id,
+          option: String(value * 90),
+        });
+      } else {
+        this.callService('ipixel_color', 'set_orientation', { orientation: value });
+      }
     });
     attachToggle(this.shadowRoot, 'toggle-upside-down', (v) => {
       this._upsideDown = v;
@@ -382,7 +395,7 @@ export class iPIXELControlsCard extends iPIXELCardBase {
       const slots = input.split(/[,\s]+/).map(Number).filter(n => n >= 1 && n <= 255);
       if (slots.length) {
         this._programSlots = input;
-        this.callService('ipixel_color', 'program_mode', { slots });
+        this.callService('ipixel_color', 'set_program_mode', { buffers: slots });
       }
     });
 
@@ -395,7 +408,7 @@ export class iPIXELControlsCard extends iPIXELCardBase {
       btn.addEventListener('click', (e) => {
         const slot = parseInt(e.currentTarget.dataset.delete);
         if (confirm(`Delete screen slot ${slot}?`)) {
-          this.callService('ipixel_color', 'delete_screen', { slot });
+          this.callService('ipixel_color', 'delete_slot', { slot });
           const slots = slotsStore.load();
           delete slots[String(slot)];
           slotsStore.save(slots);

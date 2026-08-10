@@ -315,7 +315,12 @@ Example:
     this.shadowRoot.getElementById('apply-rhythm-btn')?.addEventListener('click', () => {
       const { style, levels } = this._getRhythmFormValues();
       updateDisplayState({ text: '', mode: 'rhythm', rhythmStyle: style, rhythmLevels: levels });
-      this.callService('ipixel_color', 'set_rhythm_level', { style, levels });
+      // set_rhythm_mode_advanced takes 0-15 levels as a comma-separated
+      // string, which is the range this card's sliders already use.
+      // (send_rhythm_eq expects 0-255 and rescales, so it is the wrong target.)
+      this.callService('ipixel_color', 'set_rhythm_mode_advanced', {
+        style, levels: levels.join(','),
+      });
     });
 
     // GFX tab
