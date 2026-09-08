@@ -41,11 +41,14 @@ window.customCards = window.customCards || [];
   { type: 'ipixel-schedule-card', name: 'iPIXEL Schedule', description: 'Power schedule and time slots' },
   { type: 'ipixel-editor-card', name: 'iPIXEL Pixel Editor', description: 'Draw custom pixel art and send to your LED matrix' },
   { type: 'ipixel-gallery-card', name: 'iPIXEL Gallery', description: 'Browse and send bundled animations to your LED matrix' },
-].forEach(card => window.customCards.push({
-  ...card,
-  preview: true,
-  documentationURL: 'https://github.com/cagcoach/ha-ipixel-color'
-}));
+].forEach(card => {
+  if (window.customCards.some(c => c.type === card.type)) return;
+  window.customCards.push({
+    ...card,
+    preview: true,
+    documentationURL: 'https://github.com/cagcoach/ha-ipixel-color'
+  });
+});
 
 // Log version
 console.info(

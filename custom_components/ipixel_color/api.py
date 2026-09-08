@@ -1515,23 +1515,7 @@ class iPIXELAPI:
 
             asset_bytes = await fetch_gallery_asset(url)
             _LOGGER.info("Fetched gallery asset: %d bytes", len(asset_bytes))
-
-            # Determine if GIF or image based on magic bytes
-            file_ext = ".gif" if asset_bytes[:3] == b"GIF" else ".png"
-
-            from .device.image import make_image_plan
-
-            device_info = await self._get_device_info()
-            plan = make_image_plan(
-                image_bytes=asset_bytes,
-                file_extension=file_ext,
-                resize_method="crop",
-                device_info=device_info,
-                save_slot=buffer_slot,
-            )
-
-            result = await self._bluetooth.send_plan(plan)
-            return result.success
+            return await self.display_image_url_bytes(asset_bytes, buffer_slot)
 
         except Exception as err:
             _LOGGER.error("Error displaying gallery asset: %s", err)
@@ -1553,15 +1537,21 @@ class iPIXELAPI:
         try:
             from pathlib import Path
 
-            gallery_path = (
-                Path(__file__).parent / "assets" / "gallery" / size / filename
-            )
-            if not gallery_path.exists():
-                _LOGGER.error("Gallery asset not found: %s", gallery_path)
+            gallery_root = (Path(__file__).parent / "assets" / "gallery").resolve()
+            gallery_path = (gallery_root / size / filename).resolve()
+            # size and filename come from a service call; keep them inside the gallery
+            if gallery_root not in gallery_path.parents:
+                _LOGGER.error("Gallery asset path rejected: %s/%s", size, filename)
                 return False
 
+            def _read() -> bytes | None:
+                return gallery_path.read_bytes() if gallery_path.is_file() else None
+
             # File I/O must not block the event loop
-            asset_bytes = await self._hass.async_add_executor_job(gallery_path.read_bytes)
+            asset_bytes = await self._hass.async_add_executor_job(_read)
+            if asset_bytes is None:
+                _LOGGER.error("Gallery asset not found: %s", gallery_path)
+                return False
             _LOGGER.info(
                 "Loading local gallery asset: %s/%s (%d bytes)",
                 size, filename, len(asset_bytes),

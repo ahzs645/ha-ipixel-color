@@ -93,18 +93,25 @@ def async_get_entry_for_service_call(
 ) -> tuple[dr.DeviceEntry, ConfigEntry]:
     """Get the entry ID related to a service call (by device ID or entity ID)."""
     device_registry = dr.async_get(call.hass)
-    device_id = None
 
-    if ATTR_DEVICE_ID in call.data:
-        raw = call.data[ATTR_DEVICE_ID]
-        device_id = raw[0] if isinstance(raw, list) else raw
-    elif ATTR_ENTITY_ID in call.data:
+    def _first(value):
+        """Targets may arrive as a scalar or a list; use the first entry."""
+        if isinstance(value, list):
+            return value[0] if value else None
+        return value
+
+    device_id = _first(call.data.get(ATTR_DEVICE_ID))
+    if device_id is None and (entity_id := _first(call.data.get(ATTR_ENTITY_ID))):
         # Resolve the owning device from any of the integration's entities
-        raw = call.data[ATTR_ENTITY_ID]
-        entity_id = raw[0] if isinstance(raw, list) else raw
-        if (entity_entry := er.async_get(call.hass).async_get(entity_id)) is not None:
-            device_id = entity_entry.device_id
-    else:
+        entity_entry = er.async_get(call.hass).async_get(entity_id)
+        if entity_entry is None or entity_entry.device_id is None:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_entity_id",
+                translation_placeholders={"entity_id": str(entity_id)},
+            )
+        device_id = entity_entry.device_id
+    if device_id is None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="missing_device_or_entity_id",
@@ -112,7 +119,7 @@ def async_get_entry_for_service_call(
 
     _LOGGER.debug("Looking up device_id %r for service call %r", device_id, call)
 
-    if device_id is None or (device_entry := device_registry.async_get(device_id)) is None:
+    if (device_entry := device_registry.async_get(device_id)) is None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="invalid_device_id",

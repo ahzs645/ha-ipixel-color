@@ -321,12 +321,14 @@ class iPIXELClock24HSwitch(SwitchEntity, RestoreEntity):
         """Enable 24h format."""
         self._is_on = True
         _LOGGER.debug("Clock 24h format enabled")
+        self.async_write_ha_state()
         await self._trigger_auto_update()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable 24h format (use 12h)."""
         self._is_on = False
         _LOGGER.debug("Clock 12h format enabled")
+        self.async_write_ha_state()
         await self._trigger_auto_update()
 
     async def async_added_to_hass(self) -> None:
@@ -413,12 +415,14 @@ class iPIXELClockShowDateSwitch(SwitchEntity, RestoreEntity):
         """Enable showing date."""
         self._is_on = True
         _LOGGER.debug("Clock show date enabled")
+        self.async_write_ha_state()
         await self._trigger_auto_update()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable showing date."""
         self._is_on = False
         _LOGGER.debug("Clock show date disabled")
+        self.async_write_ha_state()
         await self._trigger_auto_update()
 
     async def _trigger_auto_update(self) -> None:

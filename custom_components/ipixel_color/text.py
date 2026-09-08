@@ -218,6 +218,7 @@ class iPIXELGIFURLEntity(TextEntity, RestoreEntity):
         """
         self._current_url = value
         _LOGGER.debug("GIF URL set to: %s", value)
+        self.async_write_ha_state()
 
         # Check if we should auto-update
         try:

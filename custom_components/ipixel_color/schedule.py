@@ -575,7 +575,7 @@ class iPIXELScheduleManager:
             elif item.mode in ("text", "textimage"):
                 # Use the common update function with item's text
                 await update_ipixel_display(
-                    self._hass, device_name, self._api, item.text
+                    self._hass, device_name, self._api, item.text, mode=item.mode
                 )
 
         except Exception as err:

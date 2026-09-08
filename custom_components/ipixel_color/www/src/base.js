@@ -105,6 +105,12 @@ export class iPIXELCardBase extends HTMLElement {
       );
       return;
     }
+    // The integration's services resolve their device from device_id or
+    // entity_id. Cards only know their configured entity, so send it unless
+    // the caller already chose a target.
+    if (domain === 'ipixel_color' && this._config.entity && !('device_id' in data) && !('entity_id' in data)) {
+      data = { entity_id: this._config.entity, ...data };
+    }
     try {
       await this._hass.callService(domain, service, data);
     } catch (err) {
