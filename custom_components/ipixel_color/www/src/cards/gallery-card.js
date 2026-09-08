@@ -199,7 +199,7 @@ export class iPIXELGalleryCard extends iPIXELCardBase {
       if (item.type === 'user') {
         await this._sendUserGif(item);
       } else {
-        const serviceData = { size: this._selectedSize, filename: item.file };
+        const serviceData = { entity_id: this._config.entity, size: this._selectedSize, filename: item.file };
         if (this._slotMode) serviceData.buffer_slot = this._targetSlot;
         await this.callService('ipixel_color', 'display_local_gallery', serviceData);
       }
@@ -427,7 +427,7 @@ export class iPIXELGalleryCard extends iPIXELCardBase {
       const isUser = item.type === 'user';
       const label = isUser
         ? item.name.replace(/\.[^.]+$/, '')
-        : (item.side ? `Eye ${item.side.toUpperCase()} #${item.num}` : `#${item.num}`);
+        : (item.label || (item.side ? `Eye ${item.side.toUpperCase()} #${item.num}` : `#${item.num}`));
       const src = isUser ? item.dataUrl : `${GALLERY_BASE}/${this._selectedSize}/${item.file}`;
       return `
         <div class="gallery-item${isSending ? ' sending' : ''}${isUser ? ' user-gif' : ''}"

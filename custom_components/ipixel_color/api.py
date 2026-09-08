@@ -91,6 +91,7 @@ class iPIXELAPI:
             hass: Home Assistant instance
             address: Bluetooth MAC address
         """
+        self._hass = hass
         self._address = address
         self._bluetooth = BluetoothClient(hass, address)
         self._power_state = True  # Assume on until we check
@@ -1516,14 +1517,18 @@ class iPIXELAPI:
             _LOGGER.info("Fetched gallery asset: %d bytes", len(asset_bytes))
 
             # Determine if GIF or image based on magic bytes
-            is_gif = asset_bytes[:3] == b"GIF"
+            file_ext = ".gif" if asset_bytes[:3] == b"GIF" else ".png"
 
-            if is_gif:
-                from .device.image import make_image_plan
-                plan = make_image_plan(asset_bytes, buffer_slot, is_gif=True)
-            else:
-                from .device.image import make_image_plan
-                plan = make_image_plan(asset_bytes, buffer_slot, is_gif=False)
+            from .device.image import make_image_plan
+
+            device_info = await self._get_device_info()
+            plan = make_image_plan(
+                image_bytes=asset_bytes,
+                file_extension=file_ext,
+                resize_method="crop",
+                device_info=device_info,
+                save_slot=buffer_slot,
+            )
 
             result = await self._bluetooth.send_plan(plan)
             return result.success
@@ -1555,7 +1560,8 @@ class iPIXELAPI:
                 _LOGGER.error("Gallery asset not found: %s", gallery_path)
                 return False
 
-            asset_bytes = gallery_path.read_bytes()
+            # File I/O must not block the event loop
+            asset_bytes = await self._hass.async_add_executor_job(gallery_path.read_bytes)
             _LOGGER.info(
                 "Loading local gallery asset: %s/%s (%d bytes)",
                 size, filename, len(asset_bytes),
@@ -1721,8 +1727,15 @@ class iPIXELAPI:
         try:
             from .device.image import make_image_plan
 
-            is_gif = image_bytes[:3] == b"GIF"
-            plan = make_image_plan(image_bytes, buffer_slot, is_gif=is_gif)
+            file_ext = ".gif" if image_bytes[:3] == b"GIF" else ".png"
+            device_info = await self._get_device_info()
+            plan = make_image_plan(
+                image_bytes=image_bytes,
+                file_extension=file_ext,
+                resize_method="crop",
+                device_info=device_info,
+                save_slot=buffer_slot,
+            )
             result = await self._bluetooth.send_plan(plan)
             return result.success
 
@@ -2202,5 +2215,6 @@ class iPIXELAPI:
 
 
 # Export at module level for convenience
-__all__ = ["iPIXELAPI", "iPIXELError", "iPIXELConnectionError", "iPIXELTimeoutError"]
 from .exceptions import iPIXELError, iPIXELConnectionError, iPIXELTimeoutError
+
+__all__ = ["iPIXELAPI", "iPIXELError", "iPIXELConnectionError", "iPIXELTimeoutError"]

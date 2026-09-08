@@ -4,11 +4,11 @@ from . import DOMAIN
 from .api import iPIXELAPI
 from .schedule import iPIXELScheduleManager, ScheduleItem
 from .device.text_protocol import resolve_animation
-from homeassistant.const import ATTR_DEVICE_ID
+from homeassistant.const import ATTR_DEVICE_ID, ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 import logging
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,17 +91,32 @@ def rgb_to_hex(rgb) -> str:
 def async_get_entry_for_service_call(
     call: ServiceCall,
 ) -> tuple[dr.DeviceEntry, ConfigEntry]:
-    """Get the entry ID related to a service call (by device ID)."""
+    """Get the entry ID related to a service call (by device ID or entity ID)."""
     device_registry = dr.async_get(call.hass)
-    device_id = call.data[ATTR_DEVICE_ID][0] if isinstance(call.data[ATTR_DEVICE_ID], list) else call.data[ATTR_DEVICE_ID]
+    device_id = None
+
+    if ATTR_DEVICE_ID in call.data:
+        raw = call.data[ATTR_DEVICE_ID]
+        device_id = raw[0] if isinstance(raw, list) else raw
+    elif ATTR_ENTITY_ID in call.data:
+        # Resolve the owning device from any of the integration's entities
+        raw = call.data[ATTR_ENTITY_ID]
+        entity_id = raw[0] if isinstance(raw, list) else raw
+        if (entity_entry := er.async_get(call.hass).async_get(entity_id)) is not None:
+            device_id = entity_entry.device_id
+    else:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="missing_device_or_entity_id",
+        )
 
     _LOGGER.debug("Looking up device_id %r for service call %r", device_id, call)
 
-    if (device_entry := device_registry.async_get(device_id)) is None:
+    if device_id is None or (device_entry := device_registry.async_get(device_id)) is None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="invalid_device_id",
-            translation_placeholders={"device_id": device_id},
+            translation_placeholders={"device_id": str(device_id)},
         )
 
     for entry_id in device_entry.config_entries:
@@ -414,8 +429,8 @@ async def handle_draw_visuals(call: ServiceCall) -> None:
 
         # Get device info for dimensions
         device_info = await api.get_device_info()
-        width = device_info.get("width" or 64)
-        height = device_info.get("height" or 16)
+        width = device_info.get("width", 64)
+        height = device_info.get("height", 16)
 
         # Get HTTP session for image loading
         session = async_get_clientsession(hass)

@@ -77,5 +77,19 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "missing_device_or_entity_id": {
+      "message": "Specify a device_id or entity_id for the iPIXEL device."
+    },
+    "invalid_device_id": {
+      "message": "No iPIXEL device found for device_id {device_id}."
+    },
+    "entry_not_loaded": {
+      "message": "The iPIXEL device {entry} is not loaded."
+    },
+    "config_entry_not_found": {
+      "message": "Device {device_id} does not belong to the iPIXEL Color integration."
+    }
   }
 }

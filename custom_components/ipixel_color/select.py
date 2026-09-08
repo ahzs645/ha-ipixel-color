@@ -104,6 +104,7 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
         if option in self._attr_options:
             self._attr_current_option = option
             _LOGGER.debug("Font changed to: %s", option)
+            self.async_write_ha_state()
             
             # Trigger display update if auto-update is enabled
             await self._trigger_auto_update()
@@ -184,6 +185,7 @@ class iPIXELModeSelect(SelectEntity, RestoreEntity):
         if option in self._attr_options:
             self._attr_current_option = option
             _LOGGER.info("Mode changed to: %s", option)
+            self.async_write_ha_state()
 
             # Trigger display update if auto-update is enabled
             await self._trigger_auto_update()
@@ -199,7 +201,7 @@ class iPIXELModeSelect(SelectEntity, RestoreEntity):
 
             if auto_update_state and auto_update_state.state == "on":
                 # Use common update function directly
-                await update_ipixel_display(self.hass, self._name, self._api)
+                await update_ipixel_display(self.hass, self._name, self._api, mode=self._attr_current_option)
                 _LOGGER.debug("Auto-update triggered display refresh due to mode change")
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
@@ -264,6 +266,7 @@ class iPIXELClockStyleSelect(SelectEntity, RestoreEntity):
         if option in self._attr_options:
             self._attr_current_option = option
             _LOGGER.info("Clock style changed to: %s", option)
+            self.async_write_ha_state()
 
             # Trigger display update if auto-update is enabled and in clock mode
             await self._trigger_auto_update()
@@ -349,6 +352,7 @@ class iPIXELEffectSelect(SelectEntity, RestoreEntity):
         if option in self._attr_options:
             self._attr_current_option = option
             _LOGGER.info("Effect changed to: %s", option)
+            self.async_write_ha_state()
 
             # Trigger display update if auto-update is enabled
             await self._trigger_auto_update()
@@ -431,6 +435,7 @@ class iPIXELOrientationSelect(SelectEntity, RestoreEntity):
         if option in self._attr_options:
             self._attr_current_option = option
             _LOGGER.info("Orientation changed to: %s°", option)
+            self.async_write_ha_state()
 
             # Send orientation command to device
             await self._apply_orientation()
@@ -518,6 +523,7 @@ class iPIXELRhythmStyleSelect(SelectEntity, RestoreEntity):
         if option in self._attr_options:
             self._attr_current_option = option
             _LOGGER.info("Rhythm style changed to: %s", option)
+            self.async_write_ha_state()
 
             # Trigger display update if in rhythm mode
             await self._trigger_auto_update()

@@ -99,6 +99,7 @@ class iPIXELFontSize(NumberEntity, RestoreEntity):
         """Set the font size."""
         if self._attr_native_min_value <= value <= self._attr_native_max_value:
             self._attr_native_value = value
+            self.async_write_ha_state()
             if value == 0:
                 _LOGGER.debug("Font size changed to: auto-sizing")
             else:
@@ -172,6 +173,7 @@ class iPIXELLineSpacing(NumberEntity, RestoreEntity):
         """Set the line spacing."""
         if self._attr_native_min_value <= value <= self._attr_native_max_value:
             self._attr_native_value = int(value)
+            self.async_write_ha_state()
             _LOGGER.debug("Line spacing changed to: %d pixels", int(value))
             # Note: The actual line spacing will be used when text is displayed
         else:
@@ -253,6 +255,7 @@ class iPIXELBrightness(NumberEntity, RestoreEntity):
                 success = await self._api.set_brightness(brightness)
                 if success:
                     self._attr_native_value = brightness
+                    self.async_write_ha_state()
                     _LOGGER.info("Brightness set to %d%%", brightness)
                 else:
                     _LOGGER.error("Failed to set brightness to %d%%", brightness)
@@ -323,6 +326,7 @@ class iPIXELTextAnimation(NumberEntity, RestoreEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the animation."""
         self._attr_native_value = int(value)
+        self.async_write_ha_state()
         await self._trigger_auto_update()
 
     async def _trigger_auto_update(self) -> None:
@@ -404,6 +408,7 @@ class iPIXELTextSpeed(NumberEntity, RestoreEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the speed."""
         self._attr_native_value = int(value)
+        self.async_write_ha_state()
         await self._trigger_auto_update()
 
     async def _trigger_auto_update(self) -> None:
@@ -485,6 +490,7 @@ class iPIXELTextRainbow(NumberEntity, RestoreEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the rainbow mode."""
         self._attr_native_value = int(value)
+        self.async_write_ha_state()
         await self._trigger_auto_update()
 
     async def _trigger_auto_update(self) -> None:
@@ -573,6 +579,7 @@ class iPIXELScheduleInterval(NumberEntity, RestoreEntity):
         interval = int(value)
         if 1000 <= interval <= 3600000:
             self._attr_native_value = interval
+            self.async_write_ha_state()
             _LOGGER.info("Schedule interval set to %d ms (%.1f seconds)", interval, interval / 1000)
 
             # Update running playlist loop if active
@@ -654,6 +661,7 @@ class iPIXELRhythmSpeed(NumberEntity, RestoreEntity):
         speed = int(value)
         if 0 <= speed <= 7:
             self._attr_native_value = speed
+            self.async_write_ha_state()
             _LOGGER.debug("Rhythm speed changed to: %d", speed)
             await self._trigger_auto_update()
         else:

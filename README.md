@@ -235,3 +235,27 @@ Special thanks to the authors of [pypixelcolor](https://github.com/lucagoc/pypix
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
+
+## Debugging and Logs
+
+To troubleshoot issues such as unexpected reboots or missing messages, enable detailed logging for the integration:
+
+```yaml
+# configuration.yaml
+logger:
+  default: info
+  logs:
+    custom_components.ipixel_color: debug
+```
+
+After restarting Home Assistant, view the logs via **Settings → System → Logs**. Look for entries prefixed with `custom_components.ipixel_color`, which include API calls, template rendering, and any warnings about validation limits.
+
+You can also monitor the raw data sent to the device by enabling the `pypixelcolor` logger:
+
+```yaml
+logger:
+  logs:
+    pypixelcolor: debug
+```
+
+These logs show the exact command payloads, which helps identify problematic parameters that could cause a reboot.

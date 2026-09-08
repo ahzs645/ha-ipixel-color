@@ -100,7 +100,7 @@ async def resolve_template_variables(hass: HomeAssistant, text: str) -> str:
         return text
 
 
-async def update_ipixel_display(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
+async def update_ipixel_display(hass: HomeAssistant, device_name: str, api, text: str = None, mode: str = None) -> bool:
     """Update iPIXEL display with current settings - can be called from anywhere.
     
     Args:
@@ -108,13 +108,17 @@ async def update_ipixel_display(hass: HomeAssistant, device_name: str, api, text
         device_name: Device name for entity ID lookups
         api: iPIXEL API instance
         text: Text to display, or None to get from text entity
+        mode: Mode to render, or None to read it from the mode select entity.
+            Callers that just changed the mode pass it explicitly so the
+            update does not race the entity state write.
 
     Returns:
         True if update was successful
     """
     try:
         # Get current mode
-        mode = await _get_entity_setting(hass, device_name, "select", "mode_select", str, api._address)
+        if mode is None:
+            mode = await _get_entity_setting(hass, device_name, "select", "mode_select", str, api._address)
         if not mode:
             mode = MODE_TEXT_IMAGE  # Default to textimage mode
 
