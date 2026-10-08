@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import logging
 from typing import Any, Awaitable, Callable, Optional, TYPE_CHECKING
 
@@ -38,6 +39,13 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_CHUNK_SIZE = 244
 DEFAULT_WINDOW_SIZE = 12 * 1024  # 12KB
 DEFAULT_ACK_TIMEOUT = 30.0
+
+# Set while the current task is inside connect(). connect() sends its own
+# device info command through send_plan, which must neither reconnect nor
+# wait for the reconnect lock that connect() already holds.
+_IN_CONNECT: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "ipixel_in_connect", default=False
+)
 
 
 class BleAckManager:
@@ -95,13 +103,35 @@ class BluetoothClient:
         self._address = address
         self._client: BleakClientWithServiceCache | None = None  
         self._connected = False
+        self._connect_lock = asyncio.Lock()
         self._ack_mgr: Optional[AckManager] = None
         self._device_info: Optional[DeviceInfo] = None
 
     def _disconnected_callback(self, client: BleakClientWithServiceCache) -> None:
         """Called when device disconnects."""
+        if self._client is not None and client is not self._client:
+            # A client replaced by a reconnect can report its disconnect late;
+            # it must not mark the new connection as down.
+            return
         _LOGGER.warning("iPIXEL device %s disconnected", self._address)
         self._connected = False
+
+    async def _drop_client(self) -> None:
+        """Forget the current client so the next connect builds a fresh one.
+
+        A disconnected BleakClient keeps its object but loses its discovered
+        GATT services, so any later write against it fails with "Service
+        Discovery has not been performed yet". Reusing it is never useful.
+        """
+        client = self._client
+        self._client = None
+        self._connected = False
+        self._ack_mgr = None
+        if client is not None:
+            try:
+                await client.disconnect()
+            except Exception as err:  # noqa: BLE001 - the link is already gone
+                _LOGGER.debug("Ignoring disconnect error on stale client: %s", err)
 
     async def connect(self) -> DeviceInfo:
         """Connect to the iPIXEL device.
@@ -112,8 +142,24 @@ class BluetoothClient:
         Raises:
             iPIXELConnectionError: If connection fails
         """
+        async with self._connect_lock:
+            return await self._connect_locked()
+
+    async def _connect_locked(self) -> DeviceInfo:
+        """Connect while holding _connect_lock."""
         _LOGGER.debug("Connecting to iPIXEL device at %s", self._address)
 
+        token = _IN_CONNECT.set(True)
+        try:
+            # Callers reconnect by calling connect() again, so release any
+            # client left over from a dropped link first.
+            await self._drop_client()
+            return await self._connect()
+        finally:
+            _IN_CONNECT.reset(token)
+
+    async def _connect(self) -> DeviceInfo:
+        """Establish the link, enable notifications and read device info."""
         try:
             # Get BLEDevice from Home Assistant's Bluetooth integration
             ble_device = bluetooth.async_ble_device_from_address(
@@ -250,8 +296,32 @@ class BluetoothClient:
         return await self.send_plan(plan)
 
 
+    async def _ensure_connected(self) -> None:
+        """Reconnect if the link dropped since the last command.
+
+        A long transfer (a GIF is thousands of chunks) is enough for the link
+        to drop, and without this every later command fails until the
+        integration is reloaded.
+        """
+        if _IN_CONNECT.get() or self.is_connected:
+            return
+
+        async with self._connect_lock:
+            # Another caller may have reconnected while we waited.
+            if self.is_connected:
+                return
+            _LOGGER.info(
+                "iPIXEL %s is not connected, reconnecting before transfer",
+                self._address,
+            )
+            await self._connect_locked()
+
     async def send_plan(self, plan: SendPlan) -> CommandResult:
         """Send a SendPlan to the device.
+
+        Reconnects a dropped link before transferring, and retries once on a
+        fresh connection if the link fails mid-transfer, since an interrupted
+        image upload otherwise leaves the panel reset.
 
         Args:
             plan: SendPlan object containing windows of command data
@@ -261,7 +331,30 @@ class BluetoothClient:
         """
         if send_plan_pypixelcolor is None:
             raise ImportError("pypixelcolor library is not installed")
-        
+
+        await self._ensure_connected()
+
+        client = self._client
+        try:
+            return await self._send_plan_once(plan)
+        except BleakError as err:
+            if _IN_CONNECT.get():
+                # Failing during connect() is connect()'s error to report.
+                raise
+            _LOGGER.warning(
+                "Transfer to %s failed (%s), reconnecting and retrying once",
+                self._address,
+                err,
+            )
+            async with self._connect_lock:
+                # Skip the reconnect if a concurrent transfer already
+                # replaced the client that failed.
+                if self._client is client:
+                    await self._connect_locked()
+            return await self._send_plan_once(plan)
+
+    async def _send_plan_once(self, plan: SendPlan) -> CommandResult:
+        """Hand the plan to pypixelcolor on the current client."""
         return await send_plan_pypixelcolor(
             client=self._client,
             plan=plan,
