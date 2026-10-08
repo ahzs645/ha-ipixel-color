@@ -280,6 +280,32 @@ def _load_font(size: int):
     return ImageFont.load_default()
 
 
+# Reference glyphs spanning cap height to descender depth, used to place every
+# glyph of a font at one shared vertical offset.
+_LINE_REFERENCE = "Hgjpqy"
+
+
+def _line_offset_y(draw, font, height: int) -> int:
+    """Vertical draw offset shared by every glyph of a font in a cell.
+
+    Centring each glyph on its own ink box puts short letters, descenders and
+    punctuation at different heights (a full stop lands mid-cell), so the text
+    no longer sits on one baseline. Centring the font's whole cap-to-descender
+    span instead keeps the baseline fixed across glyphs.
+
+    Args:
+        draw: ImageDraw used for measuring.
+        font: Loaded PIL font.
+        height: Cell height in pixels.
+
+    Returns:
+        Y offset to draw every glyph at. When the span is taller than the
+        cell, capitals stay whole and the descenders are clipped.
+    """
+    _, top, _, bottom = draw.textbbox((0, 0), _LINE_REFERENCE, font=font)
+    return -top + max(0, (height - (bottom - top)) // 2)
+
+
 def render_glyph_bitmap(
     char: str,
     record_type: int,
@@ -308,10 +334,11 @@ def render_glyph_bitmap(
     img = Image.new("L", (width, height), 0)
     draw = ImageDraw.Draw(img)
 
-    # Centre the glyph inside the fixed cell.
+    # Centre the glyph horizontally in its cell; vertically every glyph shares
+    # the font's offset so the text keeps one baseline.
     bbox = draw.textbbox((0, 0), char, font=font)
     offset_x = -bbox[0] + max(0, (width - (bbox[2] - bbox[0])) // 2)
-    offset_y = -bbox[1] + max(0, (height - (bbox[3] - bbox[1])) // 2)
+    offset_y = _line_offset_y(draw, font, height)
     draw.text((offset_x, offset_y), char, fill=255, font=font)
 
     bitmap = bytearray()
