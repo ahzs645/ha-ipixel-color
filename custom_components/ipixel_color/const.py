@@ -48,6 +48,12 @@ ACK_SECONDS_PER_KB = 2.0
 # Minimum interval between automatic reconnect attempts after a panel
 # advertises again (seconds).
 AUTO_RECONNECT_INTERVAL = 30.0
+# Status pixel: while a display shows no Home Assistant content, one pixel in
+# the top-right corner toggles at this interval as long as HA is connected.
+STATUS_PIXEL_INTERVAL = 10.0
+# Native text animations that boot-loop panels other than 32x32 (ipixel-ctrl findings).
+UNSAFE_TEXT_ANIMATIONS = (3, 4)
+STATUS_PIXEL_COLOR = "00c000"
 BLE_CHUNK_SIZE = 244
 # Through an ESPHome/Shelly Bluetooth proxy 244 byte writes stall and fail with
 # GATT error 133; 100 byte writes are reliable and several times faster.

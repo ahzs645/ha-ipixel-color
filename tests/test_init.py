@@ -319,8 +319,8 @@ async def test_reconnect_clears_and_restores_content(hass: HomeAssistant, fake_b
 
     commands = [f.command for f in panel.frames]
     assert commands[0] == (1, 0x80), "reconnected"
-    assert (3, 0x80) in commands, "cleared"
-    assert commands.index((3, 0x80)) < commands.index((0x02, 0x00)), "cleared before repainting"
+    assert (4, 1) in commands, "cleared (DIY blank)"
+    assert commands.index((4, 1)) < commands.index((0x02, 0x00)), "cleared before repainting"
     assert panel.connect_count == 2
 
     # A panel that never showed HA content is reconnected but left alone.
@@ -354,8 +354,70 @@ async def test_group_repaints_when_a_member_reconnects(hass: HomeAssistant, fake
     fake_bluetooth.advertise(RIGHT)
     await _settle(hass)
     # the wall was cleared and painted again on both panels
-    assert (3, 0x80) in [f.command for f in right.frames]
+    assert (4, 1) in [f.command for f in right.frames]
     assert right.last_image() is not None and left.last_image() is not None
+
+
+async def test_status_pixel_heartbeat_on_empty_display(hass: HomeAssistant, fake_bluetooth, monkeypatch):
+    monkeypatch.setattr("custom_components.ipixel_color.runtime.STATUS_PIXEL_INTERVAL", 0.3)
+    await _setup_panel(hass, fake_bluetooth, LEFT, "Left", "left")
+    panel = fake_bluetooth.panels[LEFT]
+    panel.clear()
+
+    def pixel_frames():
+        return [f for f in panel.frames if f.data[8:10] == bytes([63, 0])]
+
+    await hass.services.async_call(
+        "switch", "turn_on", {ATTR_ENTITY_ID: _entity(hass, "switch", f"{LEFT}_status_pixel")}, blocking=True
+    )
+    await _settle(hass)
+    assert panel.frames_for((4, 1)), "fun mode enabled for pixel drawing"
+    beats = pixel_frames()
+    assert len(beats) >= 2, "the pixel toggles while the display is empty"
+    assert beats[0].data[5:8] != beats[1].data[5:8], "alternating colour"
+
+    # Content stops the heartbeat ...
+    await hass.services.async_call(DOMAIN, "display_text", {"text": "Hi", "mode": "textimage"}, blocking=True)
+    panel.clear()
+    await _settle(hass)
+    assert pixel_frames() == []
+
+    # ... and clearing the display starts it again.
+    await hass.services.async_call(DOMAIN, "clear_display", {}, blocking=True)
+    await _settle(hass)
+    assert len(pixel_frames()) >= 1
+
+    # Switching it off leaves the pixel dark.
+    await hass.services.async_call(
+        "switch", "turn_off", {ATTR_ENTITY_ID: _entity(hass, "switch", f"{LEFT}_status_pixel")}, blocking=True
+    )
+    await _settle(hass)
+    assert pixel_frames()[-1].data[5:8] == bytes([0, 0, 0])
+    count = len(pixel_frames())
+    await _settle(hass)
+    assert len(pixel_frames()) == count
+
+
+async def test_time_sync_keeps_a_switched_off_panel_off(hass: HomeAssistant, fake_bluetooth):
+    await _setup_panel(hass, fake_bluetooth, LEFT, "Left", "left")
+    panel = fake_bluetooth.panels[LEFT]
+    await hass.services.async_call(DOMAIN, "set_power", {"on": False}, blocking=True)
+    panel.clear()
+    await hass.services.async_call(DOMAIN, "sync_time", {}, blocking=True)
+    assert panel.frames[0].command == (1, 0x80), "time sent"
+    assert panel.frames[-1].data == bytes([5, 0, 7, 1, 0]), "power off re-applied"
+
+
+async def test_unsafe_text_animations_are_blocked_on_wide_panels(hass: HomeAssistant, fake_bluetooth):
+    await _setup_panel(hass, fake_bluetooth, LEFT, "Left", "left")  # 64x16
+    with pytest.raises(HomeAssistantError, match="32x32"):
+        await hass.services.async_call(DOMAIN, "display_text", {"text": "Hi", "animation": 3}, blocking=True)
+    assert not fake_bluetooth.panels[LEFT].frames_for((0x00, 0x01))
+    await _setup_panel(hass, fake_bluetooth, RIGHT, "Square", "square", DEVICE_TYPE_32X32)
+    await hass.services.async_call(
+        DOMAIN, "display_text", {"entity_id": _entity(hass, "text", f"{RIGHT}_text_display"), "text": "Hi", "animation": 3}, blocking=True
+    )
+    assert fake_bluetooth.panels[RIGHT].frames_for((0x00, 0x01))
 
 
 async def test_migrate_v1_entry(hass: HomeAssistant, fake_bluetooth):
@@ -388,7 +450,9 @@ async def test_clear_display_and_gif_url(hass: HomeAssistant, fake_bluetooth):
     panel = fake_bluetooth.panels[LEFT]
     panel.clear()
     await hass.services.async_call(DOMAIN, "clear_display", {}, blocking=True)
-    assert panel.frames[-1].data == bytes([4, 0, 3, 0x80])
+    # non-destructive blank (DIY mode 1), never the 0x8003 memory wipe
+    assert panel.frames[-1].data == bytes([5, 0, 4, 1, 1])
+    assert not panel.frames_for((3, 0x80))
 
     # Animated GIF from a URL is uploaded as a GIF resized to the panel.
     frames = [Image.new("RGB", (100, 30), (255, 0, 0)), Image.new("RGB", (100, 30), (0, 255, 0))]
@@ -527,7 +591,7 @@ async def test_deprecated_service_aliases(hass: HomeAssistant, fake_bluetooth, c
     panel = fake_bluetooth.panels[LEFT]
     panel.clear()
     await hass.services.async_call(DOMAIN, "clear_pixels", {}, blocking=True)
-    assert panel.frames[-1].data == bytes([4, 0, 3, 0x80])
+    assert panel.frames[-1].data == bytes([5, 0, 4, 1, 1])
     assert "clear_pixels is deprecated" in caplog.text
 
     await hass.services.async_call(DOMAIN, "set_rhythm_mode_advanced", {"style": 1, "levels": "1,2,3,4,5,6,7,8,9,10,11"}, blocking=True)

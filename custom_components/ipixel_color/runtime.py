@@ -46,7 +46,10 @@ from .const import (
     MODE_TEXT,
     MODE_TEXT_IMAGE,
     ORIENTATION_MAP,
+    STATUS_PIXEL_COLOR,
+    STATUS_PIXEL_INTERVAL,
     TIME_SYNC_INTERVAL_HOURS,
+    UNSAFE_TEXT_ANIMATIONS,
     UPDATE_DEBOUNCE_SECONDS,
 )
 from .display.base import Display
@@ -114,6 +117,7 @@ class DisplaySettings:
     fun_mode: bool = False
     screen_visible: bool = True
     schedule_interval_ms: int = 5000
+    status_pixel: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         """Return a plain dict (for diagnostics)."""
@@ -170,7 +174,11 @@ class iPIXELRuntime:
         self._unsubs: list[CALLBACK_TYPE] = []
         self._last_error: str | None = None
         # Arguments of the last successful render, replayed after a reconnect.
+        # None means the display shows no Home Assistant content (empty).
         self._last_render: tuple[str | None, str | None, dict[str, Any] | None] | None = None
+        self._heartbeat_unsub: CALLBACK_TYPE | None = None
+        self._pixel_lit = False
+        self._fun_mode_ready = False
         self._debouncer = Debouncer(
             hass,
             _LOGGER,
@@ -241,7 +249,7 @@ class iPIXELRuntime:
         self.schedule_manager = iPIXELScheduleManager(self.hass, self)
         await self.schedule_manager.async_load()
 
-        self._unsubs.append(self.display.add_listener(self._notify_listeners))
+        self._unsubs.append(self.display.add_listener(self._on_display_changed))
 
         if isinstance(self.display, PanelDisplay):
             self._unsubs.append(self.display.api.add_reconnect_listener(self._on_reconnected))
@@ -259,6 +267,7 @@ class iPIXELRuntime:
         """Render the restored settings at start-up when auto update is on."""
         if self.settings.auto_update and self.display.is_connected:
             self.hass.async_create_task(self.async_restore_content())
+        self._refresh_status_pixel()
 
     @callback
     def _on_reconnected(self) -> None:
@@ -273,6 +282,8 @@ class iPIXELRuntime:
             _LOGGER.info("%s reconnected; its content was restored", self.name)
         else:
             _LOGGER.debug("%s reconnected; it showed no Home Assistant content", self.name)
+        self._fun_mode_ready = False
+        self._refresh_status_pixel()
 
     async def async_restore_content(self) -> bool:
         """Show again what this display was showing before a link dropped.
@@ -314,6 +325,7 @@ class iPIXELRuntime:
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
+        self._stop_heartbeat()
         self._stop_template_tracking()
         self._debouncer.async_cancel()
         if self.animation_controller is not None:
@@ -357,6 +369,68 @@ class iPIXELRuntime:
         for listener in list(self._listeners):
             listener()
 
+    @callback
+    def _on_display_changed(self) -> None:
+        """A panel connected or dropped: refresh entities and the status pixel."""
+        self._notify_listeners()
+        self._refresh_status_pixel()
+
+    # ------------------------------------------------------------------
+    # Status pixel (heartbeat on an empty display)
+    # ------------------------------------------------------------------
+    @property
+    def is_empty(self) -> bool:
+        """Return True when the display shows no Home Assistant content."""
+        return self._last_render is None
+
+    async def async_clear(self) -> None:
+        """Clear the display; it is empty afterwards (status pixel may appear)."""
+        await self.display.async_clear()
+        self._last_render = None
+        self._fun_mode_ready = True  # the blank command is "enter DIY mode, clear"
+        self._pixel_lit = False
+        self.set_last_frame(None)
+        self._refresh_status_pixel()
+
+    @callback
+    def _refresh_status_pixel(self) -> None:
+        wanted = self.settings.status_pixel and self.is_empty and self.display.available
+        if wanted and self._heartbeat_unsub is None:
+            self._heartbeat_unsub = async_track_time_interval(
+                self.hass, self._async_heartbeat, timedelta(seconds=STATUS_PIXEL_INTERVAL)
+            )
+            self.hass.async_create_task(self._async_heartbeat())
+        elif not wanted and self._heartbeat_unsub is not None:
+            self._stop_heartbeat()
+            if self._pixel_lit and self.is_empty and self.display.available:
+                self.hass.async_create_task(self._async_heartbeat(lit=False))
+
+    @callback
+    def _stop_heartbeat(self) -> None:
+        if self._heartbeat_unsub is not None:
+            self._heartbeat_unsub()
+            self._heartbeat_unsub = None
+
+    async def _async_heartbeat(self, _now: Any = None, *, lit: bool | None = None) -> None:
+        """Toggle the corner pixel; a pixel that stops changing means HA is gone."""
+        if lit is None and not (self.settings.status_pixel and self.is_empty):
+            return
+        if not self.display.available or not self.display.is_connected:
+            return
+        lit = (not self._pixel_lit) if lit is None else lit
+        try:
+            if not self._fun_mode_ready:
+                await self.display.async_set_fun_mode(True)
+                self._fun_mode_ready = True
+            await self.display.async_set_pixels(
+                [{"x": self.display.width - 1, "y": 0, "color": STATUS_PIXEL_COLOR if lit else "000000"}]
+            )
+        except iPIXELError as err:
+            self._fun_mode_ready = False
+            _LOGGER.debug("Status pixel of %s not updated: %s", self.name, err)
+            return
+        self._pixel_lit = lit
+
     # ------------------------------------------------------------------
     # Preview
     # ------------------------------------------------------------------
@@ -392,6 +466,9 @@ class iPIXELRuntime:
         the setting is relevant for the current mode.
         """
         self._notify_listeners()
+        if key == "status_pixel":
+            self._refresh_status_pixel()
+            return
         if key in ("text", "mode", "auto_update"):
             self._refresh_template_tracking()
         if not force and not self.settings.auto_update:
@@ -501,6 +578,9 @@ class iPIXELRuntime:
                 raise
             self._last_error = None
             self._last_render = (text, mode, overrides)
+            self._fun_mode_ready = False
+            self._pixel_lit = False
+            self._refresh_status_pixel()
             self._notify_listeners()
 
     async def _resolve_text(self, text: str | None) -> str:
@@ -570,6 +650,14 @@ class iPIXELRuntime:
             r, g, b = int(bg[0:2], 16) * 333, int(bg[2:4], 16) * 169, int(bg[4:6], 16) * 909
             color = "000100" if g >= r and g >= b else ("000001" if b >= r else "010000")
 
+        animation = int(overrides.get("animation", settings.text_animation))
+        if animation in UNSAFE_TEXT_ANIMATIONS and any(
+            (panel.width, panel.height) != (32, 32) for panel in self.display.panels
+        ):
+            raise iPIXELCommandError(
+                f"Text animation {animation} is only safe on 32x32 panels (it boot-loops other sizes)"
+            )
+
         font = overrides.get("font", settings.font)
         font_size = overrides.get("font_size", settings.font_size)
         # Resolving a font file walks the font directories; keep that off the event loop.
@@ -579,7 +667,7 @@ class iPIXELRuntime:
             "color": color,
             "bg_color": bg_color,
             "font": native_font,
-            "animation": int(overrides.get("animation", settings.text_animation)),
+            "animation": animation,
             "speed": int(overrides.get("speed", settings.text_speed)),
             "rainbow_mode": int(overrides.get("rainbow_mode", settings.text_rainbow)),
             "char_height": int(font_size) if font_size else None,

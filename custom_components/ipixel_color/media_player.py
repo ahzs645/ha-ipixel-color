@@ -108,9 +108,8 @@ class iPIXELMediaPlayer(iPIXELDeviceEntity, MediaPlayerEntity, RestoreEntity):
 
     async def async_media_stop(self) -> None:
         """Clear the display."""
-        await self._async_run(self.runtime.display.async_clear())
+        await self._async_run(self.runtime.async_clear())
         self._state = MediaPlayerState.IDLE
-        self.runtime.set_last_frame(None)
         self.async_write_ha_state()
 
     async def async_turn_on(self) -> None:

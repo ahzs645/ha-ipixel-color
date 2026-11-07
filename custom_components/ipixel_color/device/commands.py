@@ -131,15 +131,24 @@ def make_pixel_command(x: int, y: int, color: str) -> bytes:
 
 
 def make_clear_command() -> bytes:
-    """Build clear display command.
+    """Build the command that blanks the display without erasing anything.
 
-    Command format from pypixelcolor:
-    [4, 0, 3, 0x80]
+    Enters DIY mode with "clear current show" (opcode 0x0104, mode 1):
+    [5, 0, 4, 1, 1]. Saved slots and the device settings stay intact; the
+    next upload or mode command takes over the display again.
 
-    Note: This clears the display content without affecting power state.
+    Opcode 0x8003 ("clear" in pypixelcolor) is NOT a screen clear: it wipes
+    the stored slots and the device settings. See make_erase_all_command().
+    """
+    return make_diy_mode_command(1)
 
-    Returns:
-        Command bytes for clearing display
+
+def make_erase_all_command() -> bytes:
+    """Build the destructive reset command (opcode 0x8003): [4, 0, 3, 0x80].
+
+    pypixelcolor documents it as "removes all stored content from the
+    device's memory, including device settings"; ipixel-ctrl calls it
+    set_default_mode. Use make_clear_command() to blank the screen.
     """
     return bytes([4, 0, 3, 0x80])
 
@@ -221,15 +230,12 @@ def make_upside_down_command(upside_down: bool) -> bytes:
 
 
 def make_default_mode_command() -> bytes:
-    """Build command to reset device to factory default display mode.
+    """Build the factory-default command (opcode 0x8003).
 
-    Command format from ipixel-ctrl (opcode 0x8003):
-    [length, 0, 0x03, 0x80] (no payload)
-
-    Returns:
-        Command bytes for default mode reset
+    DESTRUCTIVE: identical to make_erase_all_command(); it erases every saved
+    slot and the device settings, it does not merely switch display mode.
     """
-    return make_command_payload(0x8003, bytes([]))
+    return make_erase_all_command()
 
 
 def make_erase_data_command(buffers: list[int] | None = None, erase_all: bool = False) -> bytes:

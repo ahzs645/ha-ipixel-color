@@ -628,8 +628,8 @@ set_diy_mode:
           mode: box
 
 set_default_mode:
-  name: Set default mode
-  description: Reset to the factory default display mode.
+  name: Factory reset
+  description: Erases every saved slot and the device settings (opcode 0x8003). Use clear_display to blank the screen.
   target:
     device:
       integration: ipixel_color

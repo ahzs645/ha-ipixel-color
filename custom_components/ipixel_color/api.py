@@ -184,19 +184,27 @@ class iPIXELAPI:
         await self._send("set_upside_down", make_upside_down_command(upside_down))
 
     async def sync_time(self) -> None:
-        """Send the current time to the panel."""
+        """Send the current time; a panel that was switched off stays off.
+
+        Opcode 0x8001 powers the panel on as a side effect, so the hourly sync
+        would otherwise resurrect a display the user turned off.
+        """
         await self._send("set_time", make_time_command())
+        if self._power_state is False:
+            await self.set_power(False)
+
 
     async def set_time(self, hour: int, minute: int, second: int = 0) -> None:
         """Set a specific time on the panel."""
         await self._send("set_time", self._build(make_set_time_command, hour, minute, second))
 
     async def clear_display(self) -> None:
-        """Clear the panel (keeps power state)."""
+        """Blank the panel without touching saved slots or settings."""
         await self._send("clear_display", make_clear_command())
 
     async def set_default_mode(self) -> None:
-        """Reset the panel to its factory default display mode."""
+        """Factory reset: erases every saved slot and the device settings."""
+        _LOGGER.warning("Factory reset sent to %s: stored slots and settings are erased", self._name)
         await self._send("set_default_mode", make_default_mode_command())
 
     async def set_fun_mode(self, enable: bool) -> None:

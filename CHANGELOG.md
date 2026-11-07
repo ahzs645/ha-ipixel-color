@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   advertises again; it is cleared and the content Home Assistant was showing is restored,
   including the combined display it belongs to.
 - Panel option *BLE packet size* (0 = automatic).
+- *Status pixel* switch per display: while the display shows no Home Assistant content, one
+  green pixel in the top-right corner toggles every 10 s as long as HA is connected.
 
 ### Changed
 - BLE writes are 100 bytes through a Bluetooth proxy and 244 bytes on a local adapter, and are
@@ -26,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the synchronised show command, which only goes to panels that received the new content.
 
 ### Fixed
+- **`clear_display` no longer factory-resets the panel.** It sent opcode 0x8003, which
+  pypixelcolor documents as erasing all stored content *and the device settings*; it now sends
+  the non-destructive DIY blank. `set_default_mode` keeps 0x8003 and is labelled as the factory
+  reset it is. (Ported from the ahzs645 fork's protocol review.)
+- The hourly time sync no longer switches a powered-off panel back on (opcode 0x8001 powers the
+  panel on as a side effect; the power state is re-applied).
+- Native text animations 3 and 4 are refused for displays with panels other than 32x32; they
+  boot-loop those panels.
 - `services.yaml` could not be parsed (the `on` field of `set_power` was read as a boolean), so
   the service descriptions were missing in the UI.
 - Works with Home Assistant 2026.x (tested against 2026.2 and 2026.9 / bleak 3): device

@@ -75,5 +75,4 @@ class iPIXELClearButton(iPIXELDeviceEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Clear the display."""
-        await self._async_run(self.runtime.display.async_clear())
-        self.runtime.set_last_frame(None)
+        await self._async_run(self.runtime.async_clear())

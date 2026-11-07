@@ -57,6 +57,14 @@ SETTING_SWITCHES: tuple[iPIXELSettingSwitchDescription, ...] = (
         setting="clock_show_date",
         entity_category=EntityCategory.CONFIG,
     ),
+    iPIXELSettingSwitchDescription(
+        key="status_pixel",
+        translation_key="status_pixel",
+        icon="mdi:circle-small",
+        setting="status_pixel",
+        default=False,
+        entity_category=EntityCategory.CONFIG,
+    ),
 )
 
 

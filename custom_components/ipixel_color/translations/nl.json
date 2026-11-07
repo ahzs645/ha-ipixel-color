@@ -113,6 +113,9 @@
       },
       "screen_visible": {
         "name": "Scherm zichtbaar"
+      },
+      "status_pixel": {
+        "name": "Statuspixel"
       }
     },
     "text": {

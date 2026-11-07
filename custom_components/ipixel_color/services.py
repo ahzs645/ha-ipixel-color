@@ -472,8 +472,7 @@ async def handle_set_pixels(runtime: iPIXELRuntime, call: ServiceCall) -> None:
 
 async def handle_clear_display(runtime: iPIXELRuntime, call: ServiceCall) -> None:
     """Clear the display."""
-    await runtime.display.async_clear()
-    runtime.set_last_frame(None)
+    await runtime.async_clear()
 
 
 async def handle_show_slot(runtime: iPIXELRuntime, call: ServiceCall) -> None:

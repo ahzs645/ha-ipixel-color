@@ -122,6 +122,9 @@
       },
       "screen_visible": {
         "name": "Screen visible"
+      },
+      "status_pixel": {
+        "name": "Status pixel"
       }
     },
     "text": {
