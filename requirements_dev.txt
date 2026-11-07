@@ -3,6 +3,8 @@
 # or: make setup
 #
 # pytest-homeassistant-custom-component pins a matching Home Assistant core.
+# ``make setup`` installs this file with Home Assistant's own
+# package_constraints.txt so bleak, habluetooth, numpy, ... match that core.
 pytest-homeassistant-custom-component>=0.13.100
 tzdata
 
@@ -14,6 +16,7 @@ pypixelcolor>=0.5.0
 # Home Assistant components pulled in by the tests (bluetooth, http, camera, ...)
 bluetooth-adapters
 bluetooth-auto-recovery
+aiousbwatcher
 bluetooth-data-tools
 habluetooth
 dbus-fast
