@@ -248,7 +248,7 @@ set_power:
     entity:
       integration: ipixel_color
   fields:
-    on:
+    "on":
       name: On
       description: true = on, false = off
       required: false
