@@ -129,11 +129,18 @@ class FakeBluetooth:
         return panel
 
     def ble_device(self, hass, address: str, connectable: bool = True):
+        import inspect
+
         from bleak.backends.device import BLEDevice
 
         if address not in self.panels:
             return None
-        return BLEDevice(address, f"LED_BLE_{address[-5:]}", {}, -60)
+        name = f"LED_BLE_{address[-5:]}"
+        # bleak < 1.0 requires a positional ``rssi``; bleak >= 1.0 dropped it
+        # and 3.x rejects it, so only pass it when the constructor accepts it.
+        if "rssi" in inspect.signature(BLEDevice.__init__).parameters:
+            return BLEDevice(address, name, {}, -60)
+        return BLEDevice(address, name, {})
 
     async def establish_connection(self, client_class, device, name, disconnected_callback=None, **kwargs):
         from bleak.exc import BleakError
