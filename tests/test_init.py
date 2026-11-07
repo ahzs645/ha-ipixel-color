@@ -53,7 +53,8 @@ async def test_panel_setup_creates_entities(hass: HomeAssistant, fake_bluetooth)
     assert hass.states.get(_entity(hass, "text", f"{LEFT}_text_display")).state == ""
     assert hass.states.get(_entity(hass, "select", f"{LEFT}_mode_select")).state == "textimage"
 
-    # Connecting only queried the device info; nothing else was sent at startup.
+    # Connecting only queried the device info; nothing else was sent at startup
+    # (auto update is off, so there is nothing to restore).
     assert [f.command for f in panel.frames] == [(1, 0x80)]
 
     device = get_device(hass, LEFT, "left")
@@ -253,6 +254,19 @@ async def test_panel_not_reachable_retries(hass: HomeAssistant, fake_bluetooth):
     assert not await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.SETUP_RETRY
+    # the failed client does not keep listening for advertisements
+    assert fake_bluetooth.callbacks.get(LEFT, []) == []
+
+
+async def test_device_info_failure_is_a_retry_not_an_error(hass: HomeAssistant, fake_bluetooth):
+    """A BLE error right after connecting (while reading device info) must retry setup."""
+    panel = fake_bluetooth.add(LEFT)
+    panel.max_write = 2  # every write fails: the device-info query cannot be sent
+    entry = make_panel_entry(LEFT, "Left", entry_id="left")
+    entry.add_to_hass(hass)
+    assert not await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
 
 
 async def test_reconnect_after_disconnect(hass: HomeAssistant, fake_bluetooth):
@@ -267,6 +281,81 @@ async def test_reconnect_after_disconnect(hass: HomeAssistant, fake_bluetooth):
     await hass.services.async_call(DOMAIN, "set_brightness", {"level": 33}, blocking=True)
     assert panel.connect_count == 2
     assert panel.frames[-1].data == bytes([5, 0, 4, 0x80, 33])
+
+
+async def test_large_writes_fall_back_to_smaller_chunks(hass: HomeAssistant, fake_bluetooth):
+    """A panel that drops the link on big writes gets the image with smaller writes."""
+    await _setup_panel(hass, fake_bluetooth, LEFT, "Left", "left")
+    panel = fake_bluetooth.panels[LEFT]
+    panel.max_write = 100
+    panel.clear()
+
+    await hass.services.async_call(DOMAIN, "display_text", {"text": "Hi", "mode": "textimage"}, blocking=True)
+    assert panel.last_image() is not None and panel.last_image().size == (64, 16)
+    assert panel.rejected_writes >= 1 and panel.connect_count >= 2
+
+    client = hass.data[DOMAIN]["left"].display.api._bluetooth
+    assert client.chunk_size <= 100
+    # The reduced size sticks: the next upload succeeds without another drop.
+    rejected = panel.rejected_writes
+    await hass.services.async_call(DOMAIN, "display_text", {"text": "Yo", "mode": "textimage"}, blocking=True)
+    assert panel.rejected_writes == rejected
+
+
+async def test_reconnect_clears_and_restores_content(hass: HomeAssistant, fake_bluetooth):
+    """When a panel advertises again after a dropped link it is cleared and repainted."""
+    await _setup_panel(hass, fake_bluetooth, LEFT, "Left", "left")
+    panel = fake_bluetooth.panels[LEFT]
+    await hass.services.async_call(DOMAIN, "display_text", {"text": "Hi", "mode": "textimage"}, blocking=True)
+    assert panel.frames_for((0x02, 0x00))
+    assert fake_bluetooth.callbacks[LEFT], "the client watches for advertisements"
+
+    # Link drops (power cycle); the panel advertises again.
+    panel.is_connected = False
+    panel.disconnected_callback(panel)
+    panel.clear()
+    fake_bluetooth.advertise(LEFT)
+    await _settle(hass)
+
+    commands = [f.command for f in panel.frames]
+    assert commands[0] == (1, 0x80), "reconnected"
+    assert (3, 0x80) in commands, "cleared"
+    assert commands.index((3, 0x80)) < commands.index((0x02, 0x00)), "cleared before repainting"
+    assert panel.connect_count == 2
+
+    # A panel that never showed HA content is reconnected but left alone.
+    fake_bluetooth.add(RIGHT)
+    await _setup_panel(hass, fake_bluetooth, RIGHT, "Right", "right")
+    right = fake_bluetooth.panels[RIGHT]
+    right.is_connected = False
+    right.disconnected_callback(right)
+    right.clear()
+    fake_bluetooth.advertise(RIGHT)
+    await _settle(hass)
+    assert [f.command for f in right.frames] == [(1, 0x80)]
+
+
+async def test_group_repaints_when_a_member_reconnects(hass: HomeAssistant, fake_bluetooth):
+    await _setup_panel(hass, fake_bluetooth, LEFT, "Left", "left")
+    await _setup_panel(hass, fake_bluetooth, RIGHT, "Right", "right")
+    group = make_group_entry("Wall", [("left", 0, 0), ("right", 0, 1)], entry_id="wall")
+    group.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(group.entry_id)
+    await hass.async_block_till_done()
+    await hass.services.async_call(
+        DOMAIN, "display_text", {"entity_id": _entity(hass, "text", "group_wall_text_display"), "text": "WALL", "mode": "textimage"}, blocking=True
+    )
+    left, right = fake_bluetooth.panels[LEFT], fake_bluetooth.panels[RIGHT]
+    left.clear()
+    right.clear()
+
+    right.is_connected = False
+    right.disconnected_callback(right)
+    fake_bluetooth.advertise(RIGHT)
+    await _settle(hass)
+    # the wall was cleared and painted again on both panels
+    assert (3, 0x80) in [f.command for f in right.frames]
+    assert right.last_image() is not None and left.last_image() is not None
 
 
 async def test_migrate_v1_entry(hass: HomeAssistant, fake_bluetooth):

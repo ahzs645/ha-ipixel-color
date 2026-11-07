@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
 from PIL import Image
 
+from ..const import PANEL_UPLOAD_CONCURRENCY
 from ..exceptions import iPIXELError, iPIXELNotAvailableError
 from .base import Display
 from .layout import Layout, PanelSpec, Tile, compute_layout
@@ -169,23 +170,70 @@ class CompositeDisplay(Display):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+    async def _gather_results(self, calls: list[tuple[str, Any]]) -> list[BaseException | None]:
+        """Run coroutines concurrently (at most PANEL_UPLOAD_CONCURRENCY at a time)."""
+        limit = asyncio.Semaphore(PANEL_UPLOAD_CONCURRENCY)
+
+        async def _limited(coro: Any) -> Any:
+            async with limit:
+                return await coro
+
+        results = await asyncio.gather(*(_limited(coro) for _, coro in calls), return_exceptions=True)
+        for err in results:
+            if isinstance(err, asyncio.CancelledError):
+                raise err
+        return [err if isinstance(err, BaseException) else None for err in results]
+
+    def _raise_if_all_failed(self, failures: list[tuple[str, BaseException]], total: int) -> None:
+        for name, err in failures:
+            _LOGGER.warning("Panel '%s' of '%s' failed: %s", name, self._name, err)
+        if failures and len(failures) == total:
+            _, first = failures[0]
+            if isinstance(first, iPIXELError):
+                raise first
+            raise iPIXELError(f"All panels of '{self._name}' failed: {first}") from first
+
     async def _gather(self, calls: list[tuple[str, Any]]) -> None:
         """Run coroutines concurrently; log partial failures, raise if all fail."""
         if not calls:
             raise iPIXELNotAvailableError(
                 f"No panels of combined display '{self._name}' are available"
             )
-        results = await asyncio.gather(*(coro for _, coro in calls), return_exceptions=True)
-        failures = [(name, err) for (name, _), err in zip(calls, results) if isinstance(err, BaseException)]
-        for name, err in failures:
-            if isinstance(err, asyncio.CancelledError):
-                raise err
-            _LOGGER.warning("Panel '%s' of '%s' failed: %s", name, self._name, err)
-        if failures and len(failures) == len(calls):
-            _, first = failures[0]
-            if isinstance(first, iPIXELError):
-                raise first
-            raise iPIXELError(f"All panels of '{self._name}' failed: {first}") from first
+        results = await self._gather_results(calls)
+        failures = [(name, err) for (name, _), err in zip(calls, results) if err is not None]
+        self._raise_if_all_failed(failures, len(calls))
+
+    async def _run_on_tiles(
+        self,
+        tiles: list[tuple[Tile, PanelDisplay]],
+        make_call: Callable[[Tile, PanelDisplay], Awaitable[Any]],
+    ) -> list[tuple[Tile, PanelDisplay]]:
+        """Run an upload on every tile; retry the panels that failed once.
+
+        Returns the tiles whose upload succeeded (raises when none did), so a
+        synchronised show-slot command only goes to panels that hold the new content.
+        """
+        if not tiles:
+            raise iPIXELNotAvailableError(
+                f"No panels of combined display '{self._name}' are available"
+            )
+        results = await self._gather_results([(panel.name, make_call(tile, panel)) for tile, panel in tiles])
+        succeeded = [tp for tp, err in zip(tiles, results) if err is None]
+        failed = [(tp, err) for tp, err in zip(tiles, results) if err is not None]
+        if failed:
+            for (_, panel), err in failed:
+                _LOGGER.debug("Panel '%s' of '%s' failed, retrying once: %s", panel.name, self._name, err)
+            retry = await self._gather_results(
+                [(panel.name, make_call(tile, panel)) for (tile, panel), _ in failed]
+            )
+            failures: list[tuple[str, BaseException]] = []
+            for (tp, _), err in zip(failed, retry):
+                if err is None:
+                    succeeded.append(tp)
+                else:
+                    failures.append((tp[1].name, err))
+            self._raise_if_all_failed(failures, len(tiles))
+        return succeeded
 
     async def _broadcast(self, method: str, *args: Any, **kwargs: Any) -> None:
         panels = self.panels
@@ -216,13 +264,25 @@ class CompositeDisplay(Display):
     # Canvas content
     # ------------------------------------------------------------------
     async def async_show_image(self, image: Image.Image, *, save_slot: int = 0) -> None:
-        """Slice a still image over the panels."""
+        """Slice a still image over the panels.
+
+        Like animations, the tiles are first stored in ``sync_slot`` on every
+        panel and then shown with one simultaneous show-slot command, so the
+        whole picture appears at once instead of panel by panel.
+        """
         canvas = self._prepare_canvas(image)
-        calls = [
-            (panel.name, panel.async_show_image(canvas.crop(tile.box), save_slot=save_slot))
-            for tile, panel in self._tiles()
-        ]
-        await self._gather(calls)
+        synchronised = self._sync_slot is not None and not save_slot
+        upload_slot = self._sync_slot if synchronised else save_slot
+        done = await self._run_on_tiles(
+            self._tiles(),
+            lambda tile, panel: panel.async_show_image(canvas.crop(tile.box), save_slot=upload_slot),
+        )
+        if synchronised:
+            await self._async_show_slot_everywhere(done, upload_slot)
+
+    async def _async_show_slot_everywhere(self, tiles: list[tuple[Tile, PanelDisplay]], slot: int) -> None:
+        _LOGGER.debug("Showing slot %d on all panels of '%s'", slot, self._name)
+        await self._gather([(panel.name, panel.async_call("show_slot", slot)) for _, panel in tiles])
 
     async def async_show_gif(
         self,
@@ -241,23 +301,16 @@ class CompositeDisplay(Display):
         as its own upload finishes.
         """
         canvases = [self._prepare_canvas(frame) for frame in frames]
-        tiles = self._tiles()
         synchronised = self._sync_slot is not None and not save_slot
         upload_slot = self._sync_slot if synchronised else save_slot
 
-        calls = []
-        for tile, panel in tiles:
+        def _upload(tile: Tile, panel: PanelDisplay) -> Awaitable[None]:
             tile_frames = [canvas.crop(tile.box) for canvas in canvases]
-            calls.append(
-                (panel.name, panel.async_show_gif(tile_frames, durations, loop=loop, save_slot=upload_slot))
-            )
-        await self._gather(calls)
+            return panel.async_show_gif(tile_frames, durations, loop=loop, save_slot=upload_slot)
 
+        done = await self._run_on_tiles(self._tiles(), _upload)
         if synchronised:
-            _LOGGER.debug("Starting animation from slot %d on all panels of '%s'", upload_slot, self._name)
-            await self._gather(
-                [(panel.name, panel.async_call("show_slot", upload_slot)) for _, panel in tiles]
-            )
+            await self._async_show_slot_everywhere(done, upload_slot)
 
     async def async_show_frame(self, image: Image.Image, brightness: int = 100) -> None:
         """Stream a frame to all panels concurrently."""

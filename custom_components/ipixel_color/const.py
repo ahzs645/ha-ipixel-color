@@ -27,6 +27,7 @@ CONF_SYNC_SLOT = "sync_slot"
 CONF_WIDTH = "width"
 CONF_HEIGHT = "height"
 CONF_ACK_TIMEOUT = "ack_timeout"
+CONF_CHUNK_SIZE = "chunk_size"
 
 ENTRY_TYPE_PANEL = "panel"
 ENTRY_TYPE_GROUP = "group"
@@ -37,8 +38,20 @@ DEFAULT_SYNC_SLOT = 1
 # Connection settings
 CONNECTION_TIMEOUT = 20.0
 MAX_CONNECT_ATTEMPTS = 3
+# How many panels of a combined display are driven at the same time (an
+# ESPHome Bluetooth proxy offers at most 8 connection slots).
+PANEL_UPLOAD_CONCURRENCY = 4
 DEFAULT_ACK_TIMEOUT = 10.0
+# Extra ACK wait per kilobyte of upload: panels decode and store large GIFs
+# before they acknowledge, and a proxy shared by several panels is slower.
+ACK_SECONDS_PER_KB = 2.0
+# Minimum interval between automatic reconnect attempts after a panel
+# advertises again (seconds).
+AUTO_RECONNECT_INTERVAL = 30.0
 BLE_CHUNK_SIZE = 244
+# Through an ESPHome/Shelly Bluetooth proxy 244 byte writes stall and fail with
+# GATT error 133; 100 byte writes are reliable and several times faster.
+BLE_PROXY_CHUNK_SIZE = 100
 BLE_MIN_CHUNK_SIZE = 20
 TIME_SYNC_INTERVAL_HOURS = 1
 

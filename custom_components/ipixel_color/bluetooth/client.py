@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import Awaitable, Callable, Iterable
 from typing import Any
 
@@ -26,15 +27,18 @@ from pypixelcolor.lib.transport.ack_manager import AckManager
 from pypixelcolor.lib.transport.send_plan import SendPlan, single_window_plan
 
 from ..const import (
+    ACK_SECONDS_PER_KB,
+    AUTO_RECONNECT_INTERVAL,
     BLE_CHUNK_SIZE,
     BLE_MIN_CHUNK_SIZE,
+    BLE_PROXY_CHUNK_SIZE,
     DEFAULT_ACK_TIMEOUT,
     MAX_CONNECT_ATTEMPTS,
     NOTIFY_UUID,
     WRITE_UUID,
 )
 from ..device.info import build_device_info_command, handle_device_info_response
-from ..exceptions import iPIXELConnectionError, iPIXELTimeoutError
+from ..exceptions import iPIXELConnectionError, iPIXELError, iPIXELTimeoutError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,13 +62,21 @@ class BluetoothClient:
         name: str | None = None,
         ack_timeout: float = DEFAULT_ACK_TIMEOUT,
         size_override: tuple[int, int] | None = None,
+        chunk_size: int | None = None,
     ) -> None:
-        """Initialise the client."""
+        """Initialise the client.
+
+        ``chunk_size`` forces the BLE write size; by default it depends on
+        whether the panel is reached through a local adapter or a Bluetooth
+        proxy, and it is halved automatically when bulk writes keep failing.
+        """
         self._hass = hass
         self._address = address
         self._name = name or address
         self._ack_timeout = ack_timeout
         self._size_override = size_override
+        self._chunk_override = int(chunk_size) if chunk_size else None
+        self._chunk_limit: int | None = self._chunk_override
 
         self._client: BleakClientWithServiceCache | None = None
         self._ack = AckManager()
@@ -74,6 +86,9 @@ class BluetoothClient:
         self._op_lock = asyncio.Lock()
         self._device_info: DeviceInfo | None = None
         self._listeners: list[Callable[[], None]] = []
+        self._reconnect_listeners: list[Callable[[], None]] = []
+        self._advertisement_unsub: Callable[[], None] | None = None
+        self._last_auto_connect = 0.0
 
     # ------------------------------------------------------------------
     # Properties
@@ -98,6 +113,11 @@ class BluetoothClient:
         """Return the cached device info (kept across reconnects)."""
         return self._device_info
 
+    @property
+    def chunk_size(self) -> int:
+        """Return the current maximum BLE write size."""
+        return self._chunk_limit or BLE_CHUNK_SIZE
+
     @callback
     def async_add_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
         """Register a callback for connection state changes."""
@@ -116,12 +136,72 @@ class BluetoothClient:
             except Exception:  # noqa: BLE001 - never let a listener break the client
                 _LOGGER.exception("Error in connection listener for %s", self._address)
 
+    @callback
+    def async_add_reconnect_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Register a callback for connections made automatically after the panel reappeared."""
+        self._reconnect_listeners.append(listener)
+
+        def _remove() -> None:
+            if listener in self._reconnect_listeners:
+                self._reconnect_listeners.remove(listener)
+
+        return _remove
+
+    # ------------------------------------------------------------------
+    # Automatic reconnection
+    # ------------------------------------------------------------------
+    @callback
+    def _async_watch_advertisements(self) -> None:
+        """Reconnect as soon as the panel advertises again after a dropped link."""
+        if self._advertisement_unsub is not None:
+            return
+        self._advertisement_unsub = bluetooth.async_register_callback(
+            self._hass,
+            self._async_advertisement_seen,
+            bluetooth.BluetoothCallbackMatcher(address=self._address, connectable=True),
+            bluetooth.BluetoothScanningMode.ACTIVE,
+        )
+
+    @callback
+    def _async_stop_watching(self) -> None:
+        if self._advertisement_unsub is not None:
+            self._advertisement_unsub()
+            self._advertisement_unsub = None
+
+    @callback
+    def _async_advertisement_seen(self, _service_info: Any, _change: Any) -> None:
+        if self.is_connected or self._connect_lock.locked():
+            return
+        now = time.monotonic()
+        if now - self._last_auto_connect < AUTO_RECONNECT_INTERVAL:
+            return
+        self._last_auto_connect = now
+        _LOGGER.debug("%s advertises again; reconnecting", self._address)
+        self._hass.async_create_task(self._async_auto_connect())
+
+    async def _async_auto_connect(self) -> None:
+        try:
+            await self.async_connect()
+        except iPIXELError as err:
+            _LOGGER.debug("Automatic reconnect to %s failed: %s", self._address, err)
+            return
+        except Exception:  # noqa: BLE001 - a background attempt must never leave a stray traceback
+            _LOGGER.exception("Unexpected error while reconnecting to %s", self._address)
+            return
+        _LOGGER.info("Reconnected to %s (%s) after it reappeared", self._name, self._address)
+        for listener in list(self._reconnect_listeners):
+            try:
+                listener()
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Error in reconnect listener for %s", self._address)
+
     # ------------------------------------------------------------------
     # Connection management
     # ------------------------------------------------------------------
     async def async_connect(self) -> DeviceInfo:
         """Connect (if needed) and return the device info."""
         async with self._connect_lock:
+            self._async_watch_advertisements()
             if self.is_connected and self._device_info is not None:
                 return self._device_info
 
@@ -137,7 +217,11 @@ class BluetoothClient:
                     "or no connectable adapter/proxy available)"
                 )
 
-            _LOGGER.debug("Connecting to %s (%s)", self._name, self._address)
+            if self._chunk_limit is None:
+                self._chunk_limit = self._default_chunk_limit()
+            _LOGGER.debug(
+                "Connecting to %s (%s), %d byte writes", self._name, self._address, self._chunk_limit
+            )
             try:
                 client = await establish_connection(
                     BleakClientWithServiceCache,
@@ -169,6 +253,11 @@ class BluetoothClient:
 
             try:
                 info = await self._async_fetch_device_info()
+            except (TimeoutError, BleakError, OSError) as err:
+                await self._async_close_locked()
+                raise iPIXELConnectionError(
+                    f"Connected to iPIXEL device {self._address} but could not read its device info: {err}"
+                ) from err
             except Exception:
                 await self._async_close_locked()
                 raise
@@ -184,9 +273,28 @@ class BluetoothClient:
             self._notify_listeners()
             return info
 
+    def _default_chunk_limit(self) -> int:
+        """Pick the write size for the path the panel is reached through."""
+        info = bluetooth.async_last_service_info(self._hass, self._address, connectable=True)
+        if info is not None:
+            scanner = bluetooth.async_scanner_by_source(self._hass, info.source)
+            if isinstance(scanner, bluetooth.BaseHaRemoteScanner):
+                _LOGGER.debug("%s is reached via Bluetooth proxy %s", self._address, info.source)
+                return BLE_PROXY_CHUNK_SIZE
+        return BLE_CHUNK_SIZE
+
+    def _reduce_chunk_size(self) -> bool:
+        """Halve the write size after a failed bulk write; False when at the minimum."""
+        current = self.chunk_size
+        if current <= BLE_MIN_CHUNK_SIZE:
+            return False
+        self._chunk_limit = max(BLE_MIN_CHUNK_SIZE, current // 2)
+        return True
+
     async def async_disconnect(self) -> None:
-        """Disconnect from the device."""
+        """Disconnect from the device and stop reconnecting automatically."""
         async with self._connect_lock:
+            self._async_stop_watching()
             await self._async_close_locked()
         self._notify_listeners()
 
@@ -277,18 +385,34 @@ class BluetoothClient:
         return await self.async_send_plan(plan)
 
     async def async_send_plan(self, plan: SendPlan) -> CommandResult:
-        """Send a (possibly multi-window) plan, connecting first if needed."""
-        await self.async_connect()
-        async with self._op_lock:
-            try:
-                return await self._async_send_locked(plan)
-            except (BleakError, OSError) as err:
-                _LOGGER.warning(
-                    "BLE error while sending '%s' to %s: %s", plan.id, self._address, err
-                )
-                raise iPIXELConnectionError(
-                    f"BLE error while sending '{plan.id}' to {self._address}: {err}"
-                ) from err
+        """Send a (possibly multi-window) plan, connecting first if needed.
+
+        A failed multi-packet write (typically GATT error 133 through a
+        Bluetooth proxy) is retried with half the write size, down to the
+        minimum, before the error is reported.
+        """
+        while True:
+            await self.async_connect()
+            async with self._op_lock:
+                try:
+                    return await self._async_send_locked(plan)
+                except (BleakError, OSError) as err:
+                    chunked = any(len(window.data) > BLE_MIN_CHUNK_SIZE for window in plan.windows)
+                    if chunked and self._reduce_chunk_size():
+                        _LOGGER.warning(
+                            "BLE error while sending '%s' to %s: %s; retrying with %d byte writes",
+                            plan.id,
+                            self._address,
+                            err,
+                            self.chunk_size,
+                        )
+                        continue
+                    _LOGGER.warning(
+                        "BLE error while sending '%s' to %s: %s", plan.id, self._address, err
+                    )
+                    raise iPIXELConnectionError(
+                        f"BLE error while sending '{plan.id}' to {self._address}: {err}"
+                    ) from err
 
     async def _async_send_locked(self, plan: SendPlan) -> CommandResult:
         client = self._client
@@ -311,10 +435,15 @@ class BluetoothClient:
                     await self._async_wait(
                         self._ack.window_event.wait(),
                         f"window {index + 1} of '{plan.id}'",
+                        timeout=self._upload_timeout(len(window.data)),
                     )
 
             if plan.ack_policy.ack_final:
-                await self._async_wait(self._ack.all_event.wait(), f"final ACK of '{plan.id}'")
+                await self._async_wait(
+                    self._ack.all_event.wait(),
+                    f"final ACK of '{plan.id}'",
+                    timeout=self._upload_timeout(sum(len(w.data) for w in plan.windows)),
+                )
 
             if expects_response and self._response_future is not None:
                 data = await self._async_wait(self._response_future, f"response to '{plan.id}'")
@@ -324,11 +453,20 @@ class BluetoothClient:
 
             return CommandResult(success=True)
         finally:
+            future = self._response_future
             self._response_future = None
+            if future is not None and future.done() and not future.cancelled():
+                # A disconnect may have failed the future while the write itself
+                # raised; retrieving the exception keeps asyncio from logging it.
+                future.exception()
 
-    async def _async_wait(self, awaitable: Awaitable[Any], what: str) -> Any:
+    def _upload_timeout(self, size: int) -> float:
+        """ACK timeout that grows with the amount of data the panel has to process."""
+        return self._ack_timeout + size / 1024 * ACK_SECONDS_PER_KB
+
+    async def _async_wait(self, awaitable: Awaitable[Any], what: str, *, timeout: float | None = None) -> Any:
         try:
-            result = await asyncio.wait_for(awaitable, timeout=self._ack_timeout)
+            result = await asyncio.wait_for(awaitable, timeout=timeout or self._ack_timeout)
         except TimeoutError as err:
             raise iPIXELTimeoutError(
                 f"Timeout waiting for {what} from {self._address}"
@@ -337,14 +475,13 @@ class BluetoothClient:
             raise iPIXELConnectionError(f"Connection to {self._address} was lost")
         return result
 
-    @staticmethod
-    def _chunk_size(client: BleakClientWithServiceCache, requested: int) -> int:
-        """Pick a chunk size that fits the negotiated MTU."""
+    def _chunk_size(self, client: BleakClientWithServiceCache, requested: int) -> int:
+        """Pick a chunk size that fits the negotiated MTU and the current limit."""
         try:
             mtu = int(client.mtu_size)
         except Exception:  # noqa: BLE001 - backend specific
             mtu = 0
-        size = requested or BLE_CHUNK_SIZE
+        size = min(requested or BLE_CHUNK_SIZE, self.chunk_size)
         if mtu > 3:
             size = min(size, mtu - 3)
         return max(BLE_MIN_CHUNK_SIZE, min(size, BLE_CHUNK_SIZE))

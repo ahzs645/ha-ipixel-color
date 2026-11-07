@@ -41,6 +41,8 @@ class FakePanel:
     disconnected_callback: Callable[[Any], None] | None = None
     fail_connect: bool = False
     connect_count: int = 0
+    max_write: int | None = None
+    rejected_writes: int = 0
 
     # --- BleakClient interface -------------------------------------------------
     async def start_notify(self, uuid: str, handler) -> None:
@@ -53,10 +55,17 @@ class FakePanel:
         self.is_connected = False
 
     async def write_gatt_char(self, uuid: str, data: bytes, response: bool = True) -> None:
-        if not self.is_connected:
-            from bleak.exc import BleakError
+        from bleak.exc import BleakError
 
+        if not self.is_connected:
             raise BleakError("Not connected")
+        if self.max_write is not None and len(data) > self.max_write:
+            # A proxy drops the link when a write is too large for the panel.
+            self.rejected_writes += 1
+            self.is_connected = False
+            if self.disconnected_callback is not None:
+                self.disconnected_callback(self)
+            raise BleakError("Bluetooth GATT Error handle=6 error=133 description=Error")
         self.buffer += bytes(data)
         while len(self.buffer) >= 2:
             frame_len = int.from_bytes(self.buffer[:2], "little")
@@ -122,6 +131,23 @@ class FakeBluetooth:
 
     def __init__(self) -> None:
         self.panels: dict[str, FakePanel] = {}
+        self.callbacks: dict[str, list] = {}
+
+    def register_callback(self, hass, callback, matcher, mode):
+        """Stand-in for bluetooth.async_register_callback."""
+        address = matcher["address"]
+        self.callbacks.setdefault(address, []).append(callback)
+
+        def _unsub() -> None:
+            if callback in self.callbacks.get(address, []):
+                self.callbacks[address].remove(callback)
+
+        return _unsub
+
+    def advertise(self, address: str) -> None:
+        """Simulate an advertisement of a panel reaching Home Assistant."""
+        for callback in list(self.callbacks.get(address, [])):
+            callback(None, None)
 
     def add(self, address: str, device_type: int = DEVICE_TYPE_64X16) -> FakePanel:
         panel = FakePanel(address=address, device_type=device_type)

@@ -187,6 +187,34 @@ async def test_missing_member_is_skipped():
         await empty.async_show_image(Image.new("RGB", (8, 8)))
 
 
+async def test_failed_panel_is_retried_before_synchronised_show():
+    class FlakyPanel(StubPanel):
+        def __init__(self, *args, fail_times=1, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.fail_times = fail_times
+
+        async def async_show_image(self, image, *, save_slot=0):
+            if self.fail_times:
+                self.fail_times -= 1
+                raise iPIXELError("GATT error 133")
+            self.images.append(image)
+            self.calls.append(("image", save_slot))
+
+    panels = {"left": StubPanel("left", 32, 32), "right": FlakyPanel("right", 32, 32)}
+    composite = make_composite(panels, [MemberSpec("left", 0, 0), MemberSpec("right", 0, 1)], sync_slot=1)
+    await composite.async_show_image(Image.new("RGB", (64, 32)))
+    assert panels["right"].calls == [("image", 1), ("show_slot", (1,))]
+    assert panels["left"].calls == [("show_slot", (1,))]
+
+    # A panel that keeps failing does not get the show-slot command.
+    panels["right"].fail_times = 5
+    for p in panels.values():
+        p.calls.clear()
+    await composite.async_show_image(Image.new("RGB", (64, 32)))
+    assert panels["right"].calls == []
+    assert panels["left"].calls == [("show_slot", (1,))]
+
+
 async def test_gif_synchronised_start_via_slot():
     panels = {"left": StubPanel("left", 32, 32), "right": StubPanel("right", 32, 32)}
     composite = make_composite(panels, [MemberSpec("left", 0, 0), MemberSpec("right", 0, 1)], sync_slot=3)
@@ -202,7 +230,10 @@ async def test_gif_synchronised_start_via_slot():
     await composite.async_show_gif(frames, [50, 50], save_slot=7)
     assert panels["left"].calls == [("gif", 7)]
 
-    # Still images never use the slot.
+    # Still images are synchronised the same way; an explicit slot bypasses it.
     panels["left"].calls.clear()
     await composite.async_show_image(Image.new("RGB", (64, 32)))
+    assert panels["left"].calls == [("show_slot", (3,))]
+    panels["left"].calls.clear()
+    await composite.async_show_image(Image.new("RGB", (64, 32)), save_slot=2)
     assert panels["left"].calls == []

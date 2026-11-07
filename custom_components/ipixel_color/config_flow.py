@@ -32,6 +32,7 @@ from .bluetooth.scanner import discover_ipixel_devices
 from .const import (
     CONF_ACK_TIMEOUT,
     CONF_ADDRESS,
+    CONF_CHUNK_SIZE,
     CONF_COL,
     CONF_ENTRY_TYPE,
     CONF_HEIGHT,
@@ -47,6 +48,7 @@ from .const import (
     DOMAIN,
     ENTRY_TYPE_GROUP,
     ENTRY_TYPE_PANEL,
+    MODE_TEXT_IMAGE,
 )
 from .exceptions import iPIXELError
 
@@ -78,6 +80,38 @@ async def async_validate_panel(hass: HomeAssistant, address: str, name: str) -> 
     finally:
         await api.disconnect()
     return {"width": info.width, "height": info.height}
+
+
+@callback
+def async_show_panel_code(hass: HomeAssistant, entry_id: str) -> None:
+    """Show the last characters of a panel's address on that panel (best effort).
+
+    Used while the user places panels on the grid of a combined display, so
+    it is obvious which physical panel is being asked about.
+    """
+    from . import get_runtime
+
+    runtime = get_runtime(hass, entry_id)
+    if runtime is None or runtime.is_group or not runtime.available:
+        return
+    code = runtime.unique_prefix.replace(":", "")[-4:].upper()
+    width, height = runtime.display.width, runtime.display.height
+    if width >= 3 * height:
+        text, font_size = code, max(6, height - 2)
+    else:
+        text, font_size = f"{code[:2]}\n{code[2:]}", max(6, height // 2 - 2)
+
+    async def _show() -> None:
+        try:
+            await runtime.async_update_display(
+                text,
+                mode=MODE_TEXT_IMAGE,
+                overrides={"text_color": "ffffff", "bg_color": "000000", "font_size": font_size, "effect": "none"},
+            )
+        except iPIXELError as err:
+            _LOGGER.debug("Could not show the code on panel %s: %s", runtime.name, err)
+
+    hass.async_create_task(_show())
 
 
 def _sync_slot_selector() -> NumberSelector:
@@ -397,6 +431,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         entry = self.hass.config_entries.async_get_entry(self._group_pending[0])
         index = len(self._group_members)
+        async_show_panel_code(self.hass, self._group_pending[0])
         return self.async_show_form(
             step_id="group_position",
             data_schema=_position_schema(row=0, col=index),
@@ -445,6 +480,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_ACK_TIMEOUT, default=options.get(CONF_ACK_TIMEOUT, DEFAULT_ACK_TIMEOUT)
                     ): NumberSelector(
                         NumberSelectorConfig(min=2, max=60, step=1, mode=NumberSelectorMode.BOX)
+                    ),
+                    vol.Optional(CONF_CHUNK_SIZE, default=options.get(CONF_CHUNK_SIZE, 0)): NumberSelector(
+                        NumberSelectorConfig(min=0, max=244, step=1, mode=NumberSelectorMode.BOX)
                     ),
                 }
             ),
@@ -518,6 +556,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         entry = self.hass.config_entries.async_get_entry(entry_id)
         index = len(self._group_members)
         previous = current.get(entry_id, {})
+        async_show_panel_code(self.hass, entry_id)
         return self.async_show_form(
             step_id="group_position",
             data_schema=_position_schema(

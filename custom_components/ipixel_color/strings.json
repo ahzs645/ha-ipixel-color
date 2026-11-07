@@ -32,7 +32,7 @@
       },
       "group": {
         "title": "Combined display",
-        "description": "Select the panels that together form one large display. In the next steps you place each panel on a grid (row/column). GIFs are first stored in the given slot on every panel and then started simultaneously so the animation runs in sync on all panels. Panels marked \"new\" are not configured yet and will be added automatically.",
+        "description": "Select the panels that together form one large display. In the next steps you place each panel on a grid (row/column). Images and GIFs are first stored in the given slot on every panel and then shown with one simultaneous command, so the picture appears on all panels at once. While you place the panels, each panel shows the last four characters of its address. Panels marked \"new\" are not configured yet and will be added automatically.",
         "data": {
           "name": "Name",
           "members": "Panels",
@@ -67,16 +67,17 @@
     "step": {
       "panel": {
         "title": "Panel options",
-        "description": "Override the detected size when it is wrong (0 = automatic).",
+        "description": "Override the detected size when it is wrong (0 = automatic). The BLE packet size is chosen automatically (244 bytes on a local adapter, 100 through a Bluetooth proxy) and lowered when uploads fail; set it to force a value.",
         "data": {
           "width": "Width (px)",
           "height": "Height (px)",
-          "ack_timeout": "Command timeout (s)"
+          "ack_timeout": "Command timeout (s)",
+          "chunk_size": "BLE packet size (bytes, 0 = automatic)"
         }
       },
       "group": {
         "title": "Combined display",
-        "description": "Change the panels of this combined display. In the next steps you place each panel on the grid. GIFs are first stored in the given slot on every panel and then started simultaneously so the animation runs in sync on all panels.",
+        "description": "Change the panels of this combined display. In the next steps you place each panel on the grid. Images and GIFs are first stored in the given slot on every panel and then shown with one simultaneous command, so the picture appears on all panels at once. While you place the panels, each panel shows the last four characters of its address.",
         "data": {
           "name": "Name",
           "members": "Panels",

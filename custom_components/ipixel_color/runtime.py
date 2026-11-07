@@ -169,6 +169,8 @@ class iPIXELRuntime:
         self._tracked_template: str | None = None
         self._unsubs: list[CALLBACK_TYPE] = []
         self._last_error: str | None = None
+        # Arguments of the last successful render, replayed after a reconnect.
+        self._last_render: tuple[str | None, str | None, dict[str, Any] | None] | None = None
         self._debouncer = Debouncer(
             hass,
             _LOGGER,
@@ -241,12 +243,71 @@ class iPIXELRuntime:
 
         self._unsubs.append(self.display.add_listener(self._notify_listeners))
 
-        if not self.is_group:
+        if isinstance(self.display, PanelDisplay):
+            self._unsubs.append(self.display.api.add_reconnect_listener(self._on_reconnected))
             self._unsubs.append(
                 async_track_time_interval(
                     self.hass, self._async_hourly_time_sync, timedelta(hours=TIME_SYNC_INTERVAL_HOURS)
                 )
             )
+
+    # ------------------------------------------------------------------
+    # Restoring content after (re)connects
+    # ------------------------------------------------------------------
+    @callback
+    def async_schedule_startup_restore(self) -> None:
+        """Render the restored settings at start-up when auto update is on."""
+        if self.settings.auto_update and self.display.is_connected:
+            self.hass.async_create_task(self.async_restore_content())
+
+    @callback
+    def _on_reconnected(self) -> None:
+        self.hass.async_create_task(self._async_after_reconnect())
+
+    async def _async_after_reconnect(self) -> None:
+        """A panel came back: restore the HA content it (or its combined display) showed."""
+        restored = await self.async_restore_content()
+        for group in self._groups_containing_me():
+            restored = await group.async_restore_content() or restored
+        if restored:
+            _LOGGER.info("%s reconnected; its content was restored", self.name)
+        else:
+            _LOGGER.debug("%s reconnected; it showed no Home Assistant content", self.name)
+
+    async def async_restore_content(self) -> bool:
+        """Show again what this display was showing before a link dropped.
+
+        The display is cleared first so nothing stale remains. With auto update
+        on, the current settings are rendered (templates are re-evaluated);
+        otherwise the last successful render is repeated. A display that never
+        showed Home Assistant content is left alone. Returns True when restored.
+        """
+        if self.settings.auto_update:
+            args: tuple = (None, None, None)
+        elif self._last_render is not None:
+            args = self._last_render
+        else:
+            return False
+        text, mode, overrides = args
+        try:
+            await self.display.async_clear()
+            if not self.settings.power:
+                await self.display.async_set_power(False)
+            await self.async_update_display(text, mode=mode, overrides=overrides)
+        except iPIXELError as err:
+            _LOGGER.warning("Could not restore the content of %s: %s", self.name, err)
+            return False
+        return True
+
+    def _groups_containing_me(self) -> list[iPIXELRuntime]:
+        runtimes = self.hass.data.get(DOMAIN, {}).values()
+        return [
+            runtime
+            for runtime in runtimes
+            if isinstance(runtime, iPIXELRuntime)
+            and isinstance(runtime.display, CompositeDisplay)
+            and any(member.key == self.entry.entry_id for member in runtime.display.members)
+        ]
 
     async def async_shutdown(self) -> None:
         """Stop everything and disconnect."""
@@ -439,6 +500,7 @@ class iPIXELRuntime:
                 self._notify_listeners()
                 raise
             self._last_error = None
+            self._last_render = (text, mode, overrides)
             self._notify_listeners()
 
     async def _resolve_text(self, text: str | None) -> str:

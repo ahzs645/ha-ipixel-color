@@ -32,7 +32,7 @@
       },
       "group": {
         "title": "Gecombineerd scherm",
-        "description": "Selecteer de panelen die samen één groot scherm vormen. In de volgende stappen plaats je elk paneel in een raster (rij/kolom). GIF's worden eerst in het opgegeven slot op elk paneel opgeslagen en daarna tegelijk gestart, zodat de animatie op alle panelen synchroon loopt. Panelen met \"new\" zijn nog niet geconfigureerd en worden automatisch toegevoegd.",
+        "description": "Selecteer de panelen die samen één groot scherm vormen. In de volgende stappen plaats je elk paneel in een raster (rij/kolom). Afbeeldingen en GIF's worden eerst in het opgegeven slot op elk paneel opgeslagen en daarna met één gelijktijdig commando getoond, zodat het beeld op alle panelen tegelijk verschijnt. Tijdens het plaatsen toont elk paneel de laatste vier tekens van zijn adres.",
         "data": {
           "name": "Naam",
           "members": "Panelen",
@@ -67,25 +67,17 @@
     "step": {
       "panel": {
         "title": "Paneelopties",
-        "description": "Overschrijf de gedetecteerde afmeting als die niet klopt (0 = automatisch).",
+        "description": "Overschrijf de gedetecteerde afmeting als die niet klopt (0 = automatisch). De BLE-pakketgrootte wordt automatisch gekozen (244 bytes via een lokale adapter, 100 via een Bluetooth-proxy) en verlaagd als uploads mislukken; vul een waarde in om die af te dwingen.",
         "data": {
           "width": "Breedte (px)",
           "height": "Hoogte (px)",
-          "ack_timeout": "Commando-timeout (s)"
+          "ack_timeout": "Commando-timeout (s)",
+          "chunk_size": "BLE-pakketgrootte (bytes, 0 = automatisch)"
         }
       },
       "group": {
         "title": "Gecombineerd scherm",
-        "description": "Wijzig de panelen van dit gecombineerde scherm. In de volgende stappen plaats je elk paneel in het raster. GIF's worden eerst in het opgegeven slot op elk paneel opgeslagen en daarna tegelijk gestart, zodat de animatie op alle panelen synchroon loopt.",
-        "data": {
-          "name": "Naam",
-          "members": "Panelen",
-          "sync_slot": "Slot voor synchrone animatiestart (0 = uit)"
-        }
-      },
-      "group_position": {
-        "title": "Positie van {panel} ({index}/{total})",
-        "description": "Rij 0 is de bovenste rij, kolom 0 het meest linkse paneel.",
+        "description": "Wijzig de panelen van dit gecombineerde scherm. In de volgende stappen plaats je elk paneel in het raster. Afbeeldingen en GIF's worden eerst in het opgegeven slot op elk paneel opgeslagen en daarna met één gelijktijdig commando getoond, zodat het beeld op alle panelen tegelijk verschijnt. Tijdens het plaatsen toont elk paneel de laatste vier tekens van zijn adres.",
         "data": {
           "row": "Rij",
           "col": "Kolom"

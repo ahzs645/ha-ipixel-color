@@ -68,6 +68,7 @@ class iPIXELAPI:
         name: str | None = None,
         ack_timeout: float = DEFAULT_ACK_TIMEOUT,
         size_override: tuple[int, int] | None = None,
+        chunk_size: int | None = None,
     ) -> None:
         """Initialise the API."""
         self._address = address
@@ -78,6 +79,7 @@ class iPIXELAPI:
             name=self._name,
             ack_timeout=ack_timeout,
             size_override=size_override,
+            chunk_size=chunk_size,
         )
         self._power_state: bool | None = None
 
@@ -120,6 +122,10 @@ class iPIXELAPI:
         """Return the panel height in pixels, if known."""
         info = self.device_info
         return info.height if info else None
+
+    def add_reconnect_listener(self, listener) -> Any:
+        """Register a callback for automatic reconnects (panel came back after a dropped link)."""
+        return self._bluetooth.async_add_reconnect_listener(listener)
 
     def add_connection_listener(self, listener) -> Any:
         """Register a callback for connection state changes."""

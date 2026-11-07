@@ -159,7 +159,38 @@ async def test_panel_options_flow(hass: HomeAssistant, fake_bluetooth):
         result["flow_id"], {"width": 96, "height": 16, "ack_timeout": 15}
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert entry.options == {"width": 96, "height": 16, "ack_timeout": 15}
+    assert entry.options == {"width": 96, "height": 16, "ack_timeout": 15, "chunk_size": 0}
+
+
+async def test_group_options_show_panel_codes(hass: HomeAssistant, fake_bluetooth):
+    """While placing panels on the grid, each panel shows the end of its address."""
+    from homeassistant.config_entries import ConfigEntryState
+
+    panels = {}
+    for address, name, entry_id in (("AA:BB:CC:DD:EE:01", "Left", "left"), ("AA:BB:CC:DD:EE:02", "Right", "right")):
+        panels[entry_id] = fake_bluetooth.add(address)
+        entry = make_panel_entry(address, name, entry_id=entry_id)
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert entry.state is ConfigEntryState.LOADED
+        panels[entry_id].clear()
+    group = make_group_entry("Wall", [("left", 0, 0), ("right", 0, 1)], entry_id="wall")
+    group.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(group.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_NAME: "Wall", CONF_MEMBERS: ["left", "right"]}
+    )
+    await hass.async_block_till_done()
+    assert result["step_id"] == "group_position" and result["description_placeholders"]["panel"] == "Left"
+    assert panels["left"].last_image() is not None, "left panel should show its code"
+    assert panels["right"].last_image() is None
+
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_ROW: 0, CONF_COL: 0})
+    await hass.async_block_till_done()
+    assert result["description_placeholders"]["panel"] == "Right"
+    assert panels["right"].last_image() is not None, "right panel should show its code"
 
 
 async def test_group_flow_aborts_without_panels(hass: HomeAssistant, fake_bluetooth):

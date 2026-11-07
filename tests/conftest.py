@@ -42,6 +42,9 @@ def fake_bluetooth(mock_bluetooth):
     ), patch(
         "custom_components.ipixel_color.bluetooth.client.establish_connection",
         side_effect=fake.establish_connection,
+    ), patch(
+        "custom_components.ipixel_color.bluetooth.client.bluetooth.async_register_callback",
+        side_effect=fake.register_callback,
     ):
         yield fake
 

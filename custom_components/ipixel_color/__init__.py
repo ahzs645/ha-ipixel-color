@@ -21,6 +21,7 @@ from .const import (
     CARD_URL_PATH,
     CONF_ACK_TIMEOUT,
     CONF_ADDRESS,
+    CONF_CHUNK_SIZE,
     CONF_COL,
     CONF_ENTRY_TYPE,
     CONF_HEIGHT,
@@ -104,6 +105,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     await _async_register_frontend(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    runtime.async_schedule_startup_restore()
 
     if kind == ENTRY_TYPE_PANEL:
         # Groups resolve their members lazily; tell them a panel (re)appeared.
@@ -126,10 +128,12 @@ async def _async_create_panel_runtime(hass: HomeAssistant, entry: ConfigEntry) -
         name=name,
         ack_timeout=float(options.get(CONF_ACK_TIMEOUT, DEFAULT_ACK_TIMEOUT)),
         size_override=size_override,
+        chunk_size=int(options.get(CONF_CHUNK_SIZE, 0) or 0) or None,
     )
     try:
         await api.connect()
     except iPIXELError as err:
+        await api.disconnect()  # also stops the client from reconnecting in the background
         raise ConfigEntryNotReady(f"{name} ({address}): {err}") from err
 
     display = PanelDisplay(api, key=entry.entry_id, name=name)
