@@ -264,13 +264,15 @@ They are available for rendered text; for native text mode the built-in
 ## Development
 
 ```bash
-python -m venv .venv && . .venv/bin/activate
-pip install pytest-homeassistant-custom-component pypixelcolor
-pytest
+make setup   # .venv with pytest-homeassistant-custom-component and HA's own dependency pins
+make test    # pytest against a simulated panel, no hardware needed
+make lint    # ruff
 ```
 
-The tests use a simulated panel, no hardware is needed. The Lovelace cards are
-built with `npm run build` in `custom_components/ipixel_color/www`.
+The pytest plugin pins the Home Assistant core the tests run against; releases for
+Home Assistant 2026.3 and newer need Python 3.14 (`make setup PYTHON=python3.14`).
+The Lovelace cards are built with `make card` (`npm run build` in
+`custom_components/ipixel_color/www`).
 
 ## Acknowledgments
 

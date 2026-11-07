@@ -17,6 +17,7 @@ pypixelcolor>=0.5.0
 bluetooth-adapters
 bluetooth-auto-recovery
 aiousbwatcher
+serialx
 bluetooth-data-tools
 habluetooth
 dbus-fast

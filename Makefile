@@ -5,7 +5,11 @@
 #   make format  - ruff --fix
 #   make card    - rebuild the Lovelace card bundle
 #   make clean   - remove caches
+#
+# The pytest plugin pins the Home Assistant core it tests against; releases
+# for Home Assistant 2026.3+ need Python 3.14 (make setup PYTHON=python3.14).
 
+PYTHON ?= python3
 VENV   := .venv
 PY     := $(VENV)/bin/python
 PIP    := $(VENV)/bin/pip
@@ -29,7 +33,7 @@ endif
 setup: $(VENV)/bin/activate
 
 $(VENV)/bin/activate: requirements_dev.txt
-	python3 -m venv $(VENV)
+	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install "pytest-homeassistant-custom-component>=0.13.100"
 	$(PIP) install -r requirements_dev.txt -c $(CONSTRAINTS)

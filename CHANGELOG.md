@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Works with Home Assistant 2026.x: the version check of the Lovelace card no longer reads
-  the manifest on the event loop and native text no longer resolves font files on the event loop.
+- Works with Home Assistant 2026.x (tested against 2026.2 and 2026.9 / bleak 3): device
+  registry lookups use the config-entry scoped API where available, the version check of the
+  Lovelace card no longer reads the manifest on the event loop and native text no longer
+  resolves font files on the event loop.
 - Development setup follows Home Assistant's own dependency pins (`bleak`, `habluetooth`, ...)
-  and installs `aiousbwatcher`; the simulated panel works with bleak 1.x, 2.x and 3.x and
-  `make test` finds `libstdc++` on NixOS.
+  and installs `aiousbwatcher` and `serialx`; the simulated panel works with bleak 1.x, 2.x
+  and 3.x and `make test` finds `libstdc++` on NixOS.
 
 ## [0.2.0] - 2026-09-12
 
