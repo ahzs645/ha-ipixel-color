@@ -4,7 +4,7 @@
   "features": {
     "ghcr.io/devcontainers/features/node:1": { "version": "20" }
   },
-  "postCreateCommand": "pip install -r requirements_dev.txt",
+  "postCreateCommand": "pip install 'pytest-homeassistant-custom-component>=0.13.100' && pip install -r requirements_dev.txt -c \"$(python -c 'import homeassistant, pathlib; print(pathlib.Path(homeassistant.__file__).parent / \"package_constraints.txt\")')\"",
   "customizations": {
     "vscode": {
       "extensions": ["ms-python.python", "charliermarsh.ruff", "redhat.vscode-yaml"],
