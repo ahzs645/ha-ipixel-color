@@ -13,7 +13,7 @@ from homeassistant.helpers import entity_registry as er
 
 from custom_components.ipixel_color.const import DOMAIN
 
-from .conftest import make_group_entry, make_panel_entry
+from .conftest import get_device, make_group_entry, make_panel_entry
 from .fake_panel import DEVICE_TYPE_32X32, DEVICE_TYPE_64X16
 
 LEFT = "AA:BB:CC:DD:EE:01"
@@ -56,7 +56,7 @@ async def test_panel_setup_creates_entities(hass: HomeAssistant, fake_bluetooth)
     # Connecting only queried the device info; nothing else was sent at startup.
     assert [f.command for f in panel.frames] == [(1, 0x80)]
 
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, LEFT)})
+    device = get_device(hass, LEFT, "left")
     assert device is not None and device.model == "LED Matrix 64x16"
 
     assert await hass.config_entries.async_unload(entry.entry_id)
@@ -166,7 +166,7 @@ async def test_service_target_by_device_and_entity(hass: HomeAssistant, fake_blu
     with pytest.raises(HomeAssistantError):
         await hass.services.async_call(DOMAIN, "sync_time", {}, blocking=True)
 
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, RIGHT)})
+    device = get_device(hass, RIGHT, "right")
     await hass.services.async_call(DOMAIN, "set_brightness", {"device_id": device.id, "level": 77}, blocking=True)
     assert right.frames[-1].data == bytes([5, 0, 4, 0x80, 77]) and not left.frames
 
@@ -479,9 +479,8 @@ async def test_service_target_by_area(hass: HomeAssistant, fake_bluetooth):
     await _setup_panel(hass, fake_bluetooth, LEFT, "Left", "left")
     await _setup_panel(hass, fake_bluetooth, RIGHT, "Right", "right")
     area = ar.async_get(hass).async_get_or_create("Living room")
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_device(identifiers={(DOMAIN, RIGHT)})
-    device_registry.async_update_device(device.id, area_id=area.id)
+    device = get_device(hass, RIGHT, "right")
+    dr.async_get(hass).async_update_device(device.id, area_id=area.id)
 
     left, right = fake_bluetooth.panels[LEFT], fake_bluetooth.panels[RIGHT]
     left.clear()
@@ -512,11 +511,10 @@ async def test_panels_are_linked_via_group_device(hass: HomeAssistant, fake_blue
     assert await hass.config_entries.async_setup(group.entry_id)
     await hass.async_block_till_done()
 
-    registry = dr.async_get(hass)
-    group_device = registry.async_get_device(identifiers={(DOMAIN, "group_wall")})
-    for address in (LEFT, RIGHT):
-        assert registry.async_get_device(identifiers={(DOMAIN, address)}).via_device_id == group_device.id
+    group_device = get_device(hass, "group_wall", "wall")
+    for address, entry_id in ((LEFT, "left"), (RIGHT, "right")):
+        assert get_device(hass, address, entry_id).via_device_id == group_device.id
 
     assert await hass.config_entries.async_unload(group.entry_id)
     await hass.async_block_till_done()
-    assert registry.async_get_device(identifiers={(DOMAIN, LEFT)}).via_device_id is None
+    assert get_device(hass, LEFT, "left").via_device_id is None

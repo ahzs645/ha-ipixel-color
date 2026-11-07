@@ -4,6 +4,8 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ipixel_color.const import (
@@ -74,3 +76,12 @@ def make_group_entry(
     if sync_slot is not None:
         data["sync_slot"] = sync_slot
     return MockConfigEntry(domain=DOMAIN, title=name, version=2, entry_id=entry_id, data=data)
+
+
+def get_device(hass: HomeAssistant, identifier: str, entry_id: str) -> dr.DeviceEntry | None:
+    """Return the device of a panel (address) or group (``group_<entry_id>``)."""
+    registry = dr.async_get(hass)
+    # HA 2026.9+ scopes identifiers to a config entry; older versions lack the new lookup.
+    if hasattr(registry, "async_get_device_by_identifier"):
+        return registry.async_get_device_by_identifier((DOMAIN, identifier), entry_id)
+    return registry.async_get_device(identifiers={(DOMAIN, identifier)})
