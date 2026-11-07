@@ -13,6 +13,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
 from .api import iPIXELAPI
 from .const import (
@@ -250,17 +251,16 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
         _LOGGER.warning("Could not serve the iPIXEL Lovelace card: %s", err)
         return
 
-    await _async_add_lovelace_resource(hass, f"{CARD_URL_PATH}?v={_card_version()}")
+    await _async_add_lovelace_resource(hass, f"{CARD_URL_PATH}?v={await _async_card_version(hass)}")
 
 
-def _card_version() -> str:
+async def _async_card_version(hass: HomeAssistant) -> str:
+    """Return the integration version (cache buster for the card URL)."""
     try:
-        import json
-
-        manifest = json.loads((Path(__file__).parent / "manifest.json").read_text())
-        return str(manifest.get("version", "0"))
+        integration = await async_get_integration(hass, DOMAIN)
     except Exception:  # noqa: BLE001
         return "0"
+    return str(integration.version or "0")
 
 
 async def _async_add_lovelace_resource(hass: HomeAssistant, url: str) -> None:

@@ -510,7 +510,8 @@ class iPIXELRuntime:
 
         font = overrides.get("font", settings.font)
         font_size = overrides.get("font_size", settings.font_size)
-        native_font = self._native_font(font)
+        # Resolving a font file walks the font directories; keep that off the event loop.
+        native_font = await self.hass.async_add_executor_job(self._native_font, font)
 
         kwargs = {
             "color": color,
